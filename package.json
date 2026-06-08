@@ -1,0 +1,25 @@
+{
+  "name": "chemquest",
+  "version": "1.0.0",
+  "description": "ChemQuest - a colorful chemistry learning adventure game for Suankularb Wittayalai Nonthaburi School",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node src/seed.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "education",
+    "chemistry",
+    "game",
+    "learning"
+  ],
+  "author": "Suankularb Wittayalai Nonthaburi School",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

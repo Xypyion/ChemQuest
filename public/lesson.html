@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChemQuest — Level</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/character.css" />
+  <link rel="stylesheet" href="/css/lesson.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="logo">🧪</span> ChemQuest</div>
+    <div class="nav-actions">
+      <span class="pill" id="lessonTitlePill">Level</span>
+      <span class="pill" id="diffPill">difficulty</span>
+      <a class="btn ghost" href="/dashboard.html">🗺️ Map</a>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="steps" id="steps"></div>
+    <div class="stage">
+      <div class="stage-card" id="stageCard">
+        <div class="center muted">Loading level…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/character.js"></script>
+  <script src="/js/lesson.js"></script>
+</body>
+</html>

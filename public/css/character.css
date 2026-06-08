@@ -1,0 +1,25 @@
+/* Ruby mascot animations */
+.ruby { display: block; overflow: visible; }
+.ruby-bob { animation: float-y 3s ease-in-out infinite; }
+
+/* blinking eyes */
+.ruby .blink { transform-box: fill-box; transform-origin: center; animation: ruby-blink 4.5s infinite; }
+@keyframes ruby-blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.12); }
+}
+
+/* spinning atom antenna */
+.ruby-atom { transform-box: fill-box; transform-origin: center; animation: ruby-spin 6s linear infinite; }
+@keyframes ruby-spin { to { transform: rotate(360deg); } }
+
+/* waving arm */
+.ruby.wave .arm-r { transform-box: fill-box; transform-origin: 50% 10%; animation: ruby-wave 1.1s ease-in-out infinite; }
+@keyframes ruby-wave {
+  0%, 100% { transform: translate(150px, 120px) rotate(55deg); }
+  50% { transform: translate(150px, 120px) rotate(20deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ruby-bob, .ruby .blink, .ruby-atom, .ruby.wave .arm-r { animation: none !important; }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChemQuest — Teacher Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/teacher.css" />
+</head>
+<body class="teacher">
+  <div class="t-shell">
+    <aside class="t-side" id="side">
+      <div class="t-brand">🧪 ChemQuest</div>
+      <div class="t-role">Teacher Console</div>
+      <nav class="t-nav">
+        <button data-view="lessons" class="active" onclick="setView('lessons')">📚 Lessons &amp; Levels</button>
+        <button data-view="students" onclick="setView('students')">👩‍🎓 Students</button>
+        <button data-view="preview" onclick="openStudentView()">🎮 Play as student</button>
+      </nav>
+      <div class="t-foot">
+        Signed in as<br><b id="teacherName">Teacher</b>
+        <button class="tbtn ghost t-logout" onclick="logout()">Log out</button>
+      </div>
+    </aside>
+
+    <main class="t-main">
+      <button class="tbtn ghost sm menu-toggle" onclick="document.getElementById('side').classList.toggle('open')">☰ Menu</button>
+      <div id="view"></div>
+    </main>
+  </div>
+
+  <div id="modalHost"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/teacher.js"></script>
+</body>
+</html>

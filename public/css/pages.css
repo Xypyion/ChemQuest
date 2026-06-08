@@ -1,0 +1,59 @@
+/* Inventory (certificates) + Leaderboard pages */
+
+.page-title { text-align: center; margin: 18px 0 8px; }
+.page-title h1 { font-size: 2rem; }
+.page-sub { text-align: center; color: var(--ink-soft); margin-bottom: 22px; }
+
+/* ---------------- Certificates ---------------- */
+.cert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 20px; }
+.certificate {
+  position: relative; padding: 24px 20px 20px; border-radius: 20px; text-align: center;
+  background: linear-gradient(150deg, #fffdf3, #fff6df);
+  border: 4px solid var(--sun); box-shadow: var(--shadow-soft); overflow: hidden;
+}
+.certificate::before {
+  content: ''; position: absolute; inset: 6px; border: 2px dashed #f0c64a; border-radius: 14px; pointer-events: none;
+}
+.certificate .seal { font-size: 2.6rem; }
+.certificate .ic { font-size: 2.2rem; }
+.certificate h3 { margin: 6px 0 2px; font-size: 1.1rem; }
+.certificate .who { color: var(--ruby); font-weight: 700; }
+.certificate .meta { color: var(--ink-soft); font-size: .82rem; margin-top: 8px; }
+.certificate .score-badge {
+  position: absolute; top: 10px; right: 10px; background: var(--sun); color: #7a5b00;
+  font-weight: 800; font-size: .72rem; padding: 4px 10px; border-radius: 999px;
+}
+.empty-state { text-align: center; padding: 30px; }
+.empty-state .ruby { margin: 0 auto; }
+
+/* ---------------- Leaderboard ---------------- */
+.podium { display: flex; justify-content: center; align-items: flex-end; gap: 14px; margin: 10px 0 26px; }
+.podium .col { width: 150px; text-align: center; }
+.podium .av { font-size: 2.4rem; }
+.podium .pname { font-weight: 700; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.podium .ppts { font-weight: 800; color: var(--primary); }
+.podium .stand {
+  margin-top: 8px; border-radius: 14px 14px 0 0; color: #fff; font-weight: 800; font-size: 1.6rem;
+  display: grid; place-items: center; box-shadow: var(--shadow-soft);
+}
+.podium .c1 .stand { height: 120px; background: linear-gradient(180deg, #ffd23f, #f0a500); }
+.podium .c2 .stand { height: 92px; background: linear-gradient(180deg, #cfd8e3, #9aa7b8); }
+.podium .c3 .stand { height: 70px; background: linear-gradient(180deg, #e8a86b, #c97f3e); }
+.podium .c1 { order: 2; } .podium .c2 { order: 1; } .podium .c3 { order: 3; }
+
+.lb-list { display: flex; flex-direction: column; gap: 10px; max-width: 640px; margin: 0 auto; }
+.lb-row {
+  display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 16px;
+  padding: 12px 18px; box-shadow: var(--shadow-soft); border: 3px solid #fff;
+}
+.lb-row .rank { font-weight: 800; width: 34px; text-align: center; color: var(--ink-soft); font-size: 1.05rem; }
+.lb-row .av { font-size: 1.6rem; }
+.lb-row .who { flex: 1; min-width: 0; }
+.lb-row .who .n { font-weight: 700; }
+.lb-row .who .s { font-size: .78rem; color: var(--ink-soft); }
+.lb-row .pts { font-weight: 800; color: var(--primary); font-size: 1.1rem; white-space: nowrap; }
+.lb-row.me { border-color: var(--secondary); background: #f1faff; }
+.lb-row.top1 .rank { color: #f0a500; }
+.lb-row .medal { font-size: 1.2rem; width: 34px; text-align: center; }
+.lb-row.lowest { border-color: #ffd2dc; }
+.cheer-tag { font-size: .7rem; background: #ffe1e6; color: #d83a55; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
