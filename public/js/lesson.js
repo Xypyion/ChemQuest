@@ -47,7 +47,7 @@ async function start() {
       lesson.icon + ' ' + lesson.title + (MODE === 'post' ? ' · 🧾' : '');
     const dp = document.getElementById('diffPill');
     dp.className = 'pill ' + lesson.difficulty;
-    dp.textContent = lesson.difficulty.toUpperCase();
+    dp.textContent = tDiff(lesson.difficulty);
 
     phases = [];
     if (MODE === 'pre' && (lesson.storyboard || []).length) phases.push('story');
@@ -320,7 +320,7 @@ async function showResult() {
           <h3>${t('lesson.certTitle')}</h3>
           <div class="who">${escapeHtml(API.user().name)}</div>
           <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
-          <div class="meta">${cert.icon} ${escapeHtml((cert.difficulty || '').toUpperCase())} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
+          <div class="meta">${cert.icon} ${tDiff(cert.difficulty)} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
         </div>
         ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">

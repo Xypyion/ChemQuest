@@ -62,6 +62,7 @@ function renderLessons() {
         <div class="d">📖 ${lines} ${t('t.lines')} · 🎬 ${vids} · ❓ ${qCount} ${t('t.questions')} · 🧾 ${ptCount} · ${l.timeLimit ? '⏱ ' + l.timeLimit + 's' : t('t.noTimer')}</div>
       </div>
       <div class="acts">
+        <button class="tbtn ${gateBtnClass(l)} sm" onclick="openGate('${l.id}')" title="${t('t.access')}">${gateLabel(l)}</button>
         <button class="tbtn ${pt.open ? 'green' : 'ghost'} sm" onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})"
                 title="${pt.open ? t('t.closePostTest') : t('t.openPostTest')}">
           ${pt.open ? '🔓 ' + t('t.postTestShort') + ': ' + t('t.open') : '🔒 ' + t('t.postTestShort')}
@@ -93,6 +94,64 @@ async function togglePostTest(id, open) {
     await reload(); render();
   } catch (e) { toast(e.message, 'bad'); }
 }
+/* ---- per-level access gate ---- */
+function gateMode(l) { return (l.gate && l.gate.mode) || 'auto'; }
+function gateLabel(l) {
+  const m = gateMode(l);
+  return m === 'locked' ? t('t.accessLocked') : m === 'scheduled' ? t('t.accessScheduled') : t('t.accessAuto');
+}
+function gateBtnClass(l) {
+  const m = gateMode(l);
+  return m === 'locked' ? 'danger' : m === 'scheduled' ? 'indigo' : 'ghost';
+}
+function toLocalInput(iso) {
+  const d = new Date(iso); const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function openGate(id) {
+  const l = LESSONS.find((x) => x.id === id);
+  const g = l.gate || { mode: 'auto', openAt: null };
+  const localVal = g.openAt ? toLocalInput(g.openAt) : '';
+  const opt = (val, label, desc) => `
+    <label class="gate-opt ${g.mode === val ? 'on' : ''}">
+      <input type="radio" name="gate-mode" value="${val}" ${g.mode === val ? 'checked' : ''} onchange="syncGateUI()">
+      <span><b>${label}</b><br><span class="sub" style="color:var(--t-soft)">${desc}</span></span>
+    </label>`;
+  openModal(`
+    <h3>${t('t.accessTitle', { title: esc(l.title) })}</h3>
+    <p class="sub" style="color:var(--t-soft);margin-top:-4px">${t('t.accessHint')}</p>
+    ${opt('auto', t('t.gateAuto'), t('t.gateAutoDesc'))}
+    ${opt('locked', t('t.gateLocked'), t('t.gateLockedDesc'))}
+    ${opt('scheduled', t('t.gateScheduled'), t('t.gateScheduledDesc'))}
+    <div id="gate-when" style="${g.mode === 'scheduled' ? '' : 'display:none'};margin-top:6px">
+      <label class="t-label">${t('t.opensAtLabel')}</label>
+      <input id="gate-openat" class="t-input" type="datetime-local" value="${localVal}" style="max-width:260px">
+    </div>
+    <div class="editor-actions" style="border:none;padding-top:14px">
+      <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
+      <button class="tbtn" onclick="saveGate('${id}')">${t('common.save')}</button>
+    </div>`);
+}
+function syncGateUI() {
+  const mode = document.querySelector('input[name=gate-mode]:checked').value;
+  document.getElementById('gate-when').style.display = mode === 'scheduled' ? '' : 'none';
+  document.querySelectorAll('.gate-opt').forEach((el) => el.classList.toggle('on', el.querySelector('input').checked));
+}
+async function saveGate(id) {
+  const mode = document.querySelector('input[name=gate-mode]:checked').value;
+  const body = { mode };
+  if (mode === 'scheduled') {
+    const v = document.getElementById('gate-openat').value;
+    if (!v) { toast(t('t.opensAtLabel'), 'bad'); return; }
+    body.openAt = new Date(v).toISOString();
+  }
+  try {
+    const r = await API.post(`/api/teacher/lessons/${id}/gate`, body);
+    closeModal(); await reload(); render();
+    toast(r.gate.mode === 'scheduled' ? t('t.gateSchedSavedAt', { time: fmtWhen(r.gate.openAt) }) : t('t.gateSaved'), 'good');
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
 function confirmDeleteLesson(id) {
   const l = LESSONS.find((x) => x.id === id);
   openModal(`<h3>${t('t.deleteLevelQ')}</h3><p>${t('t.deleteLevelMsg', { title: esc(l.title) })}</p>

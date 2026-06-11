@@ -24,6 +24,31 @@ function isPass(correct, total) {
   return correct / total >= PASS_RATIO;
 }
 
+/** Does this level have a post-test built (any difficulty)? */
+function hasPostTest(lesson) {
+  const q = lesson && lesson.postTest && lesson.postTest.quizzes;
+  return !!(q && ((q.easy || []).length || (q.medium || []).length || (q.hard || []).length));
+}
+
+/**
+ * Is a level fully completed (so the NEXT one may unlock)?
+ * If the level has a post-test, the student must pass the POST-test.
+ * Otherwise passing the pre-test is enough (keeps post-test-free levels working).
+ */
+function levelDone(lesson, progressEntry) {
+  const p = progressEntry || {};
+  if (hasPostTest(lesson)) return !!(p.post && p.post.passed);
+  return !!p.passed;
+}
+
+/** Teacher access gate: is this level's gate currently open? (separate from progression) */
+function gateOpen(lesson) {
+  const g = (lesson && lesson.gate) || { mode: 'auto' };
+  if (g.mode === 'locked') return false;
+  if (g.mode === 'scheduled') return !!g.openAt && Date.now() >= new Date(g.openAt).getTime();
+  return true; // 'auto'
+}
+
 /**
  * Recalculate a user's point totals from their best lesson scores plus any
  * manual bonus a teacher has applied. Mutates the user object in place.
@@ -46,5 +71,8 @@ module.exports = {
   multiplierFor,
   computeScore,
   isPass,
+  hasPostTest,
+  levelDone,
+  gateOpen,
   recalcPoints,
 };

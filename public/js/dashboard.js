@@ -153,8 +153,13 @@ function buildMap() {
       extra = `<div class="here-bubble">${t('dash.tapToPlay')}</div>`;
     }
     const tagIcon = state === 'done' ? '<span class="ck">✓</span>' : state === 'locked' ? '<span class="lk">🔒</span>' : '';
+    // surface a scheduled-open time right on the locked node
+    if (state === 'locked' && l.lockReason === 'scheduled' && l.opensAt) {
+      extra = `<div class="here-bubble">🗓 ${fmtWhen(l.opensAt)}</div>`;
+    }
     html += `
-      <div class="node ${state}" style="left:${x}px;top:${y}px" data-id="${l.id}" data-state="${state}">
+      <div class="node ${state}" style="left:${x}px;top:${y}px" data-id="${l.id}" data-state="${state}"
+           data-reason="${l.lockReason || ''}" data-opens-at="${l.opensAt || ''}">
         ${extra}
         <div class="model">${model}</div>
         <div class="lvtag">${tagIcon} ${t('dash.lv', { n: i + 1 })}</div>
@@ -167,7 +172,7 @@ function buildMap() {
   scene.querySelectorAll('.node').forEach((node) => {
     node.addEventListener('click', () => {
       if (node.dataset.state === 'locked') {
-        toast(t('dash.lockedToast'), 'bad');
+        toast(lockedToastFor(node.dataset.reason, node.dataset.opensAt), 'bad');
         node.classList.add('shake');
         setTimeout(() => node.classList.remove('shake'), 500);
         return;
@@ -181,6 +186,14 @@ function buildMap() {
     const target = scene.querySelector(`.node[data-id="${LESSONS[currentIdx].id}"]`);
     if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
   }
+}
+
+// Pick the right "why is this locked" message for a node.
+function lockedToastFor(reason, opensAt) {
+  if (reason === 'teacher') return t('dash.lockedTeacher');
+  if (reason === 'scheduled') return t('dash.lockedSchedule', { time: opensAt ? fmtWhen(opensAt) : '' });
+  if (reason === 'posttest') return t('dash.lockedPost');
+  return t('dash.lockedToast');
 }
 
 let rt;

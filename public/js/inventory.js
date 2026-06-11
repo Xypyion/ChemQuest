@@ -37,7 +37,7 @@ mountLangSwitch();
         <div class="muted" style="font-size:.85rem">${t('inv.awardedTo')}</div>
         <div class="who">${escapeHtml(me.name)}</div>
         <div class="meta">
-          <span class="pill ${c.difficulty}">${(c.difficulty || '').toUpperCase()}</span><br>
+          <span class="pill ${c.difficulty}">${tDiff(c.difficulty)}</span><br>
           ${new Date(c.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </div>`).join('') + `</div>`;

@@ -15,6 +15,40 @@ function orderedLessons() {
     .sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
+/**
+ * Decide whether a level is unlocked for this user, and if not, why.
+ * A level is open only when BOTH hold:
+ *   1. the teacher's access gate is open (auto / scheduled-time-reached), and
+ *   2. progression is satisfied (first level, or the PREVIOUS level is fully
+ *      done — which means its post-test passed when it has one).
+ * reason ∈ 'teacher' | 'scheduled' | 'posttest' | 'progress'
+ */
+function unlockInfo(lessons, idx, user) {
+  const lesson = lessons[idx];
+  const g = lesson.gate || { mode: 'auto', openAt: null };
+  if (!game.gateOpen(lesson)) {
+    return { locked: true, reason: g.mode === 'scheduled' ? 'scheduled' : 'teacher', opensAt: g.openAt || null };
+  }
+  if (idx === 0) return { locked: false };
+  const prev = lessons[idx - 1];
+  if (!game.levelDone(prev, (user.progress || {})[prev.id])) {
+    return { locked: true, reason: game.hasPostTest(prev) ? 'posttest' : 'progress' };
+  }
+  return { locked: false };
+}
+
+/** Human-readable lock reason for API errors (the client also localises by reason). */
+function lockMessage(gate) {
+  switch (gate.reason) {
+    case 'teacher': return 'Your teacher has locked this level for now.';
+    case 'scheduled': return gate.opensAt
+      ? 'This level opens at ' + new Date(gate.opensAt).toLocaleString() + '.'
+      : 'Your teacher will open this level soon.';
+    case 'posttest': return 'Pass the previous level’s post-test to unlock this one!';
+    default: return 'Finish the previous level to unlock this one!';
+  }
+}
+
 /** Pick the question set for a difficulty, falling back if it's empty. */
 function quizFor(lesson, difficulty) {
   const q = lesson.quizzes || {};
@@ -77,13 +111,12 @@ function sanitizeQuestion(q, i) {
 router.get('/', (req, res) => {
   const lessons = orderedLessons();
   const progress = req.user.progress || {};
-  let previousCompleted = true; // first level is always unlocked
 
-  const list = lessons.map((lesson) => {
+  const list = lessons.map((lesson, i) => {
     const p = progress[lesson.id] || {};
-    const completed = !!p.passed;
-    const locked = !previousCompleted;
-    const item = {
+    const completed = game.levelDone(lesson, p); // post-test passed when one exists
+    const unlock = unlockInfo(lessons, i, req.user);
+    return {
       id: lesson.id,
       title: lesson.title,
       description: lesson.description,
@@ -94,14 +127,15 @@ router.get('/', (req, res) => {
       storyboardCount: (lesson.storyboard || []).filter((s) => s.type !== 'video').length,
       hasVideo: (lesson.storyboard || []).some((s) => s.type === 'video') || (lesson.media || []).length > 0,
       timeLimit: lesson.timeLimit || 0,
-      locked,
+      locked: unlock.locked,
+      lockReason: unlock.locked ? unlock.reason : null,
+      opensAt: unlock.opensAt || null,
       completed,
+      preDone: !!p.passed,
       bestScore: p.bestScore || 0,
       hasCertificate: (req.user.certificates || []).some((c) => c.lessonId === lesson.id),
       postTest: postTestSummary(lesson, req.user),
     };
-    previousCompleted = completed;
-    return item;
   });
 
   res.json({
@@ -117,14 +151,8 @@ router.get('/:id', (req, res) => {
   const idx = lessons.findIndex((l) => l.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: 'That level does not exist.' });
 
-  // Locked unless the previous level (by order) has been completed.
-  const progress = req.user.progress || {};
-  if (idx > 0) {
-    const prev = lessons[idx - 1];
-    if (!progress[prev.id] || !progress[prev.id].passed) {
-      return res.status(403).json({ error: 'Finish the previous level to unlock this one!' });
-    }
-  }
+  const gate = unlockInfo(lessons, idx, req.user);
+  if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
 
   const lesson = lessons[idx];
   const questions = quizFor(lesson, req.user.difficulty);
@@ -148,10 +176,14 @@ router.get('/:id', (req, res) => {
 
 /* ------------------------------ POST-TEST ------------------------------ */
 
-/** Find a lesson and make sure its post-test is open for students. */
+/** Find a lesson and make sure it is unlocked AND its post-test is open. */
 function openPostTest(req, res) {
-  const lesson = db.findById('lessons', req.params.id);
-  if (!lesson) { res.status(404).json({ error: 'That level does not exist.' }); return null; }
+  const lessons = orderedLessons();
+  const idx = lessons.findIndex((l) => l.id === req.params.id);
+  if (idx === -1) { res.status(404).json({ error: 'That level does not exist.' }); return null; }
+  const gate = unlockInfo(lessons, idx, req.user);
+  if (gate.locked) { res.status(403).json({ error: lockMessage(gate) }); return null; }
+  const lesson = lessons[idx];
   if (!lesson.postTest || !lesson.postTest.open) {
     res.status(403).json({ error: 'The post-test is not open yet. Your teacher will unlock it!' });
     return null;
@@ -256,12 +288,8 @@ router.post('/:id/complete', (req, res) => {
 
   // Re-check the unlock rule on the server.
   const progress = (req.user.progress = req.user.progress || {});
-  if (idx > 0) {
-    const prev = lessons[idx - 1];
-    if (!progress[prev.id] || !progress[prev.id].passed) {
-      return res.status(403).json({ error: 'This level is still locked.' });
-    }
-  }
+  const gate = unlockInfo(lessons, idx, req.user);
+  if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
 
   const questions = quizFor(lesson, req.user.difficulty);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];

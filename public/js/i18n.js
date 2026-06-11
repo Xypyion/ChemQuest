@@ -23,6 +23,9 @@ const I18N = {
     'common.send': 'Send',
     'common.oops': 'Oops!',
     'common.langSwitch': 'Language',
+    'diff.easy': 'EASY',
+    'diff.medium': 'MEDIUM',
+    'diff.hard': 'HARD',
 
     /* ---- welcome ---- */
     'welcome.title': 'ChemQuest — Chemistry Learning Adventure',
@@ -53,6 +56,9 @@ const I18N = {
     'dash.progress': '{done} of {total} levels completed — keep exploring!',
     'dash.tapToPlay': '▶ Tap to play!',
     'dash.lockedToast': '🔒 Finish the level above to unlock this one!',
+    'dash.lockedPost': '🔒 Pass the previous level’s post-test to unlock this one!',
+    'dash.lockedTeacher': '🔒 Your teacher hasn’t opened this level yet.',
+    'dash.lockedSchedule': '🗓 This level opens {time}.',
     'dash.start': '🎒 START',
     'dash.summit': 'THE SUMMIT',
     'dash.lv': 'Lv.{n}',
@@ -76,6 +82,8 @@ const I18N = {
     'board.postTestDone': '✅ Done — best score {score}',
     'board.postTestNoQ': 'No post-test for this level yet.',
     'board.welcome': 'Welcome to the level board! Pick what to do next.',
+    'board.play': 'PLAY ▶',
+    'board.go': 'GO ▶',
 
     /* ---- lesson player ---- */
     'lesson.loading': 'Loading level…',
@@ -259,6 +267,21 @@ const I18N = {
     't.pwResetDone': 'Password reset! Tell {name} the new password. 🔑',
     't.boardFor': '📒 Assignment board — {title}',
     't.boardSub': 'Post assignments, and see every student post, comment, file and private question.',
+    't.access': 'Access',
+    't.accessAuto': '🔓 Auto',
+    't.accessLocked': '🔒 Locked',
+    't.accessScheduled': '🗓 Scheduled',
+    't.accessTitle': 'Level access — {title}',
+    't.accessHint': 'Control when students can reach this level. Even on “Auto”, students still need to pass the previous level’s post-test first.',
+    't.gateAuto': 'Auto (normal progression)',
+    't.gateAutoDesc': 'Unlocks once the student passes the previous level’s post-test.',
+    't.gateLocked': 'Locked',
+    't.gateLockedDesc': 'Always locked until you change this — even if the student qualifies.',
+    't.gateScheduled': 'Open on a schedule',
+    't.gateScheduledDesc': 'Stays locked until the date & time you pick below.',
+    't.opensAtLabel': 'Opens at',
+    't.gateSaved': 'Level access updated.',
+    't.gateSchedSavedAt': 'Level opens {time}.',
   },
 
   th: {
@@ -276,6 +299,9 @@ const I18N = {
     'common.send': 'ส่ง',
     'common.oops': 'อุ๊ปส์!',
     'common.langSwitch': 'ภาษา',
+    'diff.easy': 'ง่าย',
+    'diff.medium': 'ปานกลาง',
+    'diff.hard': 'ยาก',
 
     /* ---- welcome ---- */
     'welcome.title': 'ChemQuest — การผจญภัยเรียนรู้วิชาเคมี',
@@ -306,6 +332,9 @@ const I18N = {
     'dash.progress': 'ผ่านแล้ว {done} จาก {total} ด่าน — ลุยต่อเลย!',
     'dash.tapToPlay': '▶ แตะเพื่อเล่น!',
     'dash.lockedToast': '🔒 ผ่านด่านก่อนหน้าก่อน จึงจะปลดล็อกด่านนี้!',
+    'dash.lockedPost': '🔒 ต้องผ่านแบบทดสอบหลังเรียนของด่านก่อนหน้า จึงจะปลดล็อกด่านนี้!',
+    'dash.lockedTeacher': '🔒 คุณครูยังไม่เปิดด่านนี้',
+    'dash.lockedSchedule': '🗓 ด่านนี้จะเปิด {time}',
     'dash.start': '🎒 จุดเริ่มต้น',
     'dash.summit': 'ยอดเขา',
     'dash.lv': 'ด่าน {n}',
@@ -329,6 +358,8 @@ const I18N = {
     'board.postTestDone': '✅ ทำแล้ว — คะแนนดีที่สุด {score}',
     'board.postTestNoQ': 'ด่านนี้ยังไม่มีแบบทดสอบหลังเรียน',
     'board.welcome': 'ยินดีต้อนรับสู่กระดานประจำด่าน! เลือกได้เลยว่าจะทำอะไรต่อ',
+    'board.play': 'เล่น ▶',
+    'board.go': 'ไปเลย ▶',
 
     /* ---- lesson player ---- */
     'lesson.loading': 'กำลังโหลดด่าน…',
@@ -512,6 +543,21 @@ const I18N = {
     't.pwResetDone': 'รีเซ็ตรหัสผ่านแล้ว! อย่าลืมบอกรหัสใหม่ให้ {name} 🔑',
     't.boardFor': '📒 กระดานส่งงาน — {title}',
     't.boardSub': 'โพสต์งานที่มอบหมาย และดูทุกโพสต์ ความคิดเห็น ไฟล์แนบ และคำถามส่วนตัวของนักเรียน',
+    't.access': 'การเข้าด่าน',
+    't.accessAuto': '🔓 อัตโนมัติ',
+    't.accessLocked': '🔒 ล็อก',
+    't.accessScheduled': '🗓 ตั้งเวลา',
+    't.accessTitle': 'การเข้าด่าน — {title}',
+    't.accessHint': 'ควบคุมว่านักเรียนจะเข้าด่านนี้ได้เมื่อไร แม้จะตั้งเป็น “อัตโนมัติ” นักเรียนก็ยังต้องผ่านแบบทดสอบหลังเรียนของด่านก่อนหน้าก่อนอยู่ดี',
+    't.gateAuto': 'อัตโนมัติ (ตามลำดับปกติ)',
+    't.gateAutoDesc': 'ปลดล็อกเมื่อนักเรียนผ่านแบบทดสอบหลังเรียนของด่านก่อนหน้า',
+    't.gateLocked': 'ล็อกไว้',
+    't.gateLockedDesc': 'ล็อกไว้เสมอจนกว่าคุณจะเปลี่ยน แม้นักเรียนจะผ่านเกณฑ์แล้วก็ตาม',
+    't.gateScheduled': 'เปิดตามเวลาที่ตั้ง',
+    't.gateScheduledDesc': 'ล็อกไว้จนถึงวันและเวลาที่คุณเลือกด้านล่าง',
+    't.opensAtLabel': 'เปิดเมื่อ',
+    't.gateSaved': 'อัปเดตการเข้าด่านแล้ว',
+    't.gateSchedSavedAt': 'ด่านจะเปิด {time}',
   },
 };
 
@@ -534,6 +580,16 @@ function t(key, vars) {
   let s = (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
   if (vars) for (const k of Object.keys(vars)) s = s.split('{' + k + '}').join(vars[k]);
   return s;
+}
+
+/** Localised difficulty label (easy/medium/hard → EASY / ง่าย, etc.). */
+function tDiff(d) { return t('diff.' + String(d || '').toLowerCase()); }
+
+/** Format an ISO datetime in the active locale (used for scheduled-open times). */
+function fmtWhen(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString(getLang() === 'th' ? 'th-TH' : undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 /** Translate static HTML annotated with data-i18n attributes. */

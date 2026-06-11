@@ -85,6 +85,10 @@ function normalizeLesson(body, existing) {
       hard: (ptq.hard || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
     },
   };
+
+  // Per-level access gate (managed via its own endpoint; default to auto).
+  if (!lesson.gate) lesson.gate = { mode: 'auto', openAt: null };
+
   lesson.updatedAt = new Date().toISOString();
   return lesson;
 }
@@ -144,6 +148,23 @@ router.post('/lessons/:id/move', (req, res) => {
   b.order = tmp;
   db.save();
   res.json({ ok: true });
+});
+
+/** Set a level's access gate: auto (normal progression), locked, or scheduled. */
+router.post('/lessons/:id/gate', (req, res) => {
+  const lesson = db.findById('lessons', req.params.id);
+  if (!lesson) return res.status(404).json({ error: 'Level not found.' });
+  const body = req.body || {};
+  const mode = ['auto', 'locked', 'scheduled'].includes(body.mode) ? body.mode : 'auto';
+  let openAt = null;
+  if (mode === 'scheduled') {
+    const ts = Date.parse(body.openAt);
+    if (Number.isNaN(ts)) return res.status(400).json({ error: 'Please pick a valid date & time.' });
+    openAt = new Date(ts).toISOString();
+  }
+  lesson.gate = { mode, openAt };
+  db.save();
+  res.json({ ok: true, gate: lesson.gate });
 });
 
 /** Open or close the post-test for every student on this level. */

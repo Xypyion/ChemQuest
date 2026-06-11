@@ -21,7 +21,7 @@ async function init() {
     document.getElementById('lessonTitlePill').textContent = lesson.icon + ' ' + lesson.title;
     const dp = document.getElementById('diffPill');
     dp.className = 'pill ' + lesson.difficulty;
-    dp.textContent = lesson.difficulty.toUpperCase();
+    dp.textContent = tDiff(lesson.difficulty);
     render();
   } catch (e) { boardEl.innerHTML = errBox(e.message); }
 }
@@ -62,7 +62,7 @@ function render() {
     // 1) Start the level (story + video + pre-test)
     const preState = lesson.preDone
       ? `<span class="bi-state done">${t('board.preDone', { score: lesson.preBestScore })}</span>`
-      : `<span class="bi-state go">PLAY ▶</span>`;
+      : `<span class="bi-state go">${t('board.play')}</span>`;
     const preSub = lesson.preDone ? t('board.replay') : t('board.startLevelSub');
 
     // 2) Assignments
@@ -71,7 +71,7 @@ function render() {
     let ptSub, ptState, ptCls = '';
     if (ptOpen) {
       ptSub = pt.done ? t('board.postTestDone', { score: pt.bestScore }) : t('board.postTestOpenSub');
-      ptState = pt.done ? `<span class="bi-state done">✓</span>` : `<span class="bi-state go">GO ▶</span>`;
+      ptState = pt.done ? `<span class="bi-state done">✓</span>` : `<span class="bi-state go">${t('board.go')}</span>`;
     } else {
       ptCls = 'locked';
       ptSub = pt.questionCount === 0 && pt.open ? t('board.postTestNoQ') : t('board.postTestLockedSub');

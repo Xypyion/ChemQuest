@@ -258,6 +258,8 @@ function seedIfEmpty() {
       timeLimit: 0,
       // Post-test starts empty and locked; the teacher builds and opens it.
       postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
+      // Access gate: 'auto' follows normal progression; teacher may lock/schedule.
+      gate: { mode: 'auto', openAt: null },
       ...lesson,
     });
   });

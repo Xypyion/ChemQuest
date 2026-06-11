@@ -64,6 +64,12 @@ body.teacher {
 .tbtn.sm { padding: 6px 11px; font-size: .82rem; border-radius: 8px; }
 .tbtn:disabled { opacity: .5; cursor: not-allowed; }
 
+/* level-access gate modal options */
+.gate-opt { display: flex; gap: 10px; align-items: flex-start; border: 2px solid #e7e9f3; border-radius: 12px; padding: 10px 12px; margin: 8px 0; cursor: pointer; }
+.gate-opt.on { border-color: var(--t-blue); background: #f3f8ff; }
+.gate-opt input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.gate-opt .sub { font-size: .82rem; }
+
 /* language switch lives in the dark sidebar */
 .t-side .lang-switch { background: rgba(255,255,255,.14); box-shadow: none; }
 .t-side .lang-switch button { color: rgba(255,255,255,.75); }
