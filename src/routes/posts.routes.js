@@ -152,11 +152,13 @@ router.post('/:id/like', (req, res) => {
   res.json({ likes: post.likes.length, likedByMe: i === -1 });
 });
 
-/** POST /api/posts/:id/question — a student's PRIVATE question to the teacher. */
+/** POST /api/posts/:id/question — a student's PRIVATE question to the teacher.
+ *  Only allowed on a teacher's assignment post (not on other students' posts). */
 router.post('/:id/question', (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ error: 'Only students send private questions.' });
   const post = db.findById('posts', req.params.id);
   if (!post) return res.status(404).json({ error: 'Post not found.' });
+  if (!post.isAssignment) return res.status(403).json({ error: 'You can only ask the teacher on an assignment post.' });
   const text = ((req.body || {}).text || '').toString().trim().slice(0, MAX_TEXT);
   if (!text) return res.status(400).json({ error: 'Question cannot be empty.' });
   post.questions = post.questions || [];

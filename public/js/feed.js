@@ -115,7 +115,8 @@ const Feed = (() => {
           ${p.questions.map((qq) => `<div class="pq-item"><span>${escapeHtml(qq.author.avatar)}</span><b>${escapeHtml(qq.author.name)}:</b><span>${escapeHtml(qq.text)}</span></div>`).join('')}
         </div>`;
       }
-    } else {
+    } else if (p.isAssignment) {
+      // The private "ask the teacher" box only appears on the teacher's assignment post.
       const mine = (p.questions || []).map((qq) => `<div class="mine">🙋 ${escapeHtml(qq.text)}</div>`).join('');
       privateBlock = `<div class="ask-teacher">
         <div class="at-note">${t('feed.askTeacherNote')}</div>
