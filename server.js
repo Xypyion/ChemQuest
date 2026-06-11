@@ -24,6 +24,7 @@ app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/lessons', require('./src/routes/lessons.routes'));
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
+app.use('/api/posts', require('./src/routes/posts.routes'));
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route.' }));
 
@@ -36,6 +37,8 @@ app.use((err, req, res, next) => {
 
 // ---- Front-end (static cartoony pages) ----
 app.use(express.static(path.join(__dirname, 'public')));
+// Assignment attachments uploaded to the board.
+app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
 
 // Seed the teacher + sample levels on first run, then start listening.
 seedIfEmpty();

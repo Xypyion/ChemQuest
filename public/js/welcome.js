@@ -1,7 +1,9 @@
 // Welcome page: tabs, difficulty picker, login & signup.
 
 addClouds();
+mountLangSwitch().classList.add('floating');
 document.getElementById('rubyStage').innerHTML = renderRuby('wave', { size: 230, float: true });
+document.title = t('welcome.title');
 
 // If already logged in, skip straight to the right place.
 (function () {
@@ -49,7 +51,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       password: document.getElementById('loginPassword').value,
     });
     API.setSession(token, user);
-    toast(`Welcome back, ${user.name}! 🎉`, 'good');
+    toast(t('welcome.welcomeBack', { name: user.name }), 'good');
     setTimeout(() => goHome(user), 400);
   } catch (err) {
     errEl.textContent = err.message;
@@ -76,7 +78,7 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     });
     API.setSession(token, user);
     confetti();
-    toast(`Adventure starts now, ${user.name}! 🎒`, 'good');
+    toast(t('welcome.adventureStarts', { name: user.name }), 'good');
     setTimeout(() => goHome(user), 700);
   } catch (err) {
     errEl.textContent = err.message;

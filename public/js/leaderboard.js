@@ -2,6 +2,7 @@
 
 const me = guard('student');
 addClouds();
+mountLangSwitch();
 if (me) document.getElementById('navPoints').textContent = me.points || 0;
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -14,7 +15,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
     if (!leaderboard.length) {
       podium.innerHTML = '';
-      list.innerHTML = `<p class="center muted">No explorers on the board yet. Be the first! 🚀</p>`;
+      list.innerHTML = `<p class="center muted">${t('lb.none')}</p>`;
       return;
     }
 
@@ -23,8 +24,8 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
     podium.innerHTML = top3.map((s) => `
       <div class="col c${s.rank}">
         <div class="av">${s.avatar}</div>
-        <div class="pname">${escapeHtml(s.name)}${s.id === meId ? ' (you)' : ''}</div>
-        <div class="ppts">${s.points} pts</div>
+        <div class="pname">${escapeHtml(s.name)}${s.id === meId ? t('lb.youSuffix') : ''}</div>
+        <div class="ppts">${s.points} ${t('nav.pts')}</div>
         <div class="stand">${MEDALS[s.rank] || s.rank}</div>
       </div>`).join('');
 
@@ -39,11 +40,11 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
         <div class="rank">#${s.rank}</div>
         <div class="av">${s.avatar}</div>
         <div class="who">
-          <div class="n">${escapeHtml(s.name)} ${isMe ? '<span class="pill" style="padding:1px 8px;font-size:.7rem">YOU</span>' : ''}</div>
+          <div class="n">${escapeHtml(s.name)} ${isMe ? `<span class="pill" style="padding:1px 8px;font-size:.7rem">${t('lb.you')}</span>` : ''}</div>
           <div class="s">
             <span class="pill ${s.difficulty}" style="padding:1px 8px;font-size:.7rem">${(s.difficulty || '').toUpperCase()}</span>
-            · ${s.levelsCompleted} level${s.levelsCompleted === 1 ? '' : 's'} · ${s.certificates} 🎖️
-            ${isLowest ? '<span class="cheer-tag">needs a cheer! 💪</span>' : ''}
+            · ${t('lb.levels', { n: s.levelsCompleted, s: s.levelsCompleted === 1 ? '' : 's' })} · ${s.certificates} 🎖️
+            ${isLowest ? `<span class="cheer-tag">${t('lb.cheer')}</span>` : ''}
           </div>
         </div>
         <div class="pts">${s.points}</div>

@@ -1,17 +1,23 @@
-// Lesson player: walk the ordered storyboard (lines + inline videos), then the
-// quiz (with an optional countdown timer), then the results + certificate.
+// Lesson player. Two modes, chosen from the level board:
+//   ?mode=pre  (default) — storyboard (lines + inline videos) → pre-test → results
+//   ?mode=post           — the teacher-opened post-test → results (no certificate)
+// Both honour an optional countdown timer and return to the level board.
 
 guard('student');
 addClouds();
+mountLangSwitch();
 
 const params = new URLSearchParams(location.search);
 const LESSON_ID = params.get('id');
+const MODE = params.get('mode') === 'post' ? 'post' : 'pre';
 const card = document.getElementById('stageCard');
 
+const BOARD_URL = '/level.html?id=' + encodeURIComponent(LESSON_ID || '');
+
 const PHASE_META = {
-  story: { icon: '📖', label: 'Story' },
-  quiz: { icon: '❓', label: 'Quiz' },
-  result: { icon: '🏆', label: 'Certificate' },
+  story: { icon: '📖', label: () => t('lesson.phase.story') },
+  quiz: { icon: '❓', label: () => (MODE === 'post' ? t('lesson.phase.posttest') : t('lesson.phase.quiz')) },
+  result: { icon: '🏆', label: () => t('lesson.phase.result') },
 };
 
 let lesson = null;
@@ -30,17 +36,21 @@ let timeExpired = false;
 start();
 
 async function start() {
-  if (!LESSON_ID) { card.innerHTML = errorBox('No level was selected.'); return; }
+  if (!LESSON_ID) { card.innerHTML = errorBox(t('lesson.noLevel')); return; }
   try {
-    const data = await API.get('/api/lessons/' + encodeURIComponent(LESSON_ID));
+    const path = MODE === 'post'
+      ? `/api/lessons/${encodeURIComponent(LESSON_ID)}/posttest`
+      : '/api/lessons/' + encodeURIComponent(LESSON_ID);
+    const data = await API.get(path);
     lesson = data.lesson;
-    document.getElementById('lessonTitlePill').textContent = lesson.icon + ' ' + lesson.title;
+    document.getElementById('lessonTitlePill').textContent =
+      lesson.icon + ' ' + lesson.title + (MODE === 'post' ? ' · 🧾' : '');
     const dp = document.getElementById('diffPill');
     dp.className = 'pill ' + lesson.difficulty;
     dp.textContent = lesson.difficulty.toUpperCase();
 
     phases = [];
-    if ((lesson.storyboard || []).length) phases.push('story');
+    if (MODE === 'pre' && (lesson.storyboard || []).length) phases.push('story');
     if ((lesson.questions || []).length) phases.push('quiz');
     phases.push('result');
     answers = new Array((lesson.questions || []).length).fill(null);
@@ -54,9 +64,10 @@ async function start() {
 function errorBox(msg) {
   return `<div class="center stack">
     <div>${renderRuby('sad', { size: 150 })}</div>
-    <h2>Oops!</h2>
+    <h2>${t('common.oops')}</h2>
     <p class="muted">${escapeHtml(msg)}</p>
-    <a class="btn secondary" href="/dashboard.html">🗺️ Back to Map</a>
+    <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
+    <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
   </div>`;
 }
 
@@ -64,7 +75,7 @@ function renderSteps() {
   document.getElementById('steps').innerHTML = phases.map((p, i) => {
     const m = PHASE_META[p];
     const cls = i < cur ? 'done' : i === cur ? 'active' : '';
-    return `<div class="step ${cls}">${m.icon} ${m.label}</div>`;
+    return `<div class="step ${cls}">${m.icon} ${m.label()}</div>`;
   }).join('');
 }
 
@@ -82,8 +93,8 @@ async function goPhase(idx) {
 
 function nextPhaseLabel() {
   const next = phases[cur + 1];
-  if (next === 'quiz') return 'Start the Quiz ❓';
-  return 'Finish ▶';
+  if (next === 'quiz') return t('lesson.startQuiz');
+  return t('lesson.finish');
 }
 
 /* ----------------------------- STORYBOARD ----------------------------- */
@@ -95,19 +106,19 @@ function showStory() {
 
   const nav = `
     <div class="row" style="justify-content:center;margin-top:14px;gap:10px">
-      ${storyIndex > 0 ? `<button class="btn ghost" id="prevStep">◀ Back</button>` : ''}
-      <button class="btn big green" id="nextStep">${last ? nextPhaseLabel() : 'Next ▶'}</button>
+      ${storyIndex > 0 ? `<button class="btn ghost" id="prevStep">${t('lesson.back')}</button>` : ''}
+      <button class="btn big green" id="nextStep">${last ? nextPhaseLabel() : t('lesson.next')}</button>
     </div>
-    ${last ? '' : `<button class="btn ghost" style="margin-top:10px;font-size:.8rem;padding:8px 14px" id="skipStory">Skip story ⏩</button>`}`;
+    ${last ? '' : `<button class="btn ghost" style="margin-top:10px;font-size:.8rem;padding:8px 14px" id="skipStory">${t('lesson.skip')}</button>`}`;
 
   if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
     const body = embed
       ? `${step.title ? `<div class="video-title">🎬 ${escapeHtml(step.title)}</div>` : ''}
          <div class="video-frame"><iframe src="${embed}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`
-      : `<p class="muted">Couldn't embed this video.</p><a class="btn secondary" href="${encodeURI(step.url)}" target="_blank" rel="noopener">▶ Open on YouTube</a>`;
-    card.innerHTML = `<div class="center"><h2>🎬 Watch &amp; Learn</h2>
-      <p class="muted">Ruby picked this clip for you. Watch it, then keep going!</p>
+      : `<p class="muted">${t('lesson.cantEmbed')}</p><a class="btn secondary" href="${encodeURI(step.url)}" target="_blank" rel="noopener">${t('lesson.openYoutube')}</a>`;
+    card.innerHTML = `<div class="center"><h2>${t('lesson.watch')}</h2>
+      <p class="muted">${t('lesson.watchSub')}</p>
       ${body}${dots}${nav}</div>`;
   } else {
     card.innerHTML = `
@@ -147,7 +158,7 @@ function tickTimer() {
   if (remaining <= 0) {
     stopQuizTimer();
     timeExpired = true;
-    toast("⏰ Time's up! Saving your answers…", 'bad');
+    toast(t('lesson.timesUpToast'), 'bad');
     goPhase(phases.indexOf('result'));
   }
 }
@@ -162,6 +173,17 @@ function paintTimer(remaining) {
 }
 
 /* -------------------------------- QUIZ -------------------------------- */
+function checkPath() {
+  return MODE === 'post'
+    ? `/api/lessons/${encodeURIComponent(LESSON_ID)}/posttest/check`
+    : `/api/lessons/${encodeURIComponent(LESSON_ID)}/check`;
+}
+function completePath() {
+  return MODE === 'post'
+    ? `/api/lessons/${encodeURIComponent(LESSON_ID)}/posttest/complete`
+    : `/api/lessons/${encodeURIComponent(LESSON_ID)}/complete`;
+}
+
 function showQuiz() {
   ensureQuizRuby('thinking');
   const q = lesson.questions[quizIndex];
@@ -171,7 +193,7 @@ function showQuiz() {
 
   card.innerHTML = `
     <div class="quiz-head">
-      <div class="q-counter">Question ${quizIndex + 1} of ${total}</div>
+      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
     <div class="q-text">${escapeHtml(q.question)}</div>
@@ -184,7 +206,7 @@ function showQuiz() {
     </div>
     <div class="explain" id="explain"></div>
     <div class="row" style="justify-content:flex-end;margin-top:16px">
-      <button class="btn big green hidden" id="nextQ">${last ? 'See my results 🏆' : 'Next ▶'}</button>
+      <button class="btn big green hidden" id="nextQ">${last ? t('lesson.seeResults') : t('lesson.next')}</button>
     </div>`;
 
   if (lesson.timeLimit) paintTimer(Math.max(0, quizDeadline - Date.now()));
@@ -201,7 +223,7 @@ async function answerQuestion(btn, q) {
 
   let res;
   try {
-    res = await API.post(`/api/lessons/${encodeURIComponent(LESSON_ID)}/check`, { questionIndex: quizIndex, answer: chosen });
+    res = await API.post(checkPath(), { questionIndex: quizIndex, answer: chosen });
   } catch (e) { res = { correct: false, correctIndex: -1, explanation: '' }; }
 
   all.forEach((b) => {
@@ -213,7 +235,7 @@ async function answerQuestion(btn, q) {
 
   const explain = document.getElementById('explain');
   explain.className = 'explain show ' + (res.correct ? 'right' : 'wrong');
-  explain.innerHTML = (res.correct ? '✅ <b>Correct!</b> ' : '❌ <b>Not quite.</b> ') + escapeHtml(res.explanation || '');
+  explain.innerHTML = (res.correct ? t('lesson.correct') : t('lesson.notQuite')) + escapeHtml(res.explanation || '');
   ensureQuizRuby(res.correct ? 'cheer' : 'sad');
   if (res.correct) { try { miniPop(btn); } catch {} }
 
@@ -250,10 +272,10 @@ function removeQuizRuby() { const el = document.querySelector('.quiz-ruby'); if 
 /* ------------------------------- RESULTS ------------------------------ */
 async function showResult() {
   stopQuizTimer();
-  card.innerHTML = `<div class="center"><div>${renderRuby('thinking', { size: 120 })}</div><p class="muted">Grading your answers…</p></div>`;
+  card.innerHTML = `<div class="center"><div>${renderRuby('thinking', { size: 120 })}</div><p class="muted">${t('lesson.grading')}</p></div>`;
   if (!submitted) {
     try {
-      submitted = await API.post(`/api/lessons/${encodeURIComponent(LESSON_ID)}/complete`, { answers });
+      submitted = await API.post(completePath(), { answers });
       if (submitted.user) API.updateUser(submitted.user);
     } catch (err) { card.innerHTML = errorBox(err.message); return; }
   }
@@ -262,40 +284,51 @@ async function showResult() {
   const ringColor = r.passed ? 'var(--grass)' : 'var(--primary)';
 
   let nextHref = null;
-  try {
-    const list = await API.get('/api/lessons');
-    const i = list.lessons.findIndex((l) => l.id === LESSON_ID);
-    const nxt = list.lessons[i + 1];
-    if (nxt && !nxt.locked) nextHref = `/lesson.html?id=${encodeURIComponent(nxt.id)}`;
-  } catch {}
+  if (MODE === 'pre') {
+    try {
+      const list = await API.get('/api/lessons');
+      const i = list.lessons.findIndex((l) => l.id === LESSON_ID);
+      const nxt = list.lessons[i + 1];
+      if (nxt && !nxt.locked) nextHref = `/level.html?id=${encodeURIComponent(nxt.id)}`;
+    } catch {}
+  }
+
+  const heading = timeExpired
+    ? t('lesson.timesUp')
+    : MODE === 'post'
+      ? t('lesson.postDone')
+      : r.passed ? t('lesson.complete') : t('lesson.goodTry');
+
+  const scoreLine = MODE === 'post'
+    ? t('lesson.postScored', { s: r.score })
+    : r.passed ? t('lesson.scored', { s: r.score }) : t('lesson.needPass');
 
   const cert = r.certificate;
   card.innerHTML = `
     <div class="result">
       <div>${renderRuby(r.passed ? 'cheer' : 'happy', { size: 160, float: true })}</div>
-      <h2>${timeExpired ? "⏰ Time's up!" : r.passed ? 'Level Complete! 🎉' : 'Good try! 💪'}</h2>
-      ${timeExpired ? `<p class="muted">We saved the answers you had so far.</p>` : ''}
+      <h2>${heading}</h2>
+      ${timeExpired ? `<p class="muted">${t('lesson.timesUpSaved')}</p>` : ''}
       <div class="score-ring" style="--p:${pct}%; background:conic-gradient(${ringColor} ${pct}%, #ececf5 0)">
-        <div class="inner"><div class="pct">${pct}%</div><div class="sub">${r.correct}/${r.total} correct</div></div>
+        <div class="inner"><div class="pct">${pct}%</div><div class="sub">${t('lesson.correctCount', { c: r.correct, t: r.total })}</div></div>
       </div>
-      <p style="font-weight:700;font-size:1.1rem">
-        ${r.passed ? `You scored <b>${r.score}</b> points! ⭐` : `Score 60% or more to earn your certificate. You can try again!`}
-      </p>
-      <p class="muted">Total points: <b>${r.pointsTotal}</b></p>
-      ${r.passed && cert ? `
+      <p style="font-weight:700;font-size:1.1rem">${scoreLine}</p>
+      <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
+      ${MODE === 'pre' && r.passed && cert ? `
         <div class="cert-preview pop-in">
           <div class="ribbon">🎖️</div>
-          <h3>Certificate of Achievement</h3>
+          <h3>${t('lesson.certTitle')}</h3>
           <div class="who">${escapeHtml(API.user().name)}</div>
-          <div>has mastered <b>${escapeHtml(cert.title)}</b></div>
-          <div class="meta">${cert.icon} ${escapeHtml((cert.difficulty || '').toUpperCase())} · ${cert.score} pts · ${new Date(cert.dateEarned).toLocaleDateString()}</div>
+          <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
+          <div class="meta">${cert.icon} ${escapeHtml((cert.difficulty || '').toUpperCase())} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
         </div>
-        ${r.newCertificate ? '<p class="muted">Saved to your Certificates inventory! 🎒</p>' : ''}` : ''}
+        ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">
-        <a class="btn secondary" href="/dashboard.html">🗺️ Back to Map</a>
-        <button class="btn ghost" id="replay">🔁 Play again</button>
-        ${nextHref ? `<a class="btn green" href="${nextHref}">Next Level ▶</a>` : ''}
-        <a class="btn grape" href="/inventory.html">🎖️ Certificates</a>
+        <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
+        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+        <button class="btn ghost" id="replay">${t('lesson.playAgain')}</button>
+        ${nextHref ? `<a class="btn green" href="${nextHref}">${t('lesson.nextLevel')}</a>` : ''}
+        ${MODE === 'pre' ? `<a class="btn grape" href="/inventory.html">${t('lesson.certificates')}</a>` : ''}
       </div>
     </div>`;
 

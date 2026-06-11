@@ -3,15 +3,16 @@
 
 const me = guard('student');
 addClouds();
+mountLangSwitch();
 
 let LESSONS = [];
 
 document.getElementById('navUser').innerHTML = `${me.avatar || '🧑‍🎓'} ${escapeHtml(me.name)}`;
 
 const BIOMES = {
-  plain: { name: 'MEADOW', grad: 'linear-gradient(180deg,#a9e87f,#73c94f)', props: ['tree', 'flower', 'mushroom', 'bush', 'log', 'flower', 'rock', 'tree'] },
-  mountain: { name: 'EMBER CANYON', grad: 'linear-gradient(180deg,#f7d99a,#e3a25f)', props: ['rock', 'crystalAmber', 'campfire', 'signpost', 'crystalAmber', 'rock'] },
-  snow: { name: 'SKY SUMMIT', grad: 'linear-gradient(180deg,#e3f1ff,#f3d6ef)', props: ['arch', 'crystalBlue', 'portal', 'cloud', 'crystalPink', 'arch'] },
+  plain: { name: () => t('biome.meadow'), grad: 'linear-gradient(180deg,#a9e87f,#73c94f)', props: ['tree', 'flower', 'mushroom', 'bush', 'log', 'flower', 'rock', 'tree'] },
+  mountain: { name: () => t('biome.ember'), grad: 'linear-gradient(180deg,#f7d99a,#e3a25f)', props: ['rock', 'crystalAmber', 'campfire', 'signpost', 'crystalAmber', 'rock'] },
+  snow: { name: () => t('biome.sky'), grad: 'linear-gradient(180deg,#e3f1ff,#f3d6ef)', props: ['arch', 'crystalBlue', 'portal', 'cloud', 'crystalPink', 'arch'] },
 };
 const PROP_SIZE = {
   tree: [98, 130], bush: [82, 112], flower: [40, 60], mushroom: [46, 70], rock: [62, 104], log: [92, 122],
@@ -40,8 +41,8 @@ async function init() {
     document.getElementById('progFill').style.width = pct + '%';
     document.getElementById('progLabel').textContent =
       done === LESSONS.length && LESSONS.length
-        ? `🎉 Adventure complete! ${done}/${LESSONS.length} levels conquered`
-        : `${done} of ${LESSONS.length} levels completed — keep exploring!`;
+        ? t('dash.progressDone', { done, total: LESSONS.length })
+        : t('dash.progress', { done, total: LESSONS.length });
     buildMap();
   } catch (err) { toast(err.message, 'bad'); }
 }
@@ -93,7 +94,7 @@ function buildMap() {
   groups.forEach((grp) => {
     const b = BIOMES[grp.terrain] || BIOMES.plain;
     html += `<div class="band" style="top:${grp.topY}px;height:${grp.botY - grp.topY}px;background:${b.grad};z-index:1">
-      <div class="band-label">${b.name}</div></div>`;
+      <div class="band-label">${b.name()}</div></div>`;
   });
 
   // ---- props per band ----
@@ -132,8 +133,8 @@ function buildMap() {
   html += `<svg class="trail" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" style="z-index:4">${segs}</svg>`;
 
   // ---- banners ----
-  html += `<div class="banner" style="top:14px;color:#236b18;background:rgba(255,255,255,.82);padding:6px 18px;border-radius:999px;box-shadow:var(--shadow-soft)">🎒 START</div>`;
-  html += `<div class="banner" style="bottom:12px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)"><span style="font-size:1.7rem">🏁</span><br>THE SUMMIT</div>`;
+  html += `<div class="banner" style="top:14px;color:#236b18;background:rgba(255,255,255,.82);padding:6px 18px;border-radius:999px;box-shadow:var(--shadow-soft)">${t('dash.start')}</div>`;
+  html += `<div class="banner" style="bottom:12px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)"><span style="font-size:1.7rem">🏁</span><br>${t('dash.summit')}</div>`;
 
   // ---- level nodes (models) ----
   let currentIdx = LESSONS.findIndex((l) => !l.locked && !l.completed);
@@ -149,14 +150,14 @@ function buildMap() {
       extra = `<div class="score-pop">⭐ ${l.bestScore}</div>`;
     } else {
       model = renderRuby('wave', { size: 100, float: true });
-      extra = `<div class="here-bubble">▶ Tap to play!</div>`;
+      extra = `<div class="here-bubble">${t('dash.tapToPlay')}</div>`;
     }
     const tagIcon = state === 'done' ? '<span class="ck">✓</span>' : state === 'locked' ? '<span class="lk">🔒</span>' : '';
     html += `
       <div class="node ${state}" style="left:${x}px;top:${y}px" data-id="${l.id}" data-state="${state}">
         ${extra}
         <div class="model">${model}</div>
-        <div class="lvtag">${tagIcon} Lv.${i + 1}</div>
+        <div class="lvtag">${tagIcon} ${t('dash.lv', { n: i + 1 })}</div>
       </div>`;
   });
 
@@ -166,12 +167,13 @@ function buildMap() {
   scene.querySelectorAll('.node').forEach((node) => {
     node.addEventListener('click', () => {
       if (node.dataset.state === 'locked') {
-        toast('🔒 Finish the level above to unlock this one!', 'bad');
+        toast(t('dash.lockedToast'), 'bad');
         node.classList.add('shake');
         setTimeout(() => node.classList.remove('shake'), 500);
         return;
       }
-      location.href = `/lesson.html?id=${encodeURIComponent(node.dataset.id)}`;
+      // The level board (hub) opens first: start level / assignments / post-test.
+      location.href = `/level.html?id=${encodeURIComponent(node.dataset.id)}`;
     });
   });
 

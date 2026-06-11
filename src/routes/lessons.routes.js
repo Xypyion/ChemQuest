@@ -25,6 +25,29 @@ function quizFor(lesson, difficulty) {
   return [];
 }
 
+/** Pick the post-test question set for a difficulty, falling back if empty. */
+function postQuizFor(lesson, difficulty) {
+  const q = (lesson.postTest && lesson.postTest.quizzes) || {};
+  const order = [difficulty, 'medium', 'easy', 'hard'];
+  for (const key of order) {
+    if (Array.isArray(q[key]) && q[key].length) return q[key];
+  }
+  return [];
+}
+
+/** Small summary of the post-test for the level board. */
+function postTestSummary(lesson, user) {
+  const p = ((user.progress || {})[lesson.id] || {}).post || {};
+  return {
+    open: !!(lesson.postTest && lesson.postTest.open),
+    questionCount: postQuizFor(lesson, user.difficulty).length,
+    timeLimit: (lesson.postTest && lesson.postTest.timeLimit) || 0,
+    done: !!p.attempts,
+    bestScore: p.bestScore || 0,
+    passed: !!p.passed,
+  };
+}
+
 /** Build the ordered storyboard steps (lines + inline videos) for a learner. */
 function buildSteps(lesson) {
   const steps = (lesson.storyboard || []).map((it) =>
@@ -75,6 +98,7 @@ router.get('/', (req, res) => {
       completed,
       bestScore: p.bestScore || 0,
       hasCertificate: (req.user.certificates || []).some((c) => c.lessonId === lesson.id),
+      postTest: postTestSummary(lesson, req.user),
     };
     previousCompleted = completed;
     return item;
@@ -115,7 +139,96 @@ router.get('/:id', (req, res) => {
       storyboard: buildSteps(lesson),
       difficulty: req.user.difficulty,
       questions: questions.map(sanitizeQuestion),
+      postTest: postTestSummary(lesson, req.user),
+      preDone: !!((req.user.progress || {})[lesson.id] || {}).passed,
+      preBestScore: (((req.user.progress || {})[lesson.id]) || {}).bestScore || 0,
     },
+  });
+});
+
+/* ------------------------------ POST-TEST ------------------------------ */
+
+/** Find a lesson and make sure its post-test is open for students. */
+function openPostTest(req, res) {
+  const lesson = db.findById('lessons', req.params.id);
+  if (!lesson) { res.status(404).json({ error: 'That level does not exist.' }); return null; }
+  if (!lesson.postTest || !lesson.postTest.open) {
+    res.status(403).json({ error: 'The post-test is not open yet. Your teacher will unlock it!' });
+    return null;
+  }
+  return lesson;
+}
+
+/** GET /api/lessons/:id/posttest — the post-test questions (answers hidden). */
+router.get('/:id/posttest', (req, res) => {
+  const lesson = openPostTest(req, res);
+  if (!lesson) return;
+  const questions = postQuizFor(lesson, req.user.difficulty);
+  res.json({
+    lesson: {
+      id: lesson.id,
+      title: lesson.title,
+      icon: lesson.icon,
+      difficulty: req.user.difficulty,
+      timeLimit: (lesson.postTest && lesson.postTest.timeLimit) || 0,
+      questions: questions.map(sanitizeQuestion),
+    },
+  });
+});
+
+/** POST /api/lessons/:id/posttest/check — instant feedback for one question. */
+router.post('/:id/posttest/check', (req, res) => {
+  const lesson = openPostTest(req, res);
+  if (!lesson) return;
+  const questions = postQuizFor(lesson, req.user.difficulty);
+  const { questionIndex, answer } = req.body || {};
+  const q = questions[questionIndex];
+  if (!q) return res.status(400).json({ error: 'Unknown question.' });
+  res.json({
+    correct: Number(answer) === q.correctIndex,
+    correctIndex: q.correctIndex,
+    explanation: q.explanation || '',
+  });
+});
+
+/** POST /api/lessons/:id/posttest/complete — grade the post-test. */
+router.post('/:id/posttest/complete', (req, res) => {
+  const lesson = openPostTest(req, res);
+  if (!lesson) return;
+  const questions = postQuizFor(lesson, req.user.difficulty);
+  const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
+  const total = questions.length;
+
+  let correct = 0;
+  questions.forEach((q, i) => { if (Number(answers[i]) === q.correctIndex) correct += 1; });
+
+  const passed = total === 0 ? true : game.isPass(correct, total);
+  const score = game.computeScore({ correct, total, difficulty: req.user.difficulty });
+
+  const progress = (req.user.progress = req.user.progress || {});
+  const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
+  const prior = entry.post || { attempts: 0, bestScore: 0 };
+  entry.post = {
+    attempts: (prior.attempts || 0) + 1,
+    lastScore: score,
+    bestScore: Math.max(prior.bestScore || 0, score),
+    bestCorrect: Math.max(prior.bestCorrect || 0, correct),
+    total,
+    passed: prior.passed || passed,
+    completedAt: prior.completedAt || new Date().toISOString(),
+  };
+
+  game.recalcPoints(req.user);
+  db.save();
+
+  res.json({
+    passed,
+    correct,
+    total,
+    score,
+    bestScore: entry.post.bestScore,
+    pointsTotal: req.user.points,
+    user: publicUser(req.user),
   });
 });
 

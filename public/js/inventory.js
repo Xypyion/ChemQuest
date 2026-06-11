@@ -2,6 +2,7 @@
 
 const me = guard('student');
 addClouds();
+mountLangSwitch();
 
 (async () => {
   try {
@@ -16,15 +17,15 @@ addClouds();
       content.innerHTML = `
         <div class="empty-state card">
           <div>${renderRuby('happy', { size: 160, float: true })}</div>
-          <h2>No certificates yet!</h2>
-          <p class="muted">Head to the map and complete your first level to earn a certificate.</p>
-          <a class="btn big green" href="/dashboard.html">🗺️ Go to the Map</a>
+          <h2>${t('inv.none')}</h2>
+          <p class="muted">${t('inv.noneSub')}</p>
+          <a class="btn big green" href="/dashboard.html">${t('inv.goMap')}</a>
         </div>`;
       return;
     }
 
     document.getElementById('sub').textContent =
-      `You've earned ${certificates.length} certificate${certificates.length > 1 ? 's' : ''}! Keep climbing! 🎉`;
+      t('inv.earned', { n: certificates.length, s: certificates.length > 1 ? 's' : '' });
 
     const sorted = certificates.slice().sort((a, b) => new Date(a.dateEarned) - new Date(b.dateEarned));
     content.innerHTML = `<div class="cert-grid">` + sorted.map((c) => `
@@ -33,11 +34,11 @@ addClouds();
         <div class="seal">🎖️</div>
         <div class="ic">${c.icon || '🧪'}</div>
         <h3>${escapeHtml(c.title)}</h3>
-        <div class="muted" style="font-size:.85rem">awarded to</div>
+        <div class="muted" style="font-size:.85rem">${t('inv.awardedTo')}</div>
         <div class="who">${escapeHtml(me.name)}</div>
         <div class="meta">
           <span class="pill ${c.difficulty}">${(c.difficulty || '').toUpperCase()}</span><br>
-          ${new Date(c.dateEarned).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+          ${new Date(c.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
       </div>`).join('') + `</div>`;
   } catch (err) {

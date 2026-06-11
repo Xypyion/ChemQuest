@@ -6,7 +6,7 @@
   <title>ChemQuest — Chemistry Learning Adventure</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <style>
@@ -37,54 +37,55 @@
       <div class="hero-left">
         <div class="ruby-stage" id="rubyStage"></div>
         <h1 class="title-xl">ChemQuest</h1>
-        <p class="lead">A colorful chemistry learning adventure 🧪✨</p>
-        <p class="school">Suankularb Wittayalai Nonthaburi School</p>
+        <p class="lead" data-i18n="welcome.lead">A colorful chemistry learning adventure 🧪✨</p>
+        <p class="school" data-i18n="welcome.school">Suankularb Wittayalai Nonthaburi School</p>
       </div>
 
       <div class="card">
         <div class="toggle">
-          <button id="tabLogin" class="active" onclick="showTab('login')">Log In</button>
-          <button id="tabSignup" onclick="showTab('signup')">Sign Up</button>
+          <button id="tabLogin" class="active" onclick="showTab('login')" data-i18n="welcome.login">Log In</button>
+          <button id="tabSignup" onclick="showTab('signup')" data-i18n="welcome.signup">Sign Up</button>
         </div>
 
         <!-- LOGIN -->
         <form id="loginForm" autocomplete="on">
-          <label for="loginEmail">Email</label>
+          <label for="loginEmail" data-i18n="welcome.email">Email</label>
           <input id="loginEmail" type="email" placeholder="you@skn.ac.th" required />
-          <label for="loginPassword">Password</label>
-          <input id="loginPassword" type="password" placeholder="Your password" required />
+          <label for="loginPassword" data-i18n="welcome.password">Password</label>
+          <input id="loginPassword" type="password" placeholder="Your password" data-i18n-ph="welcome.passwordPh" required />
           <div class="err" id="loginErr"></div>
-          <button class="btn big block green" type="submit">Start Adventure ▶</button>
-          <p class="teacher-hint">Teachers log in here too — you'll land in the Teacher Console.</p>
+          <button class="btn big block green" type="submit" data-i18n="welcome.start">Start Adventure ▶</button>
+          <p class="teacher-hint" data-i18n="welcome.teacherHint">Teachers log in here too — you'll land in the Teacher Console.</p>
         </form>
 
         <!-- SIGNUP -->
         <form id="signupForm" class="hidden" autocomplete="on">
-          <label for="suName">Your Name</label>
-          <input id="suName" type="text" placeholder="e.g. Som Chai" required />
-          <label for="suEmail">Email</label>
+          <label for="suName" data-i18n="welcome.yourName">Your Name</label>
+          <input id="suName" type="text" placeholder="e.g. Som Chai" data-i18n-ph="welcome.namePh" required />
+          <label for="suEmail" data-i18n="welcome.email">Email</label>
           <input id="suEmail" type="email" placeholder="you@skn.ac.th" required />
-          <label for="suPassword">Password</label>
-          <input id="suPassword" type="password" placeholder="At least 6 characters" required />
-          <label>Choose your difficulty</label>
+          <label for="suPassword" data-i18n="welcome.password">Password</label>
+          <input id="suPassword" type="password" placeholder="At least 6 characters" data-i18n-ph="welcome.passwordPh2" required />
+          <label data-i18n="welcome.chooseDiff">Choose your difficulty</label>
           <div class="diff-grid" id="diffGrid">
             <div class="diff sel" data-diff="easy">
-              <div class="emoji">🌱</div><div class="name">Easy</div><div class="desc">Gentle start</div>
+              <div class="emoji">🌱</div><div class="name" data-i18n="welcome.easy">Easy</div><div class="desc" data-i18n="welcome.easyDesc">Gentle start</div>
             </div>
             <div class="diff" data-diff="medium">
-              <div class="emoji">⛰️</div><div class="name">Medium</div><div class="desc">A real climb</div>
+              <div class="emoji">⛰️</div><div class="name" data-i18n="welcome.medium">Medium</div><div class="desc" data-i18n="welcome.mediumDesc">A real climb</div>
             </div>
             <div class="diff" data-diff="hard">
-              <div class="emoji">🏔️</div><div class="name">Hard</div><div class="desc">Summit challenge</div>
+              <div class="emoji">🏔️</div><div class="name" data-i18n="welcome.hard">Hard</div><div class="desc" data-i18n="welcome.hardDesc">Summit challenge</div>
             </div>
           </div>
           <div class="err" id="signupErr"></div>
-          <button class="btn big block" type="submit">Create Explorer 🎒</button>
+          <button class="btn big block" type="submit" data-i18n="welcome.create">Create Explorer 🎒</button>
         </form>
       </div>
     </div>
   </div>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
   <script src="/js/welcome.js"></script>

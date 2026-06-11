@@ -2,7 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const game = require('../game');
-const { authMiddleware, requireRole, publicUser } = require('../auth');
+const { authMiddleware, requireRole, publicUser, hashPassword } = require('../auth');
 
 const router = express.Router();
 
@@ -69,6 +69,22 @@ function normalizeLesson(body, existing) {
     medium: (qz.medium || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
     hard: (qz.hard || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
   };
+
+  // Post-test: built separately from the pre-test, locked until the teacher
+  // opens it. Keep the current open/closed state when re-saving the lesson.
+  const pt = body.postTest || {};
+  const ptq = pt.quizzes || {};
+  let ptTime = parseInt(pt.timeLimit, 10);
+  if (!Number.isFinite(ptTime) || ptTime < 0) ptTime = 0;
+  lesson.postTest = {
+    open: !!(lesson.postTest && lesson.postTest.open),
+    timeLimit: Math.min(ptTime, 3600),
+    quizzes: {
+      easy: (ptq.easy || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
+      medium: (ptq.medium || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
+      hard: (ptq.hard || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
+    },
+  };
   lesson.updatedAt = new Date().toISOString();
   return lesson;
 }
@@ -130,6 +146,16 @@ router.post('/lessons/:id/move', (req, res) => {
   res.json({ ok: true });
 });
 
+/** Open or close the post-test for every student on this level. */
+router.post('/lessons/:id/posttest-open', (req, res) => {
+  const lesson = db.findById('lessons', req.params.id);
+  if (!lesson) return res.status(404).json({ error: 'Level not found.' });
+  lesson.postTest = lesson.postTest || { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } };
+  lesson.postTest.open = !!(req.body && req.body.open);
+  db.save();
+  res.json({ ok: true, open: lesson.postTest.open });
+});
+
 /* --------------------------- Student management -------------------------- */
 
 function studentSummary(u) {
@@ -174,6 +200,17 @@ router.put('/students/:id', (req, res) => {
   game.recalcPoints(user);
   db.save();
   res.json({ student: studentSummary(user) });
+});
+
+/** Reset a student's password (teacher sets a fresh one for them). */
+router.post('/students/:id/password', (req, res) => {
+  const user = db.findById('users', req.params.id);
+  if (!user || user.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
+  const password = ((req.body || {}).password || '').toString();
+  if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  user.passwordHash = hashPassword(password);
+  db.save();
+  res.json({ ok: true });
 });
 
 router.delete('/students/:id', (req, res) => {

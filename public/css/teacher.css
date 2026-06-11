@@ -60,8 +60,14 @@ body.teacher {
 .tbtn.blue { background: var(--t-blue); }
 .tbtn.ghost { background: #eef0f8; color: var(--t-ink); }
 .tbtn.danger { background: var(--t-danger); }
+.tbtn.green { background: #1d9e57; }
 .tbtn.sm { padding: 6px 11px; font-size: .82rem; border-radius: 8px; }
 .tbtn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* language switch lives in the dark sidebar */
+.t-side .lang-switch { background: rgba(255,255,255,.14); box-shadow: none; }
+.t-side .lang-switch button { color: rgba(255,255,255,.75); }
+.t-side .lang-switch button.on { background: #fff; color: var(--t-indigo); box-shadow: none; }
 
 /* Lesson list */
 .lesson-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--t-line); }

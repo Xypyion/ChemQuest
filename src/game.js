@@ -30,7 +30,9 @@ function isPass(correct, total) {
  */
 function recalcPoints(user) {
   const progress = user.progress || {};
-  const earned = Object.values(progress).reduce((sum, p) => sum + (p.bestScore || 0), 0);
+  // Pre-test (lesson) best scores + post-test best scores both count.
+  const earned = Object.values(progress).reduce(
+    (sum, p) => sum + (p.bestScore || 0) + ((p.post && p.post.bestScore) || 0), 0);
   user.earnedPoints = earned;
   user.bonusPoints = user.bonusPoints || 0;
   user.points = earned + user.bonusPoints;

@@ -13,19 +13,33 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
 
 ## ✨ Features
 
+### 🌐 Thai / English
+- The **entire UI** switches between **English and ไทย** with one accessible toggle
+  (top-right on most pages, in the sidebar of the Teacher Console). Your choice is
+  remembered, and the page `lang` attribute updates for screen readers.
+
 ### For Students
 - 🔐 **Sign up & log in** — pick a difficulty (Easy / Medium / Hard) when joining.
 - 🗺️ **Adventure map** — a winding journey through three illustrated biomes
   (**Meadow → Ember Canyon → Sky Summit**) with rivers, bridges and props, and a
   little 3D-style character model standing on every level. Levels unlock one at a time.
+- 🏠 **Level board** — tapping a level opens a game-themed board with three choices:
+  **Start the Level**, the **Assignments** feed, and the **Post-test** (locked until the
+  teacher opens it).
 - 🔴 **Ruby the guide** — an animated mascot who narrates each storyboard, reacts to
   your answers, and cheers you on. Storyboards can include **pictures/diagrams** and a
   **video dropped in wherever the teacher placed it**.
 - 🎬 **Embedded videos** — watch a short YouTube clip right inside the story.
 - ⏱️ **Timed quizzes** — when a teacher sets a timer it counts down on screen; if it runs
   out, your latest answers are saved and scored automatically.
-- ❓ **Quizzes** — instant feedback per question, with explanations. Questions match
-  the difficulty you chose.
+- ❓ **Pre-test** — instant feedback per question, with explanations. Questions match
+  the difficulty you chose; pass to earn a certificate.
+- 📒 **Assignments feed** — a Facebook-group-style board per level. Post your work with
+  **image / PDF / any-file attachments** (images preview inline), **like** and **comment**
+  on classmates' posts, and quietly ask the teacher a private question
+  ("นักเรียนสงสัยอะไรมั้ย") that only they can see.
+- 🧾 **Post-test** — a separate test the teacher opens when the class is ready; earns
+  points (no certificate).
 - 🎖️ **Certificates** — earn one for every level you pass; collect them in your inventory.
 - 🏆 **Leaderboard** — see who has the highest (and lowest) points, with a podium for the top 3.
 
@@ -36,10 +50,16 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   right before the quiz.
 - 🖼️ **Images in stories** — add a picture to any line by **URL or upload from your computer**.
 - 🎬 **Add YouTube videos** — paste any YouTube link or ID as a storyboard step.
-- ⏱️ **Quiz timer** — set a per-level time limit (seconds). It starts when the student begins the
-  quiz; on timeout their latest answers are saved as the score.
-- ❓ **Quiz builder** — write questions, add/remove answer choices, mark the correct one,
+- ⏱️ **Quiz timer** — set a per-level time limit (seconds) for the pre-test and the post-test
+  independently. It starts when the student begins; on timeout their latest answers are saved.
+- ❓ **Pre-test builder** — write questions, add/remove answer choices, mark the correct one,
   and add explanations. **Different questions for each difficulty (Easy / Medium / Hard).**
+- 🧾 **Post-test builder** — a **separate** question set built the same way, kept **locked** until
+  you press **Open post-test** (from the level list or inside the editor). Open or close it for
+  the whole class with one click.
+- 📒 **Assignment board** — post the assignment for any level, and see **every student post,
+  file, comment, and private question** in one place.
+- 🔑 **Reset a student's password** — set a fresh password for any student from the Students tab.
 - 🔀 **Reorder levels** on the map.
 - 👩‍🎓 **Manage students** — rename, change difficulty, update ranking (points), or delete accounts.
 
@@ -73,10 +93,12 @@ Students sign up for their own accounts.
 
 ## 🎮 How to play (student)
 1. Sign up and choose a difficulty.
-2. On the map, click the glowing **PLAY** level.
-3. Read Ruby's story → watch the video → answer the quiz.
+2. On the map, click the glowing **PLAY** level to open its **board**.
+3. **Start the Level** → read Ruby's story → watch the video → answer the pre-test.
 4. Score 60%+ to pass, earn a certificate, and unlock the next level.
-5. Climb the leaderboard!
+5. Visit the **Assignments** tab to post your work and chat with classmates.
+6. When your teacher opens the **Post-test**, take it for bonus points.
+7. Climb the leaderboard!
 
 ---
 
@@ -86,7 +108,8 @@ chemquest/
 ├── server.js              # Express server (API + serves the front-end)
 ├── package.json
 ├── data/
-│   └── db.json            # auto-created JSON database (users + lessons)
+│   ├── db.json            # auto-created JSON database (users + lessons + posts)
+│   └── uploads/           # assignment file attachments (auto-created)
 ├── src/
 │   ├── db.js              # tiny JSON document store
 │   ├── auth.js            # JWT + password hashing + role middleware
@@ -94,18 +117,20 @@ chemquest/
 │   ├── seed.js            # teacher account + sample levels
 │   └── routes/
 │       ├── auth.routes.js
-│       ├── lessons.routes.js     # student: play & grade levels
-│       ├── teacher.routes.js     # teacher: lesson CRUD + student management
+│       ├── lessons.routes.js     # student: play & grade pre-test + post-test
+│       ├── teacher.routes.js     # teacher: lesson CRUD, post-test gate, password reset
+│       ├── posts.routes.js       # assignment board: posts, files, comments, questions
 │       └── leaderboard.routes.js
 └── public/                # front-end (no build step needed)
     ├── index.html         # welcome / login / signup
     ├── dashboard.html     # adventure map
-    ├── lesson.html        # storyboard + video + quiz player
+    ├── level.html         # level board hub (start / assignments / post-test)
+    ├── lesson.html        # storyboard + video + quiz player (pre & post modes)
     ├── inventory.html     # certificate collection
     ├── leaderboard.html
     ├── teacher.html       # teacher console
-    ├── css/               # theme, map, lesson, teacher styles
-    └── js/                # page logic + Ruby mascot (SVG)
+    ├── css/               # theme, map, lesson, teacher, feed styles
+    └── js/                # page logic, i18n (en/th), Ruby mascot (SVG), feed
 ```
 
 ## 🛠️ Tech

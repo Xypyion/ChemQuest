@@ -3,36 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChemQuest — Leaderboard</title>
+  <title>ChemQuest — Level Board</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Mali:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/character.css" />
-  <link rel="stylesheet" href="/css/pages.css" />
+  <link rel="stylesheet" href="/css/feed.css" />
 </head>
 <body>
   <div class="topbar">
     <div class="brand"><span class="logo">🧪</span> ChemQuest</div>
     <div class="nav-actions">
-      <span class="pill points">⭐ <b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
+      <span class="pill" id="lessonTitlePill">…</span>
+      <span class="pill" id="diffPill"></span>
       <a class="btn ghost" href="/dashboard.html" data-i18n="nav.map">🗺️ Map</a>
-      <a class="btn grape" href="/inventory.html" data-i18n="nav.certificates">🎖️ Certificates</a>
-      <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
     </div>
   </div>
 
   <div class="wrap">
-    <div class="page-title">
-      <h1 data-i18n="lb.title">🏆 Explorer Leaderboard</h1>
-      <p class="page-sub" data-i18n="lb.sub">Who's climbing highest? Earn points by completing levels!</p>
+    <div class="board-wrap" id="board">
+      <p class="center muted" data-i18n="common.loading">Loading…</p>
     </div>
-    <div id="podium" class="podium"></div>
-    <div id="list" class="lb-list"><p class="center muted" data-i18n="lb.loading">Loading rankings…</p></div>
   </div>
 
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
-  <script src="/js/leaderboard.js"></script>
+  <script src="/js/feed.js"></script>
+  <script src="/js/board.js"></script>
 </body>
 </html>

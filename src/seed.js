@@ -256,6 +256,8 @@ function seedIfEmpty() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       timeLimit: 0,
+      // Post-test starts empty and locked; the teacher builds and opens it.
+      postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
       ...lesson,
     });
   });
