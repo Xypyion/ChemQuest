@@ -126,6 +126,12 @@ const I18N = {
     'lesson.nextLevel': 'Next Level ▶',
     'lesson.certificates': '🎖️ Certificates',
     'lesson.pts': 'pts',
+    'lesson.writtenPlaceholder': 'Type your answer here…',
+    'lesson.writtenNote': 'Your teacher will read and grade this answer.',
+    'lesson.awaitingTitle': 'Answers sent! ✍️',
+    'lesson.awaitingMsg': 'Some questions need your teacher to grade them. Your final score and certificate unlock once they’re marked.',
+    'lesson.awaitingWritten': '{n} written answer(s) waiting for your teacher',
+    'lesson.awaitingMcq': '{c}/{t} multiple-choice correct so far',
 
     /* ---- inventory ---- */
     'inv.title': '🎖️ My Certificate Collection',
@@ -282,6 +288,44 @@ const I18N = {
     't.opensAtLabel': 'Opens at',
     't.gateSaved': 'Level access updated.',
     't.gateSchedSavedAt': 'Level opens {time}.',
+
+    /* ---- question types (editor) ---- */
+    't.qTypeMcq': '🔘 Multiple choice',
+    't.qTypeWritten': '✍️ Written (ข้อเขียน)',
+    't.writtenHint': 'Students type their own answer. You’ll grade it later in the Grading tab.',
+    't.writtenPreviewPh': 'The student types their answer here…',
+    't.answerGuide': 'Answer guide (optional — only you see it while grading)',
+    't.answerGuideInputPh': 'Notes or a sample answer to help you grade',
+
+    /* ---- grading queue ---- */
+    't.navGrading': 'Grading',
+    't.gradingTitle': '✍️ Grading',
+    't.gradingSub': 'Mark students’ written answers. Their score and certificate finalise once you grade.',
+    't.refresh': '🔄 Refresh',
+    't.gradingEmpty': 'Nothing to grade right now. Written answers will appear here. ✅',
+    't.gradeModePre': 'Pre-test',
+    't.gradeModePost': 'Post-test',
+    't.gradeNoAnswer': '(left blank)',
+    't.gradeCorrect': 'Correct',
+    't.gradeWrong': 'Incorrect',
+    't.gradeAutoMcq': 'Multiple choice: {c}/{t} auto-graded',
+    't.gradeSave': '💾 Save grades',
+    't.gradeSaved': 'Graded! The student’s score is updated. 🎉',
+
+    /* ---- play-as-student preview ---- */
+    't.previewTitle': '🎮 Play as student',
+    't.previewSub': 'A read-only preview — exactly what students see. Nothing is saved.',
+    't.previewPickSub': 'Pick a difficulty and a level to preview the student experience.',
+    't.previewAsDiff': 'Preview as difficulty',
+    't.previewPlay': '▶ Preview',
+    't.previewBanner': 'Preview mode — read only',
+    't.previewStartQuiz': 'Start the questions ❓',
+    't.previewFinish': 'Finish ▶',
+    't.previewWrittenNote': 'Written question — the student types an answer you grade later.',
+    't.previewDone': 'End of preview! 🎉',
+    't.previewDoneSub': 'That’s the whole student journey for this level.',
+    't.previewReplay': '🔁 Replay',
+    't.previewBackList': '← Back to levels',
   },
 
   th: {
@@ -402,6 +446,12 @@ const I18N = {
     'lesson.nextLevel': 'ด่านถัดไป ▶',
     'lesson.certificates': '🎖️ เกียรติบัตร',
     'lesson.pts': 'คะแนน',
+    'lesson.writtenPlaceholder': 'พิมพ์คำตอบของคุณที่นี่…',
+    'lesson.writtenNote': 'คุณครูจะเป็นผู้อ่านและตรวจคำตอบข้อนี้',
+    'lesson.awaitingTitle': 'ส่งคำตอบแล้ว! ✍️',
+    'lesson.awaitingMsg': 'มีบางข้อที่ต้องให้คุณครูตรวจ คะแนนรวมและเกียรติบัตรจะปลดล็อกเมื่อคุณครูตรวจเสร็จ',
+    'lesson.awaitingWritten': 'มีคำตอบข้อเขียน {n} ข้อที่รอคุณครูตรวจ',
+    'lesson.awaitingMcq': 'ตอบปรนัยถูก {c}/{t} ข้อแล้วในตอนนี้',
 
     /* ---- inventory ---- */
     'inv.title': '🎖️ คลังเกียรติบัตรของฉัน',
@@ -558,6 +608,44 @@ const I18N = {
     't.opensAtLabel': 'เปิดเมื่อ',
     't.gateSaved': 'อัปเดตการเข้าด่านแล้ว',
     't.gateSchedSavedAt': 'ด่านจะเปิด {time}',
+
+    /* ---- question types (editor) ---- */
+    't.qTypeMcq': '🔘 ปรนัย',
+    't.qTypeWritten': '✍️ ข้อเขียน',
+    't.writtenHint': 'นักเรียนพิมพ์คำตอบเอง คุณครูจะตรวจภายหลังในแท็บ “ตรวจคำตอบ”',
+    't.writtenPreviewPh': 'นักเรียนจะพิมพ์คำตอบตรงนี้…',
+    't.answerGuide': 'แนวคำตอบ (ไม่บังคับ — เห็นเฉพาะคุณครูตอนตรวจ)',
+    't.answerGuideInputPh': 'บันทึกช่วยจำหรือตัวอย่างคำตอบไว้ช่วยตรวจ',
+
+    /* ---- grading queue ---- */
+    't.navGrading': 'ตรวจคำตอบ',
+    't.gradingTitle': '✍️ ตรวจคำตอบข้อเขียน',
+    't.gradingSub': 'ตรวจคำตอบข้อเขียนของนักเรียน คะแนนและเกียรติบัตรจะสรุปเมื่อคุณครูตรวจเสร็จ',
+    't.refresh': '🔄 รีเฟรช',
+    't.gradingEmpty': 'ยังไม่มีอะไรให้ตรวจตอนนี้ คำตอบข้อเขียนจะมาแสดงที่นี่ ✅',
+    't.gradeModePre': 'ก่อนเรียน',
+    't.gradeModePost': 'หลังเรียน',
+    't.gradeNoAnswer': '(เว้นว่างไว้)',
+    't.gradeCorrect': 'ถูก',
+    't.gradeWrong': 'ผิด',
+    't.gradeAutoMcq': 'ปรนัย: ตรวจอัตโนมัติ {c}/{t} ข้อ',
+    't.gradeSave': '💾 บันทึกผลตรวจ',
+    't.gradeSaved': 'ตรวจแล้ว! อัปเดตคะแนนของนักเรียนเรียบร้อย 🎉',
+
+    /* ---- play-as-student preview ---- */
+    't.previewTitle': '🎮 ดูมุมมองนักเรียน',
+    't.previewSub': 'ตัวอย่างแบบอ่านอย่างเดียว — เห็นเหมือนที่นักเรียนเห็นทุกอย่าง ไม่มีการบันทึก',
+    't.previewPickSub': 'เลือกระดับความยากและด่านเพื่อดูตัวอย่างมุมมองของนักเรียน',
+    't.previewAsDiff': 'ดูตัวอย่างในระดับ',
+    't.previewPlay': '▶ ดูตัวอย่าง',
+    't.previewBanner': 'โหมดตัวอย่าง — อ่านอย่างเดียว',
+    't.previewStartQuiz': 'เริ่มทำคำถาม ❓',
+    't.previewFinish': 'เสร็จสิ้น ▶',
+    't.previewWrittenNote': 'คำถามข้อเขียน — นักเรียนพิมพ์คำตอบให้คุณครูตรวจภายหลัง',
+    't.previewDone': 'จบตัวอย่างแล้ว! 🎉',
+    't.previewDoneSub': 'นี่คือเส้นทางทั้งหมดที่นักเรียนจะได้เจอในด่านนี้',
+    't.previewReplay': '🔁 ดูใหม่',
+    't.previewBackList': '← กลับไปเลือกด่าน',
   },
 };
 

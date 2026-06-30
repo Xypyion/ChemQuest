@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const game = require('../game');
+const { finalizeAttempt } = require('../grading');
 const { authMiddleware, requireRole, publicUser, hashPassword } = require('../auth');
 
 const router = express.Router();
@@ -13,15 +14,28 @@ const TERRAINS = ['plain', 'mountain', 'snow'];
 
 function normalizeQuestion(q) {
   q = q || {};
-  let correctIndex = Number(q.correctIndex);
-  if (!Number.isInteger(correctIndex) || correctIndex < 0) correctIndex = 0;
-  return {
+  const type = q.type === 'written' ? 'written' : 'mcq';
+  const base = {
     id: q.id || crypto.randomUUID(),
+    type,
     question: (q.question || '').toString().trim(),
-    choices: (Array.isArray(q.choices) ? q.choices : []).map((c) => (c == null ? '' : c.toString())),
-    correctIndex,
     explanation: (q.explanation || '').toString().trim(),
   };
+  // Written (ข้อเขียน) questions have no choices — the student types a free
+  // answer that the teacher grades by hand later. Multiple-choice questions
+  // keep their choices + correct answer index.
+  if (type === 'written') return base;
+  let correctIndex = Number(q.correctIndex);
+  if (!Number.isInteger(correctIndex) || correctIndex < 0) correctIndex = 0;
+  base.choices = (Array.isArray(q.choices) ? q.choices : []).map((c) => (c == null ? '' : c.toString()));
+  base.correctIndex = correctIndex;
+  return base;
+}
+
+/** A question is keepable if it has text and (for MCQ) at least two choices. */
+function isUsableQuestion(q) {
+  if (!q.question) return false;
+  return q.type === 'written' ? true : (q.choices || []).length >= 2;
 }
 
 // Cap inline (data-URL) storyboard images so the JSON store stays reasonable.
@@ -65,9 +79,9 @@ function normalizeLesson(body, existing) {
 
   const qz = body.quizzes || {};
   lesson.quizzes = {
-    easy: (qz.easy || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
-    medium: (qz.medium || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
-    hard: (qz.hard || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
+    easy: (qz.easy || []).map(normalizeQuestion).filter(isUsableQuestion),
+    medium: (qz.medium || []).map(normalizeQuestion).filter(isUsableQuestion),
+    hard: (qz.hard || []).map(normalizeQuestion).filter(isUsableQuestion),
   };
 
   // Post-test: built separately from the pre-test, locked until the teacher
@@ -80,9 +94,9 @@ function normalizeLesson(body, existing) {
     open: !!(lesson.postTest && lesson.postTest.open),
     timeLimit: Math.min(ptTime, 3600),
     quizzes: {
-      easy: (ptq.easy || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
-      medium: (ptq.medium || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
-      hard: (ptq.hard || []).map(normalizeQuestion).filter((q) => q.question && q.choices.length >= 2),
+      easy: (ptq.easy || []).map(normalizeQuestion).filter(isUsableQuestion),
+      medium: (ptq.medium || []).map(normalizeQuestion).filter(isUsableQuestion),
+      hard: (ptq.hard || []).map(normalizeQuestion).filter(isUsableQuestion),
     },
   };
 
@@ -239,6 +253,84 @@ router.delete('/students/:id', (req, res) => {
   if (!user || user.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
   db.remove('users', req.params.id);
   res.json({ ok: true });
+});
+
+/* ------------------------- Written-answer grading ------------------------ */
+
+/** Public shape of a pending submission for the grading queue. */
+function submissionView(s) {
+  return {
+    id: s.id,
+    userName: s.userName,
+    userAvatar: s.userAvatar || '🧑‍🎓',
+    lessonId: s.lessonId,
+    lessonTitle: s.lessonTitle,
+    lessonIcon: s.lessonIcon || '🧪',
+    mode: s.mode,
+    difficulty: s.difficulty,
+    total: s.total,
+    mcqCorrect: s.mcqCorrect,
+    mcqTotal: s.mcqTotal,
+    written: (s.written || []).map((w) => ({
+      questionId: w.questionId,
+      question: w.question,
+      guide: w.guide || '',
+      answer: w.answer || '',
+    })),
+    createdAt: s.createdAt,
+  };
+}
+
+/** GET /api/teacher/submissions — written answers still waiting to be graded. */
+router.get('/submissions', (req, res) => {
+  const pending = db
+    .filter('submissions', (s) => s.status === 'pending')
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) // oldest first
+    .map(submissionView);
+  res.json({ submissions: pending });
+});
+
+/**
+ * POST /api/teacher/submissions/:id/grade
+ * body: { grades: { [questionId]: true|false } }
+ * Marks each written answer, then finalises the student's attempt (score,
+ * pass/fail, points, certificate) by combining the auto-graded MCQ portion
+ * with the teacher's written marks.
+ */
+router.post('/submissions/:id/grade', (req, res) => {
+  const sub = db.findById('submissions', req.params.id);
+  if (!sub) return res.status(404).json({ error: 'Submission not found.' });
+  if (sub.status === 'graded') return res.status(400).json({ error: 'This submission was already graded.' });
+
+  const grades = (req.body && req.body.grades) || {};
+  let writtenCorrect = 0;
+  (sub.written || []).forEach((w) => {
+    w.correct = !!grades[w.questionId];
+    if (w.correct) writtenCorrect += 1;
+  });
+
+  const user = db.findById('users', sub.userId);
+  const lesson = db.findById('lessons', sub.lessonId);
+  if (!user || lesson === undefined || !lesson) {
+    // Student or level was deleted — just close the submission out.
+    sub.status = 'graded';
+    sub.gradedAt = new Date().toISOString();
+    db.save();
+    return res.json({ ok: true, finalized: false });
+  }
+
+  const correct = (sub.mcqCorrect || 0) + writtenCorrect;
+  const result = finalizeAttempt(user, lesson, sub.mode, correct, sub.total);
+
+  sub.status = 'graded';
+  sub.gradedAt = new Date().toISOString();
+  sub.writtenCorrect = writtenCorrect;
+  sub.finalCorrect = correct;
+  sub.score = result.score;
+  sub.passed = result.passed;
+  db.save();
+
+  res.json({ ok: true, finalized: true, result });
 });
 
 module.exports = router;

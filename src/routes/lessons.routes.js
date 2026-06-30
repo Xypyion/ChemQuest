@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const db = require('../db');
 const game = require('../game');
 const { authMiddleware, requireRole, publicUser } = require('../auth');
@@ -79,6 +80,7 @@ function postTestSummary(lesson, user) {
     done: !!p.attempts,
     bestScore: p.bestScore || 0,
     passed: !!p.passed,
+    awaitingGrading: !!p.awaitingGrading,
   };
 }
 
@@ -98,12 +100,93 @@ function buildSteps(lesson) {
 
 /** Strip answers so a student can't peek at the correct choice. */
 function sanitizeQuestion(q, i) {
-  return {
+  const type = q.type === 'written' ? 'written' : 'mcq';
+  const base = {
     index: i,
     id: q.id,
+    type,
     question: q.question,
     image: q.image || null,
-    choices: q.choices || [],
+  };
+  // Written questions have no choices — the student types a free answer.
+  if (type === 'mcq') base.choices = q.choices || [];
+  return base;
+}
+
+/** Count of written (teacher-graded) questions in a set. */
+function writtenCount(questions) {
+  return questions.filter((q) => q.type === 'written').length;
+}
+
+/**
+ * Build a pending submission from a graded attempt that contains written
+ * questions: auto-grade the MCQ part, stash the student's written answers for
+ * the teacher, and mark the progress entry as awaiting grading (without
+ * finalising score / points / certificate — that happens once graded).
+ * Returns the JSON payload to send back to the student.
+ */
+function submitForGrading(user, lesson, mode, questions, answers) {
+  const total = questions.length;
+  let mcqCorrect = 0;
+  let mcqTotal = 0;
+  const written = [];
+
+  questions.forEach((q, i) => {
+    if (q.type === 'written') {
+      written.push({
+        questionId: q.id,
+        index: i,
+        question: q.question,
+        guide: q.explanation || '',
+        answer: (answers[i] == null ? '' : String(answers[i])).slice(0, 4000),
+        correct: null,
+      });
+    } else {
+      mcqTotal += 1;
+      if (Number(answers[i]) === q.correctIndex) mcqCorrect += 1;
+    }
+  });
+
+  const submission = db.insert('submissions', {
+    id: crypto.randomUUID(),
+    userId: user.id,
+    userName: user.name,
+    userAvatar: user.avatar || '🧑‍🎓',
+    lessonId: lesson.id,
+    lessonTitle: lesson.title,
+    lessonIcon: lesson.icon || '🧪',
+    mode,
+    difficulty: user.difficulty,
+    total,
+    mcqCorrect,
+    mcqTotal,
+    written,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  });
+
+  // Record that an attempt happened and is awaiting grading, without changing
+  // pass/score (those stay as any previous best until the teacher grades).
+  const progress = (user.progress = user.progress || {});
+  if (mode === 'post') {
+    const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
+    const prior = entry.post || { attempts: 0, bestScore: 0 };
+    entry.post = { ...prior, attempts: (prior.attempts || 0) + 1, awaitingGrading: true, pendingSubmissionId: submission.id };
+  } else {
+    const prior = progress[lesson.id] || { attempts: 0, bestScore: 0 };
+    progress[lesson.id] = { ...prior, attempts: (prior.attempts || 0) + 1, awaitingGrading: true, pendingSubmissionId: submission.id };
+  }
+  db.save();
+
+  return {
+    pending: true,
+    mode,
+    mcqCorrect,
+    mcqTotal,
+    writtenPending: written.length,
+    total,
+    pointsTotal: user.points || 0,
+    user: publicUser(user),
   };
 }
 
@@ -132,6 +215,7 @@ router.get('/', (req, res) => {
       opensAt: unlock.opensAt || null,
       completed,
       preDone: !!p.passed,
+      awaitingGrading: !!p.awaitingGrading,
       bestScore: p.bestScore || 0,
       hasCertificate: (req.user.certificates || []).some((c) => c.lessonId === lesson.id),
       postTest: postTestSummary(lesson, req.user),
@@ -216,6 +300,7 @@ router.post('/:id/posttest/check', (req, res) => {
   const { questionIndex, answer } = req.body || {};
   const q = questions[questionIndex];
   if (!q) return res.status(400).json({ error: 'Unknown question.' });
+  if (q.type === 'written') return res.json({ written: true }); // graded later by the teacher
   res.json({
     correct: Number(answer) === q.correctIndex,
     correctIndex: q.correctIndex,
@@ -230,6 +315,11 @@ router.post('/:id/posttest/complete', (req, res) => {
   const questions = postQuizFor(lesson, req.user.difficulty);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
   const total = questions.length;
+
+  // Any written answers? Hand the whole attempt off for teacher grading.
+  if (writtenCount(questions)) {
+    return res.json(submitForGrading(req.user, lesson, 'post', questions, answers));
+  }
 
   let correct = 0;
   questions.forEach((q, i) => { if (Number(answers[i]) === q.correctIndex) correct += 1; });
@@ -272,6 +362,7 @@ router.post('/:id/check', (req, res) => {
   const { questionIndex, answer } = req.body || {};
   const q = questions[questionIndex];
   if (!q) return res.status(400).json({ error: 'Unknown question.' });
+  if (q.type === 'written') return res.json({ written: true }); // graded later by the teacher
   res.json({
     correct: Number(answer) === q.correctIndex,
     correctIndex: q.correctIndex,
@@ -294,6 +385,11 @@ router.post('/:id/complete', (req, res) => {
   const questions = quizFor(lesson, req.user.difficulty);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
   const total = questions.length;
+
+  // Any written answers? Hand the whole attempt off for teacher grading.
+  if (writtenCount(questions)) {
+    return res.json(submitForGrading(req.user, lesson, 'pre', questions, answers));
+  }
 
   let correct = 0;
   const results = questions.map((q, i) => {

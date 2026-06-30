@@ -191,6 +191,8 @@ function showQuiz() {
   const last = quizIndex === total - 1;
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+  if (q.type === 'written') return showWrittenQuestion(q, total, last);
+
   card.innerHTML = `
     <div class="quiz-head">
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}</div>
@@ -213,6 +215,32 @@ function showQuiz() {
   document.getElementById('choices').querySelectorAll('.choice').forEach((btn) => {
     btn.onclick = () => answerQuestion(btn, q);
   });
+}
+
+/* Written (ข้อเขียน) question — the student types an answer the teacher grades later. */
+function showWrittenQuestion(q, total, last) {
+  const prev = typeof answers[quizIndex] === 'string' ? answers[quizIndex] : '';
+  card.innerHTML = `
+    <div class="quiz-head">
+      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}</div>
+      ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
+    </div>
+    <div class="q-text">${escapeHtml(q.question)}</div>
+    ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
+    <textarea class="written-input" id="writtenInput" rows="5" placeholder="${escapeHtml(t('lesson.writtenPlaceholder'))}">${escapeHtml(prev)}</textarea>
+    <div class="written-note">✍️ ${t('lesson.writtenNote')}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn big green" id="nextQ">${last ? t('lesson.seeResults') : t('lesson.next')}</button>
+    </div>`;
+
+  if (lesson.timeLimit) paintTimer(Math.max(0, quizDeadline - Date.now()));
+  const ta = document.getElementById('writtenInput');
+  ta.addEventListener('input', () => { answers[quizIndex] = ta.value; });
+  document.getElementById('nextQ').onclick = () => {
+    answers[quizIndex] = ta.value;
+    if (quizIndex < lesson.questions.length - 1) { quizIndex++; showQuiz(); }
+    else goPhase(phases.indexOf('result'));
+  };
 }
 
 async function answerQuestion(btn, q) {
@@ -280,6 +308,7 @@ async function showResult() {
     } catch (err) { card.innerHTML = errorBox(err.message); return; }
   }
   const r = submitted;
+  if (r.pending) return showPendingResult(r);
   const pct = r.total ? Math.round((r.correct / r.total) * 100) : 100;
   const ringColor = r.passed ? 'var(--grass)' : 'var(--primary)';
 
@@ -338,4 +367,25 @@ async function showResult() {
     answers = new Array(lesson.questions.length).fill(null);
     goPhase(0);
   };
+}
+
+/* Some answers need the teacher's eyes — no instant score for this attempt. */
+function showPendingResult(r) {
+  stopQuizTimer();
+  card.innerHTML = `
+    <div class="result">
+      <div>${renderRuby('happy', { size: 160, float: true })}</div>
+      <h2>${t('lesson.awaitingTitle')}</h2>
+      ${timeExpired ? `<p class="muted">${t('lesson.timesUpSaved')}</p>` : ''}
+      <p class="muted">${t('lesson.awaitingMsg')}</p>
+      <div class="pending-box">
+        <div>📝 ${t('lesson.awaitingWritten', { n: r.writtenPending })}</div>
+        ${r.mcqTotal ? `<div>✅ ${t('lesson.awaitingMcq', { c: r.mcqCorrect, t: r.mcqTotal })}</div>` : ''}
+      </div>
+      <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
+      <div class="result-actions">
+        <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
+        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+      </div>
+    </div>`;
 }

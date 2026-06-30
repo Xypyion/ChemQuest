@@ -82,3 +82,16 @@
 .cert-preview .who { font-weight: 700; color: var(--ruby); font-size: 1.15rem; }
 .cert-preview .meta { color: var(--ink-soft); font-size: .85rem; margin-top: 6px; }
 .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+
+/* written (ข้อเขียน) answer input */
+.written-input {
+  width: 100%; font-family: var(--font); font-size: 1.05rem; color: var(--ink);
+  padding: 15px 18px; border-radius: 16px; border: 3px solid #e7e2f5; background: #fbfaff;
+  resize: vertical; min-height: 120px;
+}
+.written-input:focus { outline: none; border-color: var(--secondary); background: #eef7ff; }
+.written-note { margin-top: 10px; font-weight: 700; color: var(--accent); font-size: .92rem; }
+.pending-box {
+  display: inline-grid; gap: 8px; text-align: left; margin: 14px auto; padding: 16px 22px;
+  border-radius: 16px; background: #fff8e6; border: 2px dashed #ffd87a; font-weight: 700;
+}
