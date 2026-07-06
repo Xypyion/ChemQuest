@@ -13,6 +13,7 @@ const Feed = (() => {
   let lessonId = null;
   let opts = {};
   let posts = [];
+  let criteria = [];      // rating criteria for this level's student works
   let pendingFiles = [];  // [{ name, type, size, data }]
 
   function isImage(type) { return /^image\//.test(type || ''); }
@@ -48,7 +49,9 @@ const Feed = (() => {
 
   async function refresh() {
     try {
-      posts = (await API.get('/api/posts/lesson/' + encodeURIComponent(lessonId))).posts;
+      const data = await API.get('/api/posts/lesson/' + encodeURIComponent(lessonId));
+      posts = data.posts;
+      criteria = data.criteria || [];
       render();
     } catch (e) { el.innerHTML = `<div class="feed-empty">${escapeHtml(e.message)}</div>`; }
   }
@@ -145,6 +148,7 @@ const Feed = (() => {
             ${p.likedByMe ? '❤️' : '🤍'} ${t('feed.like')}${p.likes.length ? ' · ' + p.likes.length : ''}
           </button>
         </div>
+        ${renderRating(p)}
         ${comments ? `<div class="comments">${comments}</div>` : ''}
         <div class="comment-row">
           <input type="text" id="cm-${p.id}" placeholder="${escapeHtml(t('feed.commentPh'))}" aria-label="${escapeHtml(t('feed.commentPh'))}"
@@ -153,6 +157,57 @@ const Feed = (() => {
         </div>
         ${privateBlock}
       </div>`;
+  }
+
+  /* ------------------------------ ratings ------------------------------ */
+
+  // Five stars for one criterion. Interactive (my rating) or read-only (average).
+  function starRow(postId, critId, value, interactive) {
+    let out = `<span class="stars" data-crit="${critId}">`;
+    for (let v = 1; v <= 5; v++) {
+      const on = v <= Math.round(value);
+      out += interactive
+        ? `<button class="star ${on ? 'on' : ''}" aria-label="${v}" onclick="Feed.rate('${postId}','${critId}',${v})">${on ? '★' : '☆'}</button>`
+        : `<span class="star ${on ? 'on' : ''}">${on ? '★' : '☆'}</span>`;
+    }
+    return out + '</span>';
+  }
+
+  function renderRating(p) {
+    if (p.isAssignment || !criteria.length) return '';
+    const r = p.rating || { perCriterion: {}, mine: null, teacher: null, raters: 0 };
+    const canRate = !!r.canRate; // false on your own work
+    const rows = criteria.map((c) => {
+      const per = r.perCriterion[c.id] || { avg: 0, count: 0 };
+      const mineVal = (r.mine && r.mine[c.id]) || 0;
+      const teacherVal = (r.teacher && r.teacher[c.id]) || 0;
+      const stars = canRate ? starRow(p.id, c.id, mineVal, true) : starRow(p.id, c.id, per.avg, false);
+      const meta = `${per.count ? `${per.avg}★ · ${t('rate.raters', { n: per.count })}` : t('rate.none')}`
+        + `${teacherVal ? ` · 👩‍🏫 ${teacherVal}★` : ''}`;
+      return `<div class="rating-row">
+        <span class="rc-label">${escapeHtml(c.label)}</span>
+        ${stars}
+        <span class="rc-meta">${meta}</span>
+      </div>`;
+    }).join('');
+    const title = canRate
+      ? (opts.teacher ? t('rate.titleTeacher') : t('rate.title'))
+      : t('rate.average');
+    return `<div class="rating-block">
+      <div class="rating-title">⭐ ${title}</div>
+      ${rows}
+    </div>`;
+  }
+
+  async function rate(postId, critId, val) {
+    const p = posts.find((x) => x.id === postId);
+    const scores = { ...(p && p.rating && p.rating.mine ? p.rating.mine : {}), [critId]: val };
+    try {
+      const res = await API.post(`/api/posts/${postId}/rate`, { scores });
+      if (p) p.rating = res.rating; // update in place then re-render
+      render();
+      toast(t('rate.thanks'), 'good');
+    } catch (e) { toast(e.message, 'bad'); }
   }
 
   /* ------------------------------ actions ------------------------------ */
@@ -224,5 +279,5 @@ const Feed = (() => {
     catch (e) { toast(e.message, 'bad'); }
   }
 
-  return { mount, refresh, removeFile, like, comment, delComment, ask, delPost };
+  return { mount, refresh, removeFile, like, comment, delComment, ask, delPost, rate };
 })();

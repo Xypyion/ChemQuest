@@ -102,6 +102,8 @@ function normalizeLesson(body, existing) {
 
   // Per-level access gate (managed via its own endpoint; default to auto).
   if (!lesson.gate) lesson.gate = { mode: 'auto', openAt: null };
+  // Peer/teacher rating criteria (managed via its own endpoint; preserve).
+  if (!Array.isArray(lesson.ratingCriteria)) lesson.ratingCriteria = [];
 
   lesson.updatedAt = new Date().toISOString();
   return lesson;
@@ -179,6 +181,19 @@ router.post('/lessons/:id/gate', (req, res) => {
   lesson.gate = { mode, openAt };
   db.save();
   res.json({ ok: true, gate: lesson.gate });
+});
+
+/** Set the peer/teacher rating criteria for a level's student works. */
+router.post('/lessons/:id/criteria', (req, res) => {
+  const lesson = db.findById('lessons', req.params.id);
+  if (!lesson) return res.status(404).json({ error: 'Level not found.' });
+  const arr = Array.isArray(req.body && req.body.criteria) ? req.body.criteria : [];
+  lesson.ratingCriteria = arr
+    .map((c) => ({ id: (c && c.id) || crypto.randomUUID(), label: ((c && c.label) || '').toString().trim().slice(0, 80) }))
+    .filter((c) => c.label)
+    .slice(0, 8); // keep the rubric focused
+  db.save();
+  res.json({ ok: true, criteria: lesson.ratingCriteria });
 });
 
 /** Open or close the post-test for every student on this level. */

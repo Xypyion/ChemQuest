@@ -49,8 +49,37 @@ function deleteAttachmentFiles(post) {
   });
 }
 
+/**
+ * Peer/teacher rating summary for a student work, against the level's criteria.
+ * Aggregates per-criterion averages (individual raters stay anonymous), plus the
+ * requesting user's own rating and the teacher's rating (shown distinctly).
+ */
+function ratingSummary(post, user, criteria) {
+  const ratings = post.ratings || [];
+  const perCriterion = {};
+  let sumAll = 0, countAll = 0;
+  (criteria || []).forEach((c) => {
+    let sum = 0, n = 0;
+    ratings.forEach((r) => {
+      const v = Math.round(Number((r.scores || {})[c.id]));
+      if (v >= 1 && v <= 5) { sum += v; n += 1; sumAll += v; countAll += 1; }
+    });
+    perCriterion[c.id] = { avg: n ? +(sum / n).toFixed(2) : 0, count: n };
+  });
+  const mine = ratings.find((r) => r.raterId === user.id);
+  const teacher = ratings.find((r) => r.raterRole === 'teacher');
+  return {
+    raters: ratings.length,
+    perCriterion,
+    overall: countAll ? +(sumAll / countAll).toFixed(2) : 0,
+    mine: mine ? mine.scores : null,
+    teacher: teacher ? teacher.scores : null,
+    canRate: post.author.id !== user.id, // student works only (assignment posts excluded below)
+  };
+}
+
 /** Shape a post for the requesting user (privacy filter on questions). */
-function viewPost(post, user) {
+function viewPost(post, user, criteria) {
   const isTeacher = user.role === 'teacher';
   return {
     id: post.id,
@@ -64,6 +93,8 @@ function viewPost(post, user) {
     comments: post.comments || [],
     // Private questions: the teacher sees all; a student only their own.
     questions: (post.questions || []).filter((qq) => isTeacher || qq.author.id === user.id),
+    // Ratings only apply to student works, never to a teacher's assignment post.
+    rating: post.isAssignment ? null : ratingSummary(post, user, criteria),
     createdAt: post.createdAt,
     canDelete: isTeacher || post.author.id === user.id,
   };
@@ -73,6 +104,7 @@ function viewPost(post, user) {
 router.get('/lesson/:lessonId', (req, res) => {
   const lesson = db.findById('lessons', req.params.lessonId);
   if (!lesson) return res.status(404).json({ error: 'That level does not exist.' });
+  const criteria = lesson.ratingCriteria || [];
   const posts = db
     .filter('posts', (p) => p.lessonId === lesson.id)
     .sort((a, b) => {
@@ -80,8 +112,8 @@ router.get('/lesson/:lessonId', (req, res) => {
       if (!!b.isAssignment !== !!a.isAssignment) return b.isAssignment ? 1 : -1;
       return new Date(b.createdAt) - new Date(a.createdAt);
     })
-    .map((p) => viewPost(p, req.user));
-  res.json({ posts });
+    .map((p) => viewPost(p, req.user, criteria));
+  res.json({ posts, criteria });
 });
 
 /** POST /api/posts/lesson/:lessonId — create a post (text and/or files). */
@@ -109,7 +141,45 @@ router.post('/lesson/:lessonId', (req, res) => {
     createdAt: new Date().toISOString(),
   };
   db.insert('posts', post);
-  res.status(201).json({ post: viewPost(post, req.user) });
+  res.status(201).json({ post: viewPost(post, req.user, lesson.ratingCriteria || []) });
+});
+
+/**
+ * POST /api/posts/:id/rate — rate a classmate's work against the level's
+ * criteria. Any logged-in user may rate (students rate peers, the teacher rates
+ * too), but never their own post and never a teacher assignment post. Scores are
+ * 1–5 per criterion; a rater may update one or more criteria at a time.
+ */
+router.post('/:id/rate', (req, res) => {
+  const post = db.findById('posts', req.params.id);
+  if (!post) return res.status(404).json({ error: 'Post not found.' });
+  if (post.isAssignment) return res.status(403).json({ error: 'Only student works can be rated.' });
+  if (post.author.id === req.user.id) return res.status(403).json({ error: 'You cannot rate your own work.' });
+
+  const lesson = db.findById('lessons', post.lessonId);
+  const criteria = (lesson && lesson.ratingCriteria) || [];
+  if (!criteria.length) return res.status(400).json({ error: 'Your teacher has not set any rating criteria yet.' });
+
+  const critIds = new Set(criteria.map((c) => c.id));
+  const raw = (req.body && req.body.scores) || {};
+  const scores = {};
+  for (const k of Object.keys(raw)) {
+    if (!critIds.has(k)) continue;
+    const v = Math.round(Number(raw[k]));
+    if (v >= 1 && v <= 5) scores[k] = v;
+  }
+  if (!Object.keys(scores).length) return res.status(400).json({ error: 'Please give a star rating first.' });
+
+  post.ratings = post.ratings || [];
+  const existing = post.ratings.find((r) => r.raterId === req.user.id);
+  if (existing) {
+    existing.scores = { ...existing.scores, ...scores };
+    existing.at = new Date().toISOString();
+  } else {
+    post.ratings.push({ raterId: req.user.id, raterRole: req.user.role, scores, at: new Date().toISOString() });
+  }
+  db.save();
+  res.json({ rating: ratingSummary(post, req.user, criteria) });
 });
 
 /** POST /api/posts/:id/comment */

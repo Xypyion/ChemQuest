@@ -179,7 +179,14 @@ async function doDeleteLesson(id) {
 }
 
 /* ====================== ASSIGNMENT BOARD (teacher view) ====================== */
-function openBoard(id) { boardLessonId = id; render(); }
+let boardCriteria = []; // working copy of the level's rating criteria
+
+function openBoard(id) {
+  boardLessonId = id;
+  const l = LESSONS.find((x) => x.id === id);
+  boardCriteria = ((l && l.ratingCriteria) || []).map((c) => ({ id: c.id, label: c.label }));
+  render();
+}
 function renderBoard() {
   const l = LESSONS.find((x) => x.id === boardLessonId);
   viewEl.innerHTML = `
@@ -187,8 +194,42 @@ function renderBoard() {
       <div><h1>${t('t.boardFor', { title: esc(l ? l.title : '') })}</h1><div class="sub">${t('t.boardSub')}</div></div>
       <button class="tbtn ghost" onclick="setView('lessons')">${t('common.back')}</button>
     </div>
+    <div class="t-card" id="critCard"></div>
     <div id="tFeed"></div>`;
+  renderCriteriaCard();
   Feed.mount(document.getElementById('tFeed'), boardLessonId, { teacher: true });
+}
+
+/* ---- rating criteria editor (lives above the board feed) ---- */
+function renderCriteriaCard() {
+  const rows = boardCriteria.length ? boardCriteria.map((c, i) => `
+    <div class="crit-row">
+      <input class="t-input crit-input" data-i="${i}" value="${esc(c.label)}" placeholder="${esc(t('rate.critPh'))}" maxlength="80">
+      <button class="tbtn danger sm" onclick="removeCriterion(${i})" aria-label="${t('common.delete')}">✕</button>
+    </div>`).join('') : `<div class="sub" style="color:var(--t-soft)">${t('rate.noneYet')}</div>`;
+  document.getElementById('critCard').innerHTML = `
+    <div class="t-head" style="margin:0 0 4px"><h3 style="margin:0">${t('rate.editorTitle')}</h3>
+      <button class="tbtn blue sm" onclick="addCriterion()">${t('rate.addCrit')}</button></div>
+    <div class="sub" style="color:var(--t-soft);margin-bottom:8px">${t('rate.editorHint')}</div>
+    ${rows}
+    <div style="margin-top:12px"><button class="tbtn" onclick="saveCriteria()">${t('rate.saveCrit')}</button></div>`;
+}
+function syncCriteria() {
+  document.querySelectorAll('.crit-input').forEach((inp) => { boardCriteria[+inp.dataset.i].label = inp.value; });
+}
+function addCriterion() { syncCriteria(); if (boardCriteria.length < 8) boardCriteria.push({ id: uid(), label: '' }); renderCriteriaCard(); }
+function removeCriterion(i) { syncCriteria(); boardCriteria.splice(i, 1); renderCriteriaCard(); }
+async function saveCriteria() {
+  syncCriteria();
+  const payload = boardCriteria.filter((c) => c.label.trim());
+  try {
+    const r = await API.post(`/api/teacher/lessons/${boardLessonId}/criteria`, { criteria: payload });
+    boardCriteria = r.criteria.map((c) => ({ id: c.id, label: c.label }));
+    const l = LESSONS.find((x) => x.id === boardLessonId); if (l) l.ratingCriteria = r.criteria;
+    toast(t('rate.saved'), 'good');
+    renderCriteriaCard();
+    Feed.refresh(); // re-render posts so rating widgets pick up the new criteria
+  } catch (e) { toast(e.message, 'bad'); }
 }
 
 /* ============================ LESSON EDITOR ============================ */

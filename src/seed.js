@@ -260,6 +260,12 @@ function seedIfEmpty() {
       postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
       // Access gate: 'auto' follows normal progression; teacher may lock/schedule.
       gate: { mode: 'auto', openAt: null },
+      // Example peer/teacher rating criteria for student works (teacher can edit).
+      ratingCriteria: [
+        { id: crypto.randomUUID(), label: 'ความถูกต้องของเนื้อหา' },
+        { id: crypto.randomUUID(), label: 'ความคิดสร้างสรรค์' },
+        { id: crypto.randomUUID(), label: 'ความเรียบร้อยสวยงาม' },
+      ],
       ...lesson,
     });
   });

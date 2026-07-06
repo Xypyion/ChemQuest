@@ -177,6 +177,21 @@ const I18N = {
     'feed.yourQuestion': 'Your private question to the teacher:',
     'feed.empty.attachment': 'Write something or attach a file first.',
 
+    /* ---- peer/teacher rating ---- */
+    'rate.title': 'Rate this work',
+    'rate.titleTeacher': 'Rate this work (teacher)',
+    'rate.average': 'Class rating',
+    'rate.none': 'no ratings yet',
+    'rate.raters': '{n} rating(s)',
+    'rate.thanks': 'Rating saved ⭐',
+    'rate.editorTitle': '⭐ Rating criteria',
+    'rate.editorHint': 'Students rate each other’s work on these criteria (1–5 stars). You can rate too. Edit them freely.',
+    'rate.addCrit': '＋ Add criterion',
+    'rate.critPh': 'e.g. Creativity',
+    'rate.noneYet': 'No criteria yet — add one so students can rate each other’s work.',
+    'rate.saveCrit': '💾 Save criteria',
+    'rate.saved': 'Rating criteria saved.',
+
     /* ---- teacher console ---- */
     't.console': 'Teacher Console',
     't.navLessons': '📚 Lessons & Levels',
@@ -496,6 +511,21 @@ const I18N = {
     'feed.privateQuestions': '🔒 คำถามส่วนตัวจากนักเรียน',
     'feed.yourQuestion': 'คำถามส่วนตัวของคุณถึงคุณครู:',
     'feed.empty.attachment': 'พิมพ์ข้อความหรือแนบไฟล์ก่อนนะ',
+
+    /* ---- peer/teacher rating ---- */
+    'rate.title': 'ให้คะแนนผลงานนี้',
+    'rate.titleTeacher': 'ให้คะแนนผลงานนี้ (คุณครู)',
+    'rate.average': 'คะแนนจากเพื่อน ๆ',
+    'rate.none': 'ยังไม่มีคะแนน',
+    'rate.raters': '{n} คน',
+    'rate.thanks': 'บันทึกคะแนนแล้ว ⭐',
+    'rate.editorTitle': '⭐ เกณฑ์การให้คะแนนผลงาน',
+    'rate.editorHint': 'นักเรียนให้คะแนนผลงานของกันและกันตามเกณฑ์เหล่านี้ (๑–๕ ดาว) คุณครูก็ให้คะแนนได้ และปรับแก้เกณฑ์ได้อย่างอิสระ',
+    'rate.addCrit': '＋ เพิ่มเกณฑ์',
+    'rate.critPh': 'เช่น ความคิดสร้างสรรค์',
+    'rate.noneYet': 'ยังไม่มีเกณฑ์ — เพิ่มเกณฑ์เพื่อให้นักเรียนให้คะแนนผลงานของกันและกันได้',
+    'rate.saveCrit': '💾 บันทึกเกณฑ์',
+    'rate.saved': 'บันทึกเกณฑ์การให้คะแนนแล้ว',
 
     /* ---- teacher console ---- */
     't.console': 'คอนโซลคุณครู',
