@@ -15,10 +15,15 @@ const TERRAINS = ['plain', 'mountain', 'snow'];
 function normalizeQuestion(q) {
   q = q || {};
   const type = q.type === 'written' ? 'written' : 'mcq';
+  // Per-question points (default 1). Correct MCQ earns the full points; a
+  // written answer is graded 0..points by the teacher.
+  let points = parseInt(q.points, 10);
+  if (!Number.isFinite(points) || points < 1) points = 1;
   const base = {
     id: q.id || crypto.randomUUID(),
     type,
     question: (q.question || '').toString().trim(),
+    points: Math.min(points, 100),
     explanation: (q.explanation || '').toString().trim(),
   };
   // Written (ข้อเขียน) questions have no choices — the student types a free
@@ -286,11 +291,14 @@ function submissionView(s) {
     total: s.total,
     mcqCorrect: s.mcqCorrect,
     mcqTotal: s.mcqTotal,
+    mcqPoints: s.mcqPoints || 0,      // points already earned from auto-graded MCQs
+    maxPoints: s.maxPoints || 0,      // total points possible on this attempt
     written: (s.written || []).map((w) => ({
       questionId: w.questionId,
       question: w.question,
       guide: w.guide || '',
       answer: w.answer || '',
+      points: w.points || 1,          // max points the teacher may award for this answer
     })),
     createdAt: s.createdAt,
   };
@@ -307,21 +315,25 @@ router.get('/submissions', (req, res) => {
 
 /**
  * POST /api/teacher/submissions/:id/grade
- * body: { grades: { [questionId]: true|false } }
- * Marks each written answer, then finalises the student's attempt (score,
- * pass/fail, points, certificate) by combining the auto-graded MCQ portion
- * with the teacher's written marks.
+ * body: { scores: { [questionId]: number } }
+ * The teacher awards each written answer a numeric score (0..question points).
+ * That is added to the auto-graded MCQ points and finalises the student's
+ * attempt (score, pass/fail, points, certificate) against the total possible.
  */
 router.post('/submissions/:id/grade', (req, res) => {
   const sub = db.findById('submissions', req.params.id);
   if (!sub) return res.status(404).json({ error: 'Submission not found.' });
   if (sub.status === 'graded') return res.status(400).json({ error: 'This submission was already graded.' });
 
-  const grades = (req.body && req.body.grades) || {};
-  let writtenCorrect = 0;
+  const scores = (req.body && req.body.scores) || {};
+  let writtenPoints = 0;
   (sub.written || []).forEach((w) => {
-    w.correct = !!grades[w.questionId];
-    if (w.correct) writtenCorrect += 1;
+    const max = w.points || 1;
+    let v = Math.round(Number(scores[w.questionId]));
+    if (!Number.isFinite(v) || v < 0) v = 0;
+    if (v > max) v = max;
+    w.awarded = v;
+    writtenPoints += v;
   });
 
   const user = db.findById('users', sub.userId);
@@ -334,13 +346,14 @@ router.post('/submissions/:id/grade', (req, res) => {
     return res.json({ ok: true, finalized: false });
   }
 
-  const correct = (sub.mcqCorrect || 0) + writtenCorrect;
-  const result = finalizeAttempt(user, lesson, sub.mode, correct, sub.total);
+  const earned = (sub.mcqPoints || 0) + writtenPoints;
+  const max = sub.maxPoints || 0;
+  const result = finalizeAttempt(user, lesson, sub.mode, earned, max);
 
   sub.status = 'graded';
   sub.gradedAt = new Date().toISOString();
-  sub.writtenCorrect = writtenCorrect;
-  sub.finalCorrect = correct;
+  sub.writtenPoints = writtenPoints;
+  sub.finalEarned = earned;
   sub.score = result.score;
   sub.passed = result.passed;
   db.save();

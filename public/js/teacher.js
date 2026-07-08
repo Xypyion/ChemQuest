@@ -233,7 +233,7 @@ async function saveCriteria() {
 }
 
 /* ============================ LESSON EDITOR ============================ */
-function blankQuestion() { return { _id: uid(), type: 'mcq', question: '', choices: ['', ''], correctIndex: 0, explanation: '' }; }
+function blankQuestion() { return { _id: uid(), type: 'mcq', question: '', choices: ['', ''], correctIndex: 0, points: 1, explanation: '' }; }
 function blankLine() { return { type: 'line', character: 'Ruby', mood: 'happy', text: '', image: '' }; }
 function blankVideo() { return { type: 'video', url: '', title: '' }; }
 
@@ -285,6 +285,7 @@ function mapInQ(arr) {
     question: q.question || '',
     choices: (q.choices && q.choices.length ? q.choices : ['', '']).slice(),
     correctIndex: q.correctIndex || 0,
+    points: q.points || 1,
     explanation: q.explanation || '',
   }));
 }
@@ -434,6 +435,15 @@ function renderQuestionCard(q, i, zone) {
       <input type="text" class="t-input q-explain" value="${esc(q.explanation)}" placeholder="${esc(t('t.explanationPh'))}">`;
   }
 
+  // Post-test questions carry a point value; a correct MCQ earns it in full and
+  // a written answer is graded 0..points by the teacher.
+  const pointsRow = zone === 'post' ? `
+    <div class="q-points-row">
+      <label class="t-label" style="margin:0">${t('t.points')}</label>
+      <input type="number" class="t-input q-points" min="1" max="100" value="${q.points || 1}">
+      <span class="q-points-hint">${isWritten ? t('t.pointsWrittenHint') : t('t.pointsMcqHint')}</span>
+    </div>` : '';
+
   return `
     <div class="builder-item qcard" data-qid="${q._id}" data-qtype="${isWritten ? 'written' : 'mcq'}">
       <div class="builder-head">${t('t.question', { n: i + 1 })}</div>
@@ -441,6 +451,7 @@ function renderQuestionCard(q, i, zone) {
       ${typeTabs}
       <input type="text" class="t-input q-text" value="${esc(q.question)}" placeholder="${esc(t('t.questionPh'))}">
       ${bodyHtml}
+      ${pointsRow}
     </div>`;
 }
 
@@ -461,10 +472,12 @@ function readQuizList(zone) {
   zoneQuizzes(zone)[curDiff[zone]] = [...ql.querySelectorAll('.qcard')].map((cardEl) => {
     const type = cardEl.dataset.qtype === 'written' ? 'written' : 'mcq';
     const explainEl = cardEl.querySelector('.q-explain');
+    const pointsEl = cardEl.querySelector('.q-points');
     const base = {
       _id: cardEl.dataset.qid,
       type,
       question: cardEl.querySelector('.q-text').value,
+      points: pointsEl ? Math.max(1, Math.min(100, parseInt(pointsEl.value, 10) || 1)) : 1,
       explanation: explainEl ? explainEl.value : '',
     };
     if (type === 'written') { base.choices = []; base.correctIndex = 0; return base; }
@@ -564,8 +577,8 @@ async function saveLesson() {
   const mapQ = (arr) => arr
     .filter((q) => q.question.trim() && (q.type === 'written' || (q.choices || []).filter((c) => c.trim()).length >= 2))
     .map((q) => q.type === 'written'
-      ? { id: q._id, type: 'written', question: q.question, explanation: q.explanation }
-      : { id: q._id, type: 'mcq', question: q.question, choices: q.choices, correctIndex: q.correctIndex, explanation: q.explanation });
+      ? { id: q._id, type: 'written', question: q.question, points: q.points || 1, explanation: q.explanation }
+      : { id: q._id, type: 'mcq', question: q.question, choices: q.choices, correctIndex: q.correctIndex, points: q.points || 1, explanation: q.explanation });
   const payload = {
     title: draft.title, description: draft.description, terrain: draft.terrain, icon: draft.icon,
     timeLimit: draft.timeLimit || 0,
@@ -835,6 +848,7 @@ function renderGrading() {
       <button class="tbtn ghost" onclick="reloadGrading()">${t('t.refresh')}</button>
     </div>
     ${cards}`;
+  SUBMISSIONS.forEach((s) => updateGradeTotal(s.id)); // paint initial earned/max
 }
 async function reloadGrading() {
   try { SUBMISSIONS = (await API.get('/api/teacher/submissions')).submissions; updateGradingBadge(); render(); }
@@ -843,42 +857,61 @@ async function reloadGrading() {
 function renderSubmissionCard(s) {
   const modeLabel = s.mode === 'post' ? t('t.gradeModePost') : t('t.gradeModePre');
   const items = s.written.map((w, i) => `
-    <div class="grade-item" data-qid="${esc(w.questionId)}">
-      <div class="grade-q">${i + 1}. ${esc(w.question)}</div>
+    <div class="grade-item" data-qid="${esc(w.questionId)}" data-max="${w.points}">
+      <div class="grade-q">${i + 1}. ${esc(w.question)} <span class="grade-qpts">(${t('t.outOf', { n: w.points })})</span></div>
       <div class="grade-ans">${esc(w.answer) || `<span class="grade-blank">${t('t.gradeNoAnswer')}</span>`}</div>
       ${w.guide ? `<div class="grade-guide">💡 ${esc(w.guide)}</div>` : ''}
-      <div class="grade-marks">
-        <label class="mark good"><input type="radio" name="m-${s.id}-${esc(w.questionId)}" value="1"> ${t('t.gradeCorrect')}</label>
-        <label class="mark bad"><input type="radio" name="m-${s.id}-${esc(w.questionId)}" value="0" checked> ${t('t.gradeWrong')}</label>
+      <div class="grade-score">
+        <label class="t-label" style="margin:0">${t('t.gradeScoreLabel')}</label>
+        <input type="number" class="grade-score-input" min="0" max="${w.points}" step="1" value="0"
+               oninput="updateGradeTotal('${s.id}')">
+        <span class="grade-outof">/ ${w.points}</span>
       </div>
     </div>`).join('');
   return `
-    <div class="t-card grade-card" data-sid="${s.id}">
+    <div class="t-card grade-card" data-sid="${s.id}" data-mcq="${s.mcqPoints}" data-max="${s.maxPoints}">
       <div class="grade-head">
         <span class="av">${s.userAvatar || '🧑‍🎓'}</span>
         <div>
           <div class="grade-name">${esc(s.userName)}</div>
           <div class="sub" style="color:var(--t-soft)">${s.lessonIcon} ${esc(s.lessonTitle)} · <b>${modeLabel}</b> · ${tDiff(s.difficulty)}</div>
         </div>
-        <span class="grade-auto">${t('t.gradeAutoMcq', { c: s.mcqCorrect, t: s.mcqTotal })}</span>
+        <span class="grade-auto">${t('t.gradeAutoMcqPts', { c: s.mcqCorrect, t: s.mcqTotal, p: s.mcqPoints })}</span>
       </div>
       <div class="grade-items">${items}</div>
-      <div class="editor-actions" style="padding-top:12px">
+      <div class="grade-foot">
+        <span class="grade-total" id="gt-${s.id}"></span>
         <button class="tbtn" onclick="saveGrades('${s.id}')">${t('t.gradeSave')}</button>
       </div>
     </div>`;
 }
+/** Live "earned / max points" readout as the teacher types scores. */
+function updateGradeTotal(sid) {
+  const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
+  if (!card) return;
+  let earned = Number(card.dataset.mcq) || 0;
+  card.querySelectorAll('.grade-item').forEach((it) => {
+    const max = Number(it.dataset.max) || 0;
+    let v = parseInt(it.querySelector('.grade-score-input').value, 10);
+    if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
+    earned += v;
+  });
+  const el = document.getElementById('gt-' + sid);
+  if (el) el.textContent = t('t.gradeTotal', { e: earned, m: card.dataset.max });
+}
 async function saveGrades(sid) {
   const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
   if (!card) return;
-  const grades = {};
+  const scores = {};
   card.querySelectorAll('.grade-item').forEach((it) => {
     const qid = it.dataset.qid;
-    const picked = it.querySelector('input[type=radio]:checked');
-    grades[qid] = !!(picked && picked.value === '1');
+    const max = Number(it.dataset.max) || 0;
+    let v = parseInt(it.querySelector('.grade-score-input').value, 10);
+    if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
+    scores[qid] = v;
   });
   try {
-    await API.post(`/api/teacher/submissions/${sid}/grade`, { grades });
+    await API.post(`/api/teacher/submissions/${sid}/grade`, { scores });
     toast(t('t.gradeSaved'), 'good');
     await reload();
     render();

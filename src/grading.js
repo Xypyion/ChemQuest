@@ -16,16 +16,18 @@ const game = require('./game');
 /**
  * Apply a fully-graded attempt to the user's progress.
  *   mode: 'pre' | 'post'
- *   correct / total: final counts including teacher-graded written answers
+ *   earned / max: final POINTS earned (auto MCQ + teacher-graded written) out of
+ *   the total points possible. (For all-default 1-point questions this reduces
+ *   to correct-count / question-count, so older content behaves identically.)
  * Mutates `user` in place (does NOT persist — the caller saves). Returns a
  * summary mirroring the shape lessons.routes already returns to the client.
  */
-function finalizeAttempt(user, lesson, mode, correct, total) {
+function finalizeAttempt(user, lesson, mode, earned, max) {
   const progress = (user.progress = user.progress || {});
 
   if (mode === 'post') {
-    const passed = total === 0 ? true : game.isPass(correct, total);
-    const score = game.computeScore({ correct, total, difficulty: user.difficulty });
+    const passed = max === 0 ? true : game.isPass(earned, max);
+    const score = game.computeScore({ correct: earned, total: max, difficulty: user.difficulty });
     const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
     const prior = entry.post || { attempts: 0, bestScore: 0 };
     entry.post = {
@@ -33,23 +35,23 @@ function finalizeAttempt(user, lesson, mode, correct, total) {
       attempts: prior.attempts || 0, // the attempt was already counted at submit time
       lastScore: score,
       bestScore: Math.max(prior.bestScore || 0, score),
-      bestCorrect: Math.max(prior.bestCorrect || 0, correct),
-      total,
+      bestEarned: Math.max(prior.bestEarned || 0, earned),
+      total: max,
       passed: prior.passed || passed,
       completedAt: prior.completedAt || new Date().toISOString(),
     };
     delete entry.post.awaitingGrading;
     delete entry.post.pendingSubmissionId;
     game.recalcPoints(user);
-    return { mode, passed, correct, total, score, bestScore: entry.post.bestScore, certificate: null, newCertificate: false };
+    return { mode, passed, correct: earned, total: max, score, bestScore: entry.post.bestScore, certificate: null, newCertificate: false };
   }
 
   // pre-test
-  const passed = total === 0 ? true : game.isPass(correct, total);
+  const passed = max === 0 ? true : game.isPass(earned, max);
   const score =
-    total === 0
+    max === 0
       ? Math.round(0.8 * game.MAX_LESSON_POINTS * game.multiplierFor(user.difficulty))
-      : game.computeScore({ correct, total, difficulty: user.difficulty });
+      : game.computeScore({ correct: earned, total: max, difficulty: user.difficulty });
 
   const prior = progress[lesson.id] || { attempts: 0, bestScore: 0 };
   const bestScore = Math.max(prior.bestScore || 0, score);
@@ -58,8 +60,8 @@ function finalizeAttempt(user, lesson, mode, correct, total) {
     attempts: prior.attempts || 0, // already counted at submit time
     lastScore: score,
     bestScore,
-    bestCorrect: Math.max(prior.bestCorrect || 0, correct),
-    total,
+    bestEarned: Math.max(prior.bestEarned || 0, earned),
+    total: max,
     passed: prior.passed || passed,
     completedAt: prior.completedAt || (passed ? new Date().toISOString() : null),
   };
@@ -86,7 +88,7 @@ function finalizeAttempt(user, lesson, mode, correct, total) {
   }
 
   game.recalcPoints(user);
-  return { mode, passed, correct, total, score, bestScore, certificate, newCertificate };
+  return { mode, passed, correct: earned, total: max, score, bestScore, certificate, newCertificate };
 }
 
 module.exports = { finalizeAttempt };

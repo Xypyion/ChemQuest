@@ -195,7 +195,7 @@ function showQuiz() {
 
   card.innerHTML = `
     <div class="quiz-head">
-      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}</div>
+      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
     <div class="q-text">${escapeHtml(q.question)}</div>
@@ -222,7 +222,7 @@ function showWrittenQuestion(q, total, last) {
   const prev = typeof answers[quizIndex] === 'string' ? answers[quizIndex] : '';
   card.innerHTML = `
     <div class="quiz-head">
-      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}</div>
+      <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
     <div class="q-text">${escapeHtml(q.question)}</div>

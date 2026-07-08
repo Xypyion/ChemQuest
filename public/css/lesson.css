@@ -37,6 +37,7 @@
 .quiz-timer.warn { background: #ffe9ee; color: var(--bad); animation: pulse 1s infinite; }
 .choice.picked { border-color: var(--secondary); background: #eef7ff; }
 .q-counter { font-weight: 700; color: var(--ink-soft); }
+.q-counter .q-pts { color: var(--primary); }
 .q-text { font-size: 1.4rem; margin: 6px 0 18px; }
 .q-img { max-width: 100%; border-radius: 14px; margin-bottom: 14px; }
 .choices { display: grid; gap: 12px; }

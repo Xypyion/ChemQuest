@@ -106,6 +106,7 @@ function sanitizeQuestion(q, i) {
     id: q.id,
     type,
     question: q.question,
+    points: q.points || 1,
     image: q.image || null,
   };
   // Written questions have no choices — the student types a free answer.
@@ -118,6 +119,11 @@ function writtenCount(questions) {
   return questions.filter((q) => q.type === 'written').length;
 }
 
+/** Total points possible for a question set (each question defaults to 1). */
+function sumPoints(questions) {
+  return questions.reduce((s, q) => s + (q.points || 1), 0);
+}
+
 /**
  * Build a pending submission from a graded attempt that contains written
  * questions: auto-grade the MCQ part, stash the student's written answers for
@@ -127,8 +133,10 @@ function writtenCount(questions) {
  */
 function submitForGrading(user, lesson, mode, questions, answers) {
   const total = questions.length;
+  const maxPoints = sumPoints(questions);
   let mcqCorrect = 0;
   let mcqTotal = 0;
+  let mcqPoints = 0; // points auto-earned from correct MCQs
   const written = [];
 
   questions.forEach((q, i) => {
@@ -137,13 +145,14 @@ function submitForGrading(user, lesson, mode, questions, answers) {
         questionId: q.id,
         index: i,
         question: q.question,
+        points: q.points || 1, // max the teacher may award
         guide: q.explanation || '',
         answer: (answers[i] == null ? '' : String(answers[i])).slice(0, 4000),
-        correct: null,
+        awarded: null,
       });
     } else {
       mcqTotal += 1;
-      if (Number(answers[i]) === q.correctIndex) mcqCorrect += 1;
+      if (Number(answers[i]) === q.correctIndex) { mcqCorrect += 1; mcqPoints += (q.points || 1); }
     }
   });
 
@@ -160,6 +169,8 @@ function submitForGrading(user, lesson, mode, questions, answers) {
     total,
     mcqCorrect,
     mcqTotal,
+    mcqPoints,
+    maxPoints,
     written,
     status: 'pending',
     createdAt: new Date().toISOString(),
@@ -321,11 +332,13 @@ router.post('/:id/posttest/complete', (req, res) => {
     return res.json(submitForGrading(req.user, lesson, 'post', questions, answers));
   }
 
-  let correct = 0;
-  questions.forEach((q, i) => { if (Number(answers[i]) === q.correctIndex) correct += 1; });
+  // Points-based: a correct MCQ earns its own points; score is earned / total.
+  let earned = 0;
+  questions.forEach((q, i) => { if (Number(answers[i]) === q.correctIndex) earned += (q.points || 1); });
+  const max = sumPoints(questions);
 
-  const passed = total === 0 ? true : game.isPass(correct, total);
-  const score = game.computeScore({ correct, total, difficulty: req.user.difficulty });
+  const passed = max === 0 ? true : game.isPass(earned, max);
+  const score = game.computeScore({ correct: earned, total: max, difficulty: req.user.difficulty });
 
   const progress = (req.user.progress = req.user.progress || {});
   const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
@@ -334,8 +347,8 @@ router.post('/:id/posttest/complete', (req, res) => {
     attempts: (prior.attempts || 0) + 1,
     lastScore: score,
     bestScore: Math.max(prior.bestScore || 0, score),
-    bestCorrect: Math.max(prior.bestCorrect || 0, correct),
-    total,
+    bestEarned: Math.max(prior.bestEarned || 0, earned),
+    total: max,
     passed: prior.passed || passed,
     completedAt: prior.completedAt || new Date().toISOString(),
   };
@@ -345,8 +358,8 @@ router.post('/:id/posttest/complete', (req, res) => {
 
   res.json({
     passed,
-    correct,
-    total,
+    correct: earned,
+    total: max,
     score,
     bestScore: entry.post.bestScore,
     pointsTotal: req.user.points,

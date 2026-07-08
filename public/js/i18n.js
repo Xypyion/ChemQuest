@@ -132,6 +132,7 @@ const I18N = {
     'lesson.awaitingMsg': 'Some questions need your teacher to grade them. Your final score and certificate unlock once they’re marked.',
     'lesson.awaitingWritten': '{n} written answer(s) waiting for your teacher',
     'lesson.awaitingMcq': '{c}/{t} multiple-choice correct so far',
+    'lesson.worthPts': 'worth {n} pts',
 
     /* ---- inventory ---- */
     'inv.title': '🎖️ My Certificate Collection',
@@ -307,24 +308,28 @@ const I18N = {
     /* ---- question types (editor) ---- */
     't.qTypeMcq': '🔘 Multiple choice',
     't.qTypeWritten': '✍️ Written (ข้อเขียน)',
-    't.writtenHint': 'Students type their own answer. You’ll grade it later in the Grading tab.',
+    't.writtenHint': 'Students type their own answer. You’ll grade it later in the Writing Grading tab.',
     't.writtenPreviewPh': 'The student types their answer here…',
     't.answerGuide': 'Answer guide (optional — only you see it while grading)',
     't.answerGuideInputPh': 'Notes or a sample answer to help you grade',
+    't.points': 'Points for this question',
+    't.pointsMcqHint': 'a correct answer earns these points',
+    't.pointsWrittenHint': 'you grade this answer 0–this many points',
 
-    /* ---- grading queue ---- */
-    't.navGrading': 'Grading',
-    't.gradingTitle': '✍️ Grading',
-    't.gradingSub': 'Mark students’ written answers. Their score and certificate finalise once you grade.',
+    /* ---- writing grading queue ---- */
+    't.navGrading': 'Writing Grading',
+    't.gradingTitle': '✍️ Writing Grading',
+    't.gradingSub': 'Grade students’ written answers on your points scale. Their score and certificate finalise once you grade.',
     't.refresh': '🔄 Refresh',
     't.gradingEmpty': 'Nothing to grade right now. Written answers will appear here. ✅',
     't.gradeModePre': 'Pre-test',
     't.gradeModePost': 'Post-test',
     't.gradeNoAnswer': '(left blank)',
-    't.gradeCorrect': 'Correct',
-    't.gradeWrong': 'Incorrect',
-    't.gradeAutoMcq': 'Multiple choice: {c}/{t} auto-graded',
-    't.gradeSave': '💾 Save grades',
+    't.gradeScoreLabel': 'Score',
+    't.outOf': 'out of {n}',
+    't.gradeAutoMcqPts': 'Multiple choice: {c}/{t} correct · {p} pts auto',
+    't.gradeTotal': 'Total: {e} / {m} points',
+    't.gradeSave': '💾 Save score',
     't.gradeSaved': 'Graded! The student’s score is updated. 🎉',
 
     /* ---- play-as-student preview ---- */
@@ -467,6 +472,7 @@ const I18N = {
     'lesson.awaitingMsg': 'มีบางข้อที่ต้องให้คุณครูตรวจ คะแนนรวมและเกียรติบัตรจะปลดล็อกเมื่อคุณครูตรวจเสร็จ',
     'lesson.awaitingWritten': 'มีคำตอบข้อเขียน {n} ข้อที่รอคุณครูตรวจ',
     'lesson.awaitingMcq': 'ตอบปรนัยถูก {c}/{t} ข้อแล้วในตอนนี้',
+    'lesson.worthPts': 'ข้อละ {n} คะแนน',
 
     /* ---- inventory ---- */
     'inv.title': '🎖️ คลังเกียรติบัตรของฉัน',
@@ -642,24 +648,28 @@ const I18N = {
     /* ---- question types (editor) ---- */
     't.qTypeMcq': '🔘 ปรนัย',
     't.qTypeWritten': '✍️ ข้อเขียน',
-    't.writtenHint': 'นักเรียนพิมพ์คำตอบเอง คุณครูจะตรวจภายหลังในแท็บ “ตรวจคำตอบ”',
+    't.writtenHint': 'นักเรียนพิมพ์คำตอบเอง คุณครูจะตรวจภายหลังในแท็บ “ตรวจข้อเขียน”',
     't.writtenPreviewPh': 'นักเรียนจะพิมพ์คำตอบตรงนี้…',
     't.answerGuide': 'แนวคำตอบ (ไม่บังคับ — เห็นเฉพาะคุณครูตอนตรวจ)',
     't.answerGuideInputPh': 'บันทึกช่วยจำหรือตัวอย่างคำตอบไว้ช่วยตรวจ',
+    't.points': 'คะแนนของข้อนี้',
+    't.pointsMcqHint': 'ตอบถูกได้คะแนนเต็มนี้',
+    't.pointsWrittenHint': 'คุณครูให้คะแนนข้อนี้ได้ตั้งแต่ 0 ถึงเท่านี้',
 
-    /* ---- grading queue ---- */
-    't.navGrading': 'ตรวจคำตอบ',
-    't.gradingTitle': '✍️ ตรวจคำตอบข้อเขียน',
-    't.gradingSub': 'ตรวจคำตอบข้อเขียนของนักเรียน คะแนนและเกียรติบัตรจะสรุปเมื่อคุณครูตรวจเสร็จ',
+    /* ---- writing grading queue ---- */
+    't.navGrading': 'ตรวจข้อเขียน',
+    't.gradingTitle': '✍️ ตรวจข้อเขียน',
+    't.gradingSub': 'ให้คะแนนคำตอบข้อเขียนของนักเรียนตามคะแนนที่คุณครูตั้งไว้ คะแนนและเกียรติบัตรจะสรุปเมื่อตรวจเสร็จ',
     't.refresh': '🔄 รีเฟรช',
     't.gradingEmpty': 'ยังไม่มีอะไรให้ตรวจตอนนี้ คำตอบข้อเขียนจะมาแสดงที่นี่ ✅',
     't.gradeModePre': 'ก่อนเรียน',
     't.gradeModePost': 'หลังเรียน',
     't.gradeNoAnswer': '(เว้นว่างไว้)',
-    't.gradeCorrect': 'ถูก',
-    't.gradeWrong': 'ผิด',
-    't.gradeAutoMcq': 'ปรนัย: ตรวจอัตโนมัติ {c}/{t} ข้อ',
-    't.gradeSave': '💾 บันทึกผลตรวจ',
+    't.gradeScoreLabel': 'ให้คะแนน',
+    't.outOf': 'เต็ม {n}',
+    't.gradeAutoMcqPts': 'ปรนัย: ถูก {c}/{t} ข้อ · {p} คะแนนอัตโนมัติ',
+    't.gradeTotal': 'รวม: {e} / {m} คะแนน',
+    't.gradeSave': '💾 บันทึกคะแนน',
     't.gradeSaved': 'ตรวจแล้ว! อัปเดตคะแนนของนักเรียนเรียบร้อย 🎉',
 
     /* ---- play-as-student preview ---- */
