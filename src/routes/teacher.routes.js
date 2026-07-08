@@ -275,6 +275,93 @@ router.delete('/students/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+/* ------------------------------ Gradebook -------------------------------- */
+/* A spreadsheet-style gradebook. Columns are grade items the teacher defines
+   (e.g. "L1 Assignment", "L1 Post-test", "Midterm"); each student's score per
+   column is stored on the user as `grades[columnId]`. Fully manual, so it never
+   interferes with the auto-graded tests — the teacher has full control. */
+
+function gradebookColumns() {
+  return db.all('gradebook').slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+}
+function gradebookRows() {
+  return db
+    .filter('users', (u) => u.role === 'student')
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar || '🧑‍🎓', difficulty: u.difficulty, grades: u.grades || {} }));
+}
+
+router.get('/gradebook', (req, res) => {
+  res.json({ columns: gradebookColumns(), rows: gradebookRows() });
+});
+
+/** Bulk-save the column list (add / rename / reorder / delete / set max). */
+router.post('/gradebook/columns', (req, res) => {
+  const arr = Array.isArray(req.body && req.body.columns) ? req.body.columns : [];
+  const cols = arr.slice(0, 40).map((c, i) => {
+    let max = Number(c && c.max);
+    if (!Number.isFinite(max) || max < 1) max = 100;
+    return {
+      id: (c && c.id) || crypto.randomUUID(),
+      name: ((c && c.name) || '').toString().trim().slice(0, 60) || 'Untitled',
+      max: Math.min(Math.round(max), 100000),
+      order: i,
+    };
+  });
+  const keep = new Set(cols.map((c) => c.id));
+  // Drop scores that belonged to removed columns.
+  db.filter('users', (u) => u.role === 'student').forEach((u) => {
+    if (u.grades) Object.keys(u.grades).forEach((cid) => { if (!keep.has(cid)) delete u.grades[cid]; });
+  });
+  const live = db.all('gradebook');
+  live.length = 0;
+  cols.forEach((c) => live.push(c));
+  db.save();
+  res.json({ columns: gradebookColumns() });
+});
+
+/** Set (or clear) one student's score for one column. */
+router.post('/gradebook/score', (req, res) => {
+  const body = req.body || {};
+  const col = db.findById('gradebook', body.columnId);
+  if (!col) return res.status(404).json({ error: 'Grade column not found.' });
+  const user = db.findById('users', body.studentId);
+  if (!user || user.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
+  user.grades = user.grades || {};
+  if (body.score === '' || body.score === null || body.score === undefined) {
+    delete user.grades[body.columnId];
+  } else {
+    let v = Number(body.score);
+    if (!Number.isFinite(v) || v < 0) return res.status(400).json({ error: 'Score must be 0 or more.' });
+    user.grades[body.columnId] = Math.min(Math.round(v * 100) / 100, 100000);
+  }
+  db.save();
+  res.json({ ok: true, score: user.grades[body.columnId] == null ? null : user.grades[body.columnId] });
+});
+
+/** Create a column pre-filled from a level's pre-test or post-test best scores. */
+router.post('/gradebook/import', (req, res) => {
+  const body = req.body || {};
+  const lesson = db.findById('lessons', body.lessonId);
+  if (!lesson) return res.status(404).json({ error: 'Level not found.' });
+  const src = body.source === 'pre' ? 'pre' : 'post';
+  const col = {
+    id: crypto.randomUUID(),
+    name: `${lesson.icon || ''} ${lesson.title} — ${src === 'pre' ? 'Pre-test' : 'Post-test'}`.trim().slice(0, 60),
+    max: 100,
+    order: db.all('gradebook').length,
+  };
+  db.insert('gradebook', col);
+  db.filter('users', (u) => u.role === 'student').forEach((u) => {
+    const p = (u.progress || {})[lesson.id] || {};
+    const score = src === 'pre' ? (p.bestScore || 0) : ((p.post && p.post.bestScore) || 0);
+    u.grades = u.grades || {};
+    u.grades[col.id] = score;
+  });
+  db.save();
+  res.json({ columns: gradebookColumns(), rows: gradebookRows() });
+});
+
 /* ------------------------- Written-answer grading ------------------------ */
 
 /** Public shape of a pending submission for the grading queue. */

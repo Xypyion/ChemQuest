@@ -66,12 +66,16 @@ function render() {
     const preSub = lesson.preDone ? t('board.replay') : t('board.startLevelSub');
 
     // 2) Assignments
-    // 3) Post-test (locked until the teacher opens it)
+    // 3) Post-test — one attempt only; not re-enterable once submitted.
     const ptOpen = pt.open && pt.questionCount > 0;
-    let ptSub, ptState, ptCls = '';
-    if (ptOpen) {
-      ptSub = pt.done ? t('board.postTestDone', { score: pt.bestScore }) : t('board.postTestOpenSub');
-      ptState = pt.done ? `<span class="bi-state done">✓</span>` : `<span class="bi-state go">${t('board.go')}</span>`;
+    const ptTaken = !!pt.done; // already submitted (graded or awaiting grading)
+    let ptSub, ptState, ptCls = '', ptClickable = false;
+    if (ptTaken) {
+      ptCls = 'taken';
+      if (pt.awaitingGrading) { ptSub = t('board.postTestAwaiting'); ptState = `<span class="bi-state done">⏳</span>`; }
+      else { ptSub = t('board.postTestDone', { score: pt.bestScore }); ptState = `<span class="bi-state done">✓</span>`; }
+    } else if (ptOpen) {
+      ptSub = t('board.postTestOpenSub'); ptState = `<span class="bi-state go">${t('board.go')}</span>`; ptClickable = true;
     } else {
       ptCls = 'locked';
       ptSub = pt.questionCount === 0 && pt.open ? t('board.postTestNoQ') : t('board.postTestLockedSub');
@@ -91,7 +95,7 @@ function render() {
           <span class="bi-text"><span class="bi-title">${t('board.assignments')}</span><br><span class="bi-sub">${t('board.assignmentsSub')}</span></span>
         </button>
 
-        <button class="board-item ${ptCls}" ${ptOpen ? `onclick="location.href='/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post'"` : 'aria-disabled="true"'}>
+        <button class="board-item ${ptCls}" ${ptClickable ? `onclick="location.href='/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post'"` : 'aria-disabled="true"'}>
           <span class="bi-emoji">🧾</span>
           <span class="bi-text"><span class="bi-title">${t('board.postTest')}</span><br><span class="bi-sub">${ptSub}</span></span>
           ${ptState}

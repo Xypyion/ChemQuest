@@ -14,6 +14,7 @@ const MAX_IMG_BYTES = 800 * 1024;
 let LESSONS = [];
 let STUDENTS = [];
 let SUBMISSIONS = [];                         // written answers waiting to be graded
+let GRADEBOOK = { columns: [], rows: [] };    // spreadsheet-style gradebook
 let view = 'lessons';
 let draft = null;
 let curDiff = { pre: 'easy', post: 'easy' }; // active difficulty tab per quiz zone
@@ -55,6 +56,7 @@ function render() {
   if (preview) return renderPreview();
   if (view === 'preview') return renderPreviewPicker();
   if (view === 'grading') return renderGrading();
+  if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();
   return renderLessons();
 }
@@ -915,6 +917,151 @@ async function saveGrades(sid) {
     toast(t('t.gradeSaved'), 'good');
     await reload();
     render();
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
+/* ============================ GRADEBOOK ============================ */
+async function renderGradebook() {
+  document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'gradebook'));
+  viewEl.innerHTML = `<div class="t-head"><div><h1>${t('t.gradebookTitle')}</h1><div class="sub">${t('t.gradebookSub')}</div></div></div>
+    <div class="t-card"><p class="center" style="color:var(--t-soft)">${t('common.loading')}</p></div>`;
+  try { GRADEBOOK = await API.get('/api/teacher/gradebook'); paintGradebook(); }
+  catch (e) { toast(e.message, 'bad'); }
+}
+
+function paintGradebook() {
+  const cols = GRADEBOOK.columns || [];
+  const rows = GRADEBOOK.rows || [];
+  const head = `
+    <tr>
+      <th class="gb-sticky gb-corner">${t('t.gbStudent')}</th>
+      ${cols.map((c) => `<th class="gb-col"><button class="gb-col-edit" onclick="editGbColumn('${c.id}')" title="${esc(t('t.gbEditCol'))}">${esc(c.name)} <span class="gb-max">/${c.max}</span> ✏️</button></th>`).join('')}
+      <th class="gb-total-h">${t('t.gbTotal')}</th>
+    </tr>`;
+  const body = rows.length ? rows.map((r) => {
+    let total = 0;
+    const cells = cols.map((c) => {
+      const v = r.grades[c.id];
+      if (v != null) total += Number(v);
+      return `<td><input class="gb-cell" type="number" min="0" max="${c.max}" step="any" value="${v == null ? '' : v}"
+        data-sid="${r.id}" data-cid="${c.id}" onchange="saveScore('${r.id}','${c.id}',this)"></td>`;
+    }).join('');
+    return `<tr>
+      <td class="gb-sticky gb-name"><span class="av">${r.avatar}</span> ${esc(r.name)}</td>
+      ${cells}
+      <td class="gb-total" data-sid="${r.id}">${cols.length ? total : '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td class="gb-sticky">—</td><td colspan="${cols.length + 1}" class="empty">${t('t.gbNoStudents')}</td></tr>`;
+
+  viewEl.innerHTML = `
+    <div class="t-head">
+      <div><h1>${t('t.gradebookTitle')}</h1><div class="sub">${t('t.gradebookSub')}</div></div>
+      <div class="row" style="gap:8px">
+        <button class="tbtn ghost" onclick="importGbScores()">${t('t.gbImport')}</button>
+        <button class="tbtn" onclick="addGbColumn()">${t('t.gbAddColumn')}</button>
+      </div>
+    </div>
+    <div class="t-card">
+      ${cols.length === 0 ? `<div class="sub" style="color:var(--t-soft);margin-bottom:10px">${t('t.gbNoColumns')}</div>` : ''}
+      <div class="gb-wrap">
+        <table class="gb-table"><thead>${head}</thead><tbody>${body}</tbody></table>
+      </div>
+    </div>`;
+}
+
+function recomputeGbTotal(sid) {
+  let total = 0;
+  document.querySelectorAll(`.gb-cell[data-sid="${sid}"]`).forEach((inp) => { const v = parseFloat(inp.value); if (Number.isFinite(v)) total += v; });
+  const el = document.querySelector(`.gb-total[data-sid="${sid}"]`);
+  if (el) el.textContent = Math.round(total * 100) / 100;
+}
+
+async function saveScore(studentId, columnId, input) {
+  const raw = input.value.trim();
+  try {
+    const r = await API.post('/api/teacher/gradebook/score', { studentId, columnId, score: raw === '' ? '' : Number(raw) });
+    input.value = r.score == null ? '' : r.score;
+    const row = GRADEBOOK.rows.find((x) => x.id === studentId);
+    if (row) { if (r.score == null) delete row.grades[columnId]; else row.grades[columnId] = r.score; }
+    recomputeGbTotal(studentId);
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
+function addGbColumn() {
+  openModal(`<h3>${t('t.gbAddColumn')}</h3>
+    <label class="t-label">${t('t.gbColName')}</label>
+    <input id="gc-name" class="t-input" placeholder="${esc(t('t.gbColNamePh'))}" maxlength="60">
+    <label class="t-label">${t('t.gbColMax')}</label>
+    <input id="gc-max" class="t-input" type="number" min="1" value="100" style="max-width:140px">
+    <div class="editor-actions" style="border:none;padding-top:14px">
+      <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
+      <button class="tbtn" onclick="doAddGbColumn()">${t('common.save')}</button></div>`);
+  setTimeout(() => { const el = document.getElementById('gc-name'); if (el) el.focus(); }, 40);
+}
+async function doAddGbColumn() {
+  const name = document.getElementById('gc-name').value.trim();
+  const max = parseInt(document.getElementById('gc-max').value, 10) || 100;
+  if (!name) { toast(t('t.gbColName'), 'bad'); return; }
+  await saveGbColumns([...GRADEBOOK.columns.map((c) => ({ id: c.id, name: c.name, max: c.max })), { name, max }]);
+  closeModal();
+}
+
+function editGbColumn(id) {
+  const c = GRADEBOOK.columns.find((x) => x.id === id);
+  if (!c) return;
+  openModal(`<h3>${t('t.gbEditCol')}</h3>
+    <label class="t-label">${t('t.gbColName')}</label>
+    <input id="gc-name" class="t-input" value="${esc(c.name)}" maxlength="60">
+    <label class="t-label">${t('t.gbColMax')}</label>
+    <input id="gc-max" class="t-input" type="number" min="1" value="${c.max}" style="max-width:140px">
+    <div class="editor-actions" style="border:none;padding-top:14px">
+      <button class="tbtn danger" onclick="deleteGbColumn('${id}')">${t('t.gbDeleteCol')}</button>
+      <span style="flex:1"></span>
+      <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
+      <button class="tbtn" onclick="doEditGbColumn('${id}')">${t('common.save')}</button></div>`);
+}
+async function doEditGbColumn(id) {
+  const name = document.getElementById('gc-name').value.trim();
+  const max = parseInt(document.getElementById('gc-max').value, 10) || 100;
+  await saveGbColumns(GRADEBOOK.columns.map((c) => c.id === id ? { id: c.id, name: name || c.name, max } : { id: c.id, name: c.name, max: c.max }));
+  closeModal();
+}
+async function deleteGbColumn(id) {
+  await saveGbColumns(GRADEBOOK.columns.filter((c) => c.id !== id).map((c) => ({ id: c.id, name: c.name, max: c.max })));
+  closeModal();
+}
+async function saveGbColumns(columns) {
+  try {
+    await API.post('/api/teacher/gradebook/columns', { columns });
+    GRADEBOOK = await API.get('/api/teacher/gradebook');
+    paintGradebook();
+    toast(t('t.gbSaved'), 'good');
+  } catch (e) { toast(e.message, 'bad'); }
+}
+
+function importGbScores() {
+  const lessonOpts = LESSONS.map((l, i) => `<option value="${l.id}">${i + 1}. ${esc(l.title)}</option>`).join('');
+  openModal(`<h3>${t('t.gbImportTitle')}</h3>
+    <p class="sub" style="color:var(--t-soft);margin-top:-4px">${t('t.gbImportHint')}</p>
+    <label class="t-label">${t('t.gbImportPick')}</label>
+    <select id="gi-lesson" class="t-select">${lessonOpts}</select>
+    <label class="t-label">${t('t.gbImportSource')}</label>
+    <select id="gi-source" class="t-select">
+      <option value="post">${t('t.gbImportPost')}</option>
+      <option value="pre">${t('t.gbImportPre')}</option>
+    </select>
+    <div class="editor-actions" style="border:none;padding-top:14px">
+      <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
+      <button class="tbtn" onclick="doImportGbScores()">${t('t.gbImport')}</button></div>`);
+}
+async function doImportGbScores() {
+  const lessonId = document.getElementById('gi-lesson').value;
+  const source = document.getElementById('gi-source').value;
+  try {
+    GRADEBOOK = await API.post('/api/teacher/gradebook/import', { lessonId, source });
+    closeModal();
+    paintGradebook();
+    toast(t('t.gbImported'), 'good');
   } catch (e) { toast(e.message, 'bad'); }
 }
 

@@ -283,6 +283,13 @@ function openPostTest(req, res) {
     res.status(403).json({ error: 'The post-test is not open yet. Your teacher will unlock it!' });
     return null;
   }
+  // One attempt only — once a student has submitted the post-test they cannot
+  // retake or re-open it. (Guards GET, per-question check, and complete.)
+  const p = ((req.user.progress || {})[lesson.id] || {}).post;
+  if (p && (p.attempts || 0) >= 1) {
+    res.status(403).json({ error: 'ALREADY_SUBMITTED' });
+    return null;
+  }
   return lesson;
 }
 

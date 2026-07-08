@@ -57,8 +57,14 @@ async function start() {
 
     goPhase(0);
   } catch (err) {
-    card.innerHTML = errorBox(err.message);
+    card.innerHTML = errorBox(localizeErr(err.message));
   }
+}
+
+/** Map known server error codes to friendly, localized text. */
+function localizeErr(msg) {
+  if (msg === 'ALREADY_SUBMITTED') return t('lesson.alreadyPost');
+  return msg;
 }
 
 function errorBox(msg) {
@@ -305,7 +311,7 @@ async function showResult() {
     try {
       submitted = await API.post(completePath(), { answers });
       if (submitted.user) API.updateUser(submitted.user);
-    } catch (err) { card.innerHTML = errorBox(err.message); return; }
+    } catch (err) { card.innerHTML = errorBox(localizeErr(err.message)); return; }
   }
   const r = submitted;
   if (r.pending) return showPendingResult(r);
@@ -355,14 +361,16 @@ async function showResult() {
       <div class="result-actions">
         <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
         <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
-        <button class="btn ghost" id="replay">${t('lesson.playAgain')}</button>
+        ${MODE === 'pre' ? `<button class="btn ghost" id="replay">${t('lesson.playAgain')}</button>` : ''}
         ${nextHref ? `<a class="btn green" href="${nextHref}">${t('lesson.nextLevel')}</a>` : ''}
         ${MODE === 'pre' ? `<a class="btn grape" href="/inventory.html">${t('lesson.certificates')}</a>` : ''}
       </div>
     </div>`;
 
   if (r.passed) confetti();
-  document.getElementById('replay').onclick = () => {
+  // "Play again" is only offered for the pre-test; the post-test is one attempt.
+  const replayBtn = document.getElementById('replay');
+  if (replayBtn) replayBtn.onclick = () => {
     submitted = null; storyIndex = 0; quizIndex = 0; timeExpired = false;
     answers = new Array(lesson.questions.length).fill(null);
     goPhase(0);
