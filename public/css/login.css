@@ -1,0 +1,226 @@
+/* =========================================================================
+   ChemQuest — Login ("Laboratory Entry") page
+   Scoped styles for index.html only (body.login-page). Neutral "lab" look
+   from the design handoff: warm off-white canvas tiled with lab-pattern.svg,
+   the waving mascot beside a clean entry card, green 3D "START ADVENTURE" CTA.
+   Colors use the shared theme tokens where possible; a few login-only tones
+   live here so the rest of the site is untouched.
+   ========================================================================= */
+
+:root {
+  --lab-bg: #f4f3ef;          /* warm off-white canvas */
+  --lab-surface: #ffffff;     /* card surface */
+  --lab-surface-2: #faf9f6;   /* input fill */
+  --lab-ink: #3c3c3c;         /* primary text */
+  --lab-muted: #8a8a83;       /* secondary / mono captions */
+  --lab-border: #e4e4e0;      /* card & divider borders */
+  --lab-border-soft: #ececE8;
+  --lab-input-border: #e2e2df;
+  --lab-cta: #58cc02;         /* login CTA green (per the picture) */
+  --lab-cta-dark: #46a302;    /* CTA 3D shadow */
+  --lab-cta-tint: #f2fbe9;
+}
+
+/* ---- page canvas: lab-pattern.svg as the background ---- */
+body.login-page {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--lab-ink);
+  font-family: var(--font);
+  background-color: var(--lab-bg);
+  background-image:
+    url('/assets/lab-pattern.svg'),
+    radial-gradient(circle, #e2e1db 1.3px, transparent 1.3px);
+  background-size: 560px 560px, 26px 26px;
+  background-repeat: repeat, repeat;
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- top header: logo + language toggle ---- */
+.login-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 26px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--lab-border);
+}
+.login-brand { display: flex; align-items: center; gap: 10px; }
+.login-brand .logo-mark {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 3px solid var(--lab-cta); flex: 0 0 auto;
+}
+.login-brand .logo-text {
+  font-weight: 800; font-size: 1.25rem; letter-spacing: .2px; color: var(--lab-ink);
+}
+.login-brand .logo-text b { color: var(--lab-cta); font-weight: 800; }
+/* Match the header toggle to the neutral chrome (overrides the floating look). */
+.login-header .lang-switch { background: #f0efeb; box-shadow: none; }
+
+/* ---- centered login stage: mascot + entry card ---- */
+.login-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 40px 30px 56px;
+  width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
+}
+.login-mascot {
+  flex: 0 0 240px;
+  width: 240px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 14px 18px rgba(60, 55, 45, 0.18));
+  animation: login-bob 3.6s ease-in-out infinite;
+}
+@keyframes login-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+@media (prefers-reduced-motion: reduce) { .login-mascot { animation: none; } }
+
+/* ---- the entry card ---- */
+.login-card {
+  flex: 1 1 auto;
+  max-width: 440px;
+  background: var(--lab-surface);
+  border: 1.5px solid var(--lab-border-soft);
+  border-radius: 20px;
+  padding: 30px 30px 26px;
+  box-shadow: 0 14px 34px rgba(60, 55, 45, 0.09);
+}
+.login-card h1 {
+  font-weight: 800;
+  font-size: 1.7rem;
+  text-align: center;
+  margin: 0 0 22px;
+  color: var(--lab-ink);
+}
+
+/* ---- inputs (neutral lab style, login-only) ---- */
+.login-card label {
+  display: block;
+  font-weight: 600;
+  font-size: .82rem;
+  color: var(--lab-muted);
+  margin: 0 0 6px;
+}
+.login-card input[type="email"],
+.login-card input[type="password"],
+.login-card input[type="text"] {
+  width: 100%;
+  height: 48px;
+  padding: 0 15px;
+  border: 1.5px solid var(--lab-input-border);
+  border-radius: 12px;
+  background: var(--lab-surface-2);
+  color: var(--lab-ink);
+  font-family: var(--font);
+  font-size: .98rem;
+  transition: border-color .15s, box-shadow .15s;
+}
+.login-card input::placeholder { color: #b0afab; }
+.login-card input:focus {
+  outline: none;
+  border-color: var(--lab-cta);
+  box-shadow: 0 0 0 4px rgba(88, 204, 2, 0.15);
+}
+.login-field { margin-bottom: 13px; }
+
+/* ---- green 3D CTA ---- */
+.login-cta {
+  width: 100%;
+  margin-top: 8px;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  background: var(--lab-cta);
+  color: #fff;
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: .04em;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--lab-cta-dark);
+  transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+}
+.login-cta:hover { filter: brightness(1.04); }
+.login-cta:active { transform: translateY(4px); box-shadow: 0 0 0 var(--lab-cta-dark); }
+.login-cta:disabled { opacity: .6; cursor: not-allowed; }
+
+/* ---- secondary links ---- */
+.login-links {
+  text-align: center;
+  margin-top: 16px;
+  line-height: 2;
+}
+.login-links a {
+  display: inline-block;
+  font-size: .86rem;
+  font-weight: 700;
+  color: var(--lab-cta);
+  text-decoration: none;
+  cursor: pointer;
+}
+.login-links a:hover { text-decoration: underline; }
+
+.login-error {
+  color: var(--bad, #ff4d6d);
+  font-weight: 600;
+  font-size: .88rem;
+  min-height: 20px;
+  margin: 10px 0 0;
+  text-align: center;
+}
+.login-teacher-hint {
+  margin-top: 14px;
+  font-size: .78rem;
+  color: var(--lab-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* ---- signup extras (difficulty picker) ---- */
+.login-card .diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+.login-card .diff {
+  border: 2px solid var(--lab-border);
+  border-radius: 14px;
+  padding: 12px 6px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--lab-surface-2);
+  transition: transform .1s, border-color .1s, background .1s;
+}
+.login-card .diff:hover { transform: translateY(-2px); }
+.login-card .diff .emoji { font-size: 1.5rem; }
+.login-card .diff .name { font-weight: 700; margin-top: 4px; font-size: .9rem; }
+.login-card .diff .desc { font-size: .68rem; color: var(--lab-muted); margin-top: 2px; }
+.login-card .diff.sel {
+  border-color: var(--lab-cta);
+  background: var(--lab-cta-tint);
+  box-shadow: 0 4px 0 rgba(88, 204, 2, 0.22);
+}
+
+.shake { animation: shake .4s ease; }
+
+/* ---- responsive: stack mascot above the card ---- */
+@media (max-width: 780px) {
+  .login-stage { flex-direction: column; gap: 18px; padding-top: 26px; }
+  .login-mascot { flex-basis: auto; width: 168px; }
+  .login-card { max-width: 440px; width: 100%; }
+}
+@media (max-width: 480px) {
+  .login-header { padding: 12px 16px; }
+  .login-card { padding: 24px 20px; }
+  .login-card h1 { font-size: 1.5rem; }
+}

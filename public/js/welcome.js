@@ -1,8 +1,7 @@
-// Welcome page: tabs, difficulty picker, login & signup.
+// Login ("Laboratory Entry") page: mascot + entry card, with the sign-up flow
+// (name / email / password / difficulty) reachable via "Create new account".
 
-addClouds();
-mountLangSwitch().classList.add('floating');
-document.getElementById('rubyStage').innerHTML = renderRuby('wave', { size: 230, float: true });
+mountLangSwitch(document.getElementById('langHost'));
 document.title = t('welcome.title');
 
 // If already logged in, skip straight to the right place.
@@ -15,16 +14,29 @@ document.title = t('welcome.title');
 
 let difficulty = 'easy';
 
-function showTab(which) {
-  const login = which === 'login';
-  document.getElementById('tabLogin').classList.toggle('active', login);
-  document.getElementById('tabSignup').classList.toggle('active', !login);
-  document.getElementById('loginForm').classList.toggle('hidden', !login);
-  document.getElementById('signupForm').classList.toggle('hidden', login);
+/* ---------- switch between the login and sign-up cards ---------- */
+function showSignup() {
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('signupForm').classList.remove('hidden');
+  const el = document.getElementById('suName');
+  if (el) el.focus();
 }
-window.showTab = showTab;
+function showLogin() {
+  document.getElementById('signupForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+  const el = document.getElementById('loginEmail');
+  if (el) el.focus();
+}
+document.getElementById('toSignup').addEventListener('click', showSignup);
+document.getElementById('toLogin').addEventListener('click', showLogin);
 
-// Difficulty cards
+// There is no email-based reset flow; teachers reset student passwords in the
+// console (🔑). Point the student there honestly rather than faking a reset.
+document.getElementById('forgotLink').addEventListener('click', () => {
+  toast(t('welcome.forgotHint'), 'good');
+});
+
+// Difficulty cards (sign-up)
 document.getElementById('diffGrid').addEventListener('click', (e) => {
   const card = e.target.closest('.diff');
   if (!card) return;
@@ -36,6 +48,12 @@ document.getElementById('diffGrid').addEventListener('click', (e) => {
 // Redirect helper
 function goHome(user) {
   location.href = user.role === 'teacher' ? '/teacher.html' : '/dashboard.html';
+}
+
+function shakeForm(id) {
+  const form = document.getElementById(id);
+  form.classList.add('shake');
+  setTimeout(() => form.classList.remove('shake'), 500);
 }
 
 // Login
@@ -55,8 +73,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     setTimeout(() => goHome(user), 400);
   } catch (err) {
     errEl.textContent = err.message;
-    document.getElementById('loginForm').classList.add('shake');
-    setTimeout(() => document.getElementById('loginForm').classList.remove('shake'), 500);
+    shakeForm('loginForm');
   } finally {
     btn.disabled = false;
   }
@@ -82,8 +99,7 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     setTimeout(() => goHome(user), 700);
   } catch (err) {
     errEl.textContent = err.message;
-    document.getElementById('signupForm').classList.add('shake');
-    setTimeout(() => document.getElementById('signupForm').classList.remove('shake'), 500);
+    shakeForm('signupForm');
   } finally {
     btn.disabled = false;
   }
