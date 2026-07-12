@@ -13,6 +13,7 @@ This folder contains the project's documentation.
 
 | Document | Audience | Language |
 |----------|----------|----------|
+| **[HANDOFF.md](HANDOFF.md)** | **New developers — start here** | English |
 | [ExecutiveSummary-TH.docx](ExecutiveSummary-TH.docx) | School executives / ผู้บริหาร | ไทย (formal) |
 | [executive-summary-th.md](executive-summary-th.md) | Reading mirror of the .docx | ไทย |
 | [overview.md](overview.md) | Everyone | English |
