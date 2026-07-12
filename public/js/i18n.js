@@ -144,6 +144,14 @@ const I18N = {
     'inv.noneSub': 'Head to the map and complete your first level to earn a certificate.',
     'inv.goMap': '🗺️ Go to the Map',
     'inv.awardedTo': 'awarded to',
+    'inv.progressLabel': 'Your progress',
+    'inv.progress': '{earned} / {total} earned',
+    'inv.latest': 'LATEST CERTIFICATE',
+    'inv.earnedOn': 'Earned {date} · scored {score}',
+    'inv.inProgress': 'In progress',
+    'inv.available': 'Available',
+    'inv.locked': 'Locked',
+    'inv.opensAt': 'Opens {time}',
 
     /* ---- leaderboard ---- */
     'lb.title': '🏆 Explorer Leaderboard',
@@ -154,9 +162,15 @@ const I18N = {
     'lb.youSuffix': ' (you)',
     'lb.levels': '{n} level{s}',
     'lb.cheer': 'needs a cheer! 💪',
+    'lb.allTime': 'All-Time',
+    'lb.thisWeek': 'This Week',
+    'lb.weekSoon': 'Weekly board coming soon',
+    'lb.rankLead': '🏆 You’re #1 — top of the class!',
+    'lb.rankBehind': '{n} pts to reach #{rank} — one quiz to climb!',
 
     /* ---- assignment feed ---- */
     'feed.assignment': '📌 ASSIGNMENT',
+    'feed.classSub': 'Class stream · {n} posts',
     'feed.teacherBadge': 'Teacher',
     'feed.composerPh': 'Share your work or say something nice…',
     'feed.composerPhTeacher': 'Write the assignment details for this level…',
@@ -510,6 +524,14 @@ const I18N = {
     'inv.noneSub': 'ไปที่แผนที่แล้วผ่านด่านแรกเพื่อรับเกียรติบัตรกันเถอะ',
     'inv.goMap': '🗺️ ไปที่แผนที่',
     'inv.awardedTo': 'มอบให้แก่',
+    'inv.progressLabel': 'ความคืบหน้าของคุณ',
+    'inv.progress': 'ได้รับแล้ว {earned} / {total}',
+    'inv.latest': 'เกียรติบัตรล่าสุด',
+    'inv.earnedOn': 'ได้รับเมื่อ {date} · คะแนน {score}',
+    'inv.inProgress': 'กำลังเรียน',
+    'inv.available': 'พร้อมเล่น',
+    'inv.locked': 'ล็อกอยู่',
+    'inv.opensAt': 'เปิด {time}',
 
     /* ---- leaderboard ---- */
     'lb.title': '🏆 กระดานคะแนนนักสำรวจ',
@@ -520,9 +542,15 @@ const I18N = {
     'lb.youSuffix': ' (คุณ)',
     'lb.levels': '{n} ด่าน',
     'lb.cheer': 'ขอกำลังใจหน่อย! 💪',
+    'lb.allTime': 'ตลอดกาล',
+    'lb.thisWeek': 'สัปดาห์นี้',
+    'lb.weekSoon': 'กระดานรายสัปดาห์กำลังจะมา',
+    'lb.rankLead': '🏆 คุณคืออันดับ 1 — เก่งที่สุดในห้อง!',
+    'lb.rankBehind': 'อีก {n} คะแนนจะถึงอันดับ {rank} — ทำแบบทดสอบอีกนิดก็ไต่ขึ้นได้!',
 
     /* ---- assignment feed ---- */
     'feed.assignment': '📌 งานที่มอบหมาย',
+    'feed.classSub': 'สตรีมของชั้นเรียน · {n} โพสต์',
     'feed.teacherBadge': 'คุณครู',
     'feed.composerPh': 'แชร์ผลงานของคุณ หรือพูดคุยกับเพื่อน ๆ…',
     'feed.composerPhTeacher': 'เขียนรายละเอียดงานที่มอบหมายสำหรับด่านนี้…',

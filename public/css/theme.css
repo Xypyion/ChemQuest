@@ -33,8 +33,8 @@
   --shadow: 0 10px 0 rgba(0, 0, 0, 0.12);
   --shadow-soft: 0 12px 30px rgba(60, 40, 120, 0.18);
   --radius: 22px;
-  /* Mali carries the Thai glyphs (Fredoka is Latin-only) in the same cartoony style. */
-  --font: 'Fredoka', 'Mali', 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+  /* Rubik carries Latin; Mitr carries the Thai glyphs (Rubik has none). */
+  --font: 'Rubik', 'Mitr', 'Segoe UI', system-ui, sans-serif;
 }
 
 /* ---------- Language switch (EN | ไทย) ---------- */

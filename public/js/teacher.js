@@ -199,7 +199,7 @@ function renderBoard() {
     <div class="t-card" id="critCard"></div>
     <div id="tFeed"></div>`;
   renderCriteriaCard();
-  Feed.mount(document.getElementById('tFeed'), boardLessonId, { teacher: true });
+  Feed.mount(document.getElementById('tFeed'), boardLessonId, { teacher: true, title: l ? l.title : '', icon: l ? l.icon : '' });
 }
 
 /* ---- rating criteria editor (lives above the board feed) ---- */

@@ -106,5 +106,5 @@ function render() {
   }
 
   boardEl.innerHTML = hero + tabs + body;
-  if (tab === 'assignments') Feed.mount(document.getElementById('feedHost'), LESSON_ID, { teacher: false });
+  if (tab === 'assignments') Feed.mount(document.getElementById('feedHost'), LESSON_ID, { teacher: false, title: lesson.title, icon: lesson.icon });
 }

@@ -43,6 +43,20 @@
 /* ---------------- Assignment feed ---------------- */
 .feed { display: flex; flex-direction: column; gap: 14px; }
 
+/* Google-Classroom-style class banner at the top of the stream */
+.class-banner {
+  display: flex; align-items: center; gap: 14px; border-radius: 20px; padding: 18px 20px;
+  background: linear-gradient(120deg, var(--secondary), var(--accent)); color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+.class-banner .cb-icon {
+  flex: 0 0 46px; width: 46px; height: 46px; border-radius: 13px; background: rgba(255,255,255,.22);
+  display: grid; place-items: center; font-size: 1.5rem;
+}
+.class-banner .cb-info { flex: 1; min-width: 0; }
+.class-banner .cb-title { font-weight: 800; font-size: 1.35rem; line-height: 1.15; }
+.class-banner .cb-sub { font-size: .82rem; opacity: .92; margin-top: 2px; }
+
 .composer { background: #fff; border-radius: 20px; padding: 14px 16px; box-shadow: var(--shadow-soft); }
 .composer textarea {
   width: 100%; border: 3px solid #eee7fa; border-radius: 14px; padding: 10px 12px;

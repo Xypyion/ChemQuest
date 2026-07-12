@@ -85,7 +85,17 @@ const Feed = (() => {
       ? posts.map(renderPost).join('')
       : `<div class="feed-empty">${t('feed.empty')}</div>`;
 
-    el.innerHTML = `<div class="feed">${composer}${list}</div>`;
+    // Google-Classroom-style class banner (level title + post count).
+    const banner = opts.title ? `
+      <div class="class-banner">
+        <div class="cb-icon">${escapeHtml(opts.icon || '📒')}</div>
+        <div class="cb-info">
+          <div class="cb-title">${escapeHtml(opts.title)}</div>
+          <div class="cb-sub">${t('feed.classSub', { n: posts.length })}</div>
+        </div>
+      </div>` : '';
+
+    el.innerHTML = `<div class="feed">${banner}${composer}${list}</div>`;
 
     document.getElementById('feedFiles').addEventListener('change', onPickFiles);
     document.getElementById('feedPostBtn').addEventListener('click', submitPost);
