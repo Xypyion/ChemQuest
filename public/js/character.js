@@ -72,11 +72,13 @@ function renderRuby(mood = 'happy', opts = {}) {
 
     ${showAntenna ? `
     <path d="M100 60 q-6 -22 4 -34" stroke="#e0322b" stroke-width="6" fill="none" stroke-linecap="round"/>
-    <g class="ruby-atom" transform="translate(106 22)">
-      <ellipse rx="13" ry="5" fill="none" stroke="#36b9ff" stroke-width="2.5"/>
-      <ellipse rx="13" ry="5" fill="none" stroke="#a86bff" stroke-width="2.5" transform="rotate(60)"/>
-      <ellipse rx="13" ry="5" fill="none" stroke="#ffd23f" stroke-width="2.5" transform="rotate(120)"/>
-      <circle r="5" fill="#ff8a3d"/>
+    <g transform="translate(106 22)">
+      <g class="ruby-atom">
+        <ellipse rx="13" ry="5" fill="none" stroke="#36b9ff" stroke-width="2.5"/>
+        <ellipse rx="13" ry="5" fill="none" stroke="#a86bff" stroke-width="2.5" transform="rotate(60)"/>
+        <ellipse rx="13" ry="5" fill="none" stroke="#ffd23f" stroke-width="2.5" transform="rotate(120)"/>
+        <circle r="5" fill="#ff8a3d"/>
+      </g>
     </g>` : (sil ? `<path d="M100 60 q-6 -20 3 -30" stroke="#a9a3c2" stroke-width="6" fill="none" stroke-linecap="round"/><circle cx="103" cy="28" r="6" fill="#bdb8d4"/>` : '')}
 
     ${armLeft}${armRight}
@@ -91,7 +93,7 @@ function renderRuby(mood = 'happy', opts = {}) {
   </svg>`;
 
   function arm(up, side) {
-    const x = side === 'left' ? 30 : 150;
+    const x = side === 'left' ? 50 : 150;  /* mirror of the right arm about x=100 */
     const rot = up ? (side === 'left' ? -55 : 55) : (side === 'left' ? 18 : -18);
     const cls = side === 'right' ? 'arm-r' : 'arm-l';
     const fill = sil ? '#a9a3c2' : '#e0322b';

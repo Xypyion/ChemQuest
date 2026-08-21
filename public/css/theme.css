@@ -12,18 +12,44 @@
 
 :root {
   /* ---------- surfaces ---------- */
-  --ground: #e7ecea;      /* page canvas */
+  --ground: #eef4e6;      /* page canvas — a soft green field, not grey */
   --surface: #ffffff;     /* cards, bars */
-  --surface-2: #f3f6f5;   /* inset: inputs, quiet rows */
+  --surface-2: #f4f8ef;   /* inset: inputs, quiet rows */
 
   /* ---------- text ---------- */
-  --ink: #13201d;         /* primary        14.0:1 on ground */
-  --ink-2: #5d6d69;       /* secondary       5.4:1 on surface */
-  --ink-3: #6e7774;       /* meta / labels   4.6:1 on surface */
+  --ink: #16210f;         /* primary       14.9:1 on ground */
+  --ink-2: #5a6b50;       /* secondary      5.1:1 on ground */
+  --ink-3: #626f5a;       /* meta / labels  4.8:1 on ground */
 
   /* ---------- lines ---------- */
-  --line: #d2dbd8;
-  --line-2: #e3e9e7;
+  --line: #d5e0c8;
+  --line-2: #e6eede;
+
+  /* =====================================================================
+     Green.
+     Two greens, one rule. The bright Duolingo-style green is only 2.09:1
+     against white, so copying that pairing would fail WCAG outright.
+     Instead:
+
+       --green       bright. Fills, nodes, the trail, big graphic areas.
+                     Anything on top of it takes --green-ink (7.4:1).
+       --green-deep  the darker green. The 3D lip under a bright face, and
+                     the background for any green surface that carries
+                     WHITE text (5.6:1).
+
+     Never put white on --green, and never put --green-ink on --green-deep.
+     ===================================================================== */
+  --green: #58cc02;
+  --green-edge: #46a302;       /* the hard lip under a bright-green face */
+  --green-deep: #35760f;       /* white sits on this */
+  --green-deep-edge: #26550a;
+  --green-ink: #16290a;        /* dark ink that sits on bright green */
+  --green-soft: #e8f6d9;       /* tint: chips, cleared unit bands */
+
+  /* the muted green a locked node is drawn in — flat, never pressable */
+  --lock-fill: #dfe6d8;
+  --lock-edge: #c7d2bd;
+  --lock-ink: #4d5a47;
 
   /* ---------- brand ---------- */
   --accent: #ca4e1d;      /* 4.55:1 on surface, and white is 4.55:1 on it */
@@ -32,7 +58,7 @@
   --accent-soft: #fbe9e1;
 
   --ruby: #e03a32;        /* the mascot's own red — Ruby and "you are here" only */
-  --ruby-strong: #b82b24;
+  --ruby-strong: #c62d25;  /* white on this: 5.5:1 */
 
   /* ---------- unit colours (map groups) ---------- */
   --u1: #2b7483;  --u1-soft: #e2eef0;
@@ -43,7 +69,7 @@
   --pass: #32774f;      --pass-soft: #e0efe6;
   --danger: #b3261e;    --danger-soft: #fbe6e4;
   --warn: #8a5a06;      --warn-soft: #fdf0da;
-  --lock: #68716e;
+  --lock: #66735f;
 
   /* ---------- spacing scale (4px base) ---------- */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -76,14 +102,14 @@
      every page from this one file instead of leaving them on the old palette.
      Prefer the tokens above in new code.
      ======================================================================= */
-  --primary: var(--accent);
-  --primary-dark: var(--accent-strong);
+  --primary: var(--green-deep);
+  --primary-dark: var(--green-deep-edge);
   --secondary: var(--u1);
   --secondary-dark: #1f5b68;
   --pink: var(--ruby);
   --sun: var(--u3);
-  --grass: var(--pass);
-  --grass-dark: #245a3b;
+  --grass: var(--green-deep);
+  --grass-dark: var(--green-deep-edge);
   --rock: #b3a795;
   --rock-dark: #7d7364;
   --snow: var(--surface-2);
@@ -133,9 +159,9 @@ h1 { font-size: var(--t-2xl); }
 h2 { font-size: var(--t-xl); }
 h3 { font-size: var(--t-l); }
 p { margin: 0; }
-a { color: var(--accent); }
+a { color: var(--green-deep); }
 
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--green-deep); outline-offset: 3px; border-radius: var(--r-s); }
 
 /* ---------- language switch (EN | ไทย) ---------- */
 .lang-switch {
@@ -173,32 +199,58 @@ hr.soft { border: none; border-top: 1px solid var(--line); margin: var(--s5) 0; 
 }
 
 /* ---------- buttons ---------- */
+/* Every pressable thing sits on a hard, zero-blur lip and physically drops
+   onto it when pressed. A block shadow like this is usually a costume, but
+   this product is a game for teenagers and the whole map is built on the
+   same trick, so it is applied once here and inherited everywhere rather
+   than re-invented per component.
+   Each variant sets --btn-bg / --btn-edge; nothing else changes. */
 .btn {
+  --btn-bg: var(--green-deep);
+  --btn-edge: var(--green-deep-edge);
+  --btn-ink: #ffffff;
+  --lift: 4px;
+
   font-family: var(--font);
   font-size: var(--t-m);
-  font-weight: 600;
-  color: var(--accent-ink);
-  background: var(--accent);
-  border: 1px solid transparent;
+  font-weight: 700;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: none;
   border-radius: var(--r-m);
   padding: 11px 18px;
   cursor: pointer;
-  transition: filter .15s ease, transform .08s ease;
+  box-shadow: 0 var(--lift) 0 var(--btn-edge);
+  transform: translateY(0);
+  transition: filter .15s ease, transform .06s ease, box-shadow .06s ease;
   text-decoration: none;
   display: inline-flex; align-items: center; gap: var(--s2); justify-content: center;
   line-height: 1.3;
 }
-.btn:hover { filter: brightness(1.07); }
-.btn:active { transform: translateY(1px); }
-.btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
-.btn.secondary { background: var(--u1); }
-.btn.grape { background: var(--u2); }
-.btn.green { background: var(--pass); }
-.btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line); }
+.btn:hover { filter: brightness(1.06); }
+.btn:active {
+  transform: translateY(calc(var(--lift) - 1px));
+  box-shadow: 0 1px 0 var(--btn-edge);
+}
+.btn:disabled {
+  opacity: .5; cursor: not-allowed; filter: none;
+  transform: none; box-shadow: 0 var(--lift) 0 var(--btn-edge);
+}
+
+/* The bright green face takes dark ink — white on it is only 2.09:1. */
+.btn.green   { --btn-bg: var(--green); --btn-edge: var(--green-edge); --btn-ink: var(--green-ink); }
+.btn.secondary { --btn-bg: var(--u1); --btn-edge: #1f5b68; }
+.btn.grape   { --btn-bg: var(--u2); --btn-edge: #533c7d; }
+.btn.warm    { --btn-bg: var(--accent); --btn-edge: var(--accent-strong); }
+.btn.danger  { --btn-bg: var(--danger); --btn-edge: #8b1b15; }
+.btn.ghost {
+  --btn-bg: var(--surface); --btn-edge: var(--line); --btn-ink: var(--ink);
+  border: 1px solid var(--line);
+}
 .btn.ghost:hover { background: var(--surface-2); filter: none; }
-.btn.danger { background: var(--danger); }
-.btn.big { font-size: var(--t-l); padding: 14px 24px; }
+.btn.big { font-size: var(--t-l); padding: 14px 24px; --lift: 6px; }
 .btn.block { width: 100%; }
+.btn.flat { box-shadow: none; --lift: 0px; }
 
 /* ---------- inputs ---------- */
 label {
@@ -214,8 +266,8 @@ input, select, textarea {
 }
 input::placeholder, textarea::placeholder { color: var(--ink-3); }
 input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none; border-color: var(--green-deep);
+  box-shadow: 0 0 0 3px var(--green-soft);
 }
 textarea { resize: vertical; min-height: 90px; }
 
@@ -229,7 +281,9 @@ textarea { resize: vertical; min-height: 90px; }
 .pill.easy { background: var(--pass-soft); color: var(--pass); }
 .pill.medium { background: var(--warn-soft); color: var(--warn); }
 .pill.hard { background: var(--danger-soft); color: var(--danger); }
-.pill.points { background: var(--accent-soft); color: var(--accent); font-variant-numeric: tabular-nums; }
+/* --accent itself is only 3.86:1 on its own tint; the strong tone clears 4.5 */
+.pill.points { background: var(--accent-soft); color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+.pill.coins { background: var(--warn-soft); color: var(--warn); font-variant-numeric: tabular-nums; }
 
 /* ---------- top navigation bar ---------- */
 .topbar {

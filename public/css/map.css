@@ -1,5 +1,6 @@
-/* Course map — levels as element tiles, grouped into units and joined by bonds.
-   The number is the sequence, the colour is the unit, the border is the state. */
+/* Course map — a trail winding through green ground.
+   The SVG under .path-nodes draws the ground, the unit bands and the trail;
+   everything pressable is a real button positioned on top of it. */
 
 .map-head { margin: var(--s5) 0 var(--s4); }
 .map-head .map-title-row {
@@ -11,7 +12,7 @@
 
 .map-progress { flex: none; text-align: right; }
 .map-progress .mp-n {
-  font-weight: 700; font-size: var(--t-xl);
+  font-weight: 700; font-size: var(--t-xl); color: var(--green-deep);
   font-variant-numeric: tabular-nums; letter-spacing: -.03em; line-height: 1;
 }
 .map-progress .mp-l {
@@ -21,148 +22,232 @@
 
 .progress-wrap { margin-top: var(--s4); }
 .progress-bar {
-  height: 6px; background: var(--line-2); border-radius: var(--r-pill); overflow: hidden;
+  height: 10px; background: var(--line-2); border-radius: var(--r-pill);
+  overflow: hidden; box-shadow: inset 0 1px 2px rgba(22, 41, 10, .12);
 }
 /* scaleX rather than width: width animation forces layout on every frame */
 .progress-bar > span {
   display: block; height: 100%; width: 100%; border-radius: var(--r-pill);
-  background: var(--accent); transform: scaleX(0); transform-origin: left;
+  background: var(--green); transform: scaleX(0); transform-origin: left;
   transition: transform .7s cubic-bezier(.2, .8, .3, 1);
 }
-.progress-label { font-weight: 500; color: var(--ink-2); font-size: var(--t-s); margin-top: var(--s2); }
 
 /* ---------- the map surface ---------- */
 .scene {
   position: relative;
-  background: var(--surface);
+  background: #f1f8e8;
   border: 1px solid var(--line);
-  border-radius: var(--r-l);
+  border-radius: var(--r-xl);
   box-shadow: var(--e2);
-  padding: var(--s5) 0;
-  margin-bottom: var(--s7);
+  padding: 0 0 var(--s4);
+  overflow: hidden;
 }
 
-.units { display: flex; flex-direction: column; gap: var(--s5); }
+/* The two layers are the same box; the SVG paints, the div holds the buttons.
+   No overflow on either — a scroll container here would clip Ruby, who
+   deliberately stands taller than her node. */
+.path-map {
+  position: relative;
+  width: 100%;
+}
+.path-svg { position: absolute; inset: 0; display: block; width: 100%; }
+.path-nodes { position: absolute; inset: 0; }
 
-.unit { display: flex; flex-direction: column; gap: var(--s3); }
-.unit-head { display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s5); }
+/* ---------- ground ---------- */
+/* Progress, not hue, separates the units — so green stays the one dominant
+   colour: ground already walked reads richer, the unit in play is lightest,
+   everything still ahead recedes into the page. */
+/* Every layer has to separate from the page behind the card, or the palest
+   one reads as "the card stopped here". --ground is #eef4e6, so all four of
+   these sit below it. */
+.sky  { fill: #f1f8e8; }
+.hill { fill: #e7f0dc; }
+.hill.is-cleared { fill: #cbe6ae; }
+.hill.is-now     { fill: #ddf2c4; }
+.hill.is-ahead   { fill: #e7f0dc; }
+
+/* ---------- the trail ---------- */
+.trail-under {
+  fill: none; stroke: #c3d4b0; stroke-width: 26;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.trail {
+  fill: none; stroke: #fdfbf3; stroke-width: 20;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+/* the stretch already walked, drawn over the top and clipped by dasharray */
+.trail-walked {
+  fill: none; stroke: var(--green); stroke-width: 20;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: stroke-dasharray .8s cubic-bezier(.2, .8, .3, 1);
+}
+
+/* ---------- unit labels ---------- */
 .unit-chip {
-  font-weight: 700; font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
-  padding: 4px 10px; border-radius: var(--r-s); white-space: nowrap;
+  position: absolute; left: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: var(--s2);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-pill); padding: 6px 16px;
+  box-shadow: var(--e1); white-space: nowrap;
 }
-.unit-count {
-  margin-left: auto; font-size: var(--t-xs); color: var(--ink-3);
-  font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap;
+.unit-chip .uc-name {
+  font-weight: 700; font-size: var(--t-s); color: var(--green-deep);
+  letter-spacing: -.01em;
 }
-.unit.u-plain .unit-chip { background: var(--u1-soft); color: var(--u1); }
-.unit.u-mountain .unit-chip { background: var(--u3-soft); color: var(--u3); }
-.unit.u-snow .unit-chip { background: var(--u2-soft); color: var(--u2); }
+.unit-chip .uc-count {
+  font-size: var(--t-xs); font-weight: 600; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
 
-/* ---------- the bond chain ---------- */
-.chain {
-  display: flex; align-items: center;
-  overflow-x: auto; overscroll-behavior-x: contain;
-  padding: 0 var(--s5) var(--s1);
-  scrollbar-width: thin;
+/* ---------- nodes ---------- */
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--s2);
+  width: 132px;
+  background: none; border: none; padding: 0;
+  font-family: var(--font); cursor: pointer;
 }
-/* overflow-x also clips vertically, so the row holding the current level
-   needs headroom for Ruby standing on it and the label beneath it */
-.chain.has-now { padding-top: 74px; padding-bottom: 30px; }
-.chain::-webkit-scrollbar { height: 6px; }
-.chain::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--r-pill); }
 
-/* One consistent line. A single/double/triple distinction would imply real
-   bond orders the course data does not carry, so the only thing the line
-   encodes is whether the level before it has been cleared. */
-.bond { flex: none; width: 18px; height: 2px; background: var(--line); }
-.bond.walked { background: var(--pass); }
+/* The face is the pressable disc. The zero-blur shadow is its edge, so the
+   button physically drops onto it when pressed — the same trick as .btn. */
+.node-face {
+  --face: var(--green);
+  --edge: var(--green-edge);
+  --lift: 7px;
 
-/* ---------- the element tile ---------- */
-.tile {
-  flex: none; width: 104px; height: 112px;
-  border-radius: var(--r-m); background: var(--surface);
-  border: 1px solid var(--line); padding: 9px 10px 10px;
-  display: flex; flex-direction: column; position: relative;
-  cursor: pointer; text-align: left; font-family: var(--font); color: var(--ink);
-  box-shadow: var(--e1);
-  transition: transform .14s cubic-bezier(.2, .8, .3, 1), box-shadow .14s, border-color .14s;
+  width: 76px; height: 76px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--face);
+  color: var(--green-ink);
+  box-shadow: 0 var(--lift) 0 var(--edge);
+  transition: transform .07s ease, box-shadow .07s ease, filter .15s ease;
 }
-.tile:hover { transform: translateY(-3px); box-shadow: var(--e3); }
-.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.tile .t-no {
-  font-size: var(--t-xs); font-weight: 700; color: var(--ink-3);
-  font-variant-numeric: tabular-nums; letter-spacing: .03em;
+.node-face .ic { width: 34px; height: 34px; }
+.node-n {
+  font-size: 1.6rem; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.03em;
 }
-.tile .t-sym {
-  font-weight: 700; font-size: 2rem; line-height: 1;
-  letter-spacing: -.04em; margin-top: auto;
-}
-/* a Thai or unabbreviated symbol needs to shrink to fit the tile */
-.tile .t-sym.long { font-size: 1.1rem; letter-spacing: 0; line-height: 1.2; }
-.tile .t-name {
-  font-size: var(--t-xs); font-weight: 600; color: var(--ink-2);
-  line-height: 1.25; margin-top: 3px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
-.tile .t-mark { position: absolute; top: 8px; right: 9px; width: 15px; height: 15px; }
 
-.tile.is-done { background: var(--pass-soft); border-color: transparent; }
-.tile.is-done .t-sym, .tile.is-done .t-no,
-.tile.is-done .t-name, .tile.is-done .t-mark { color: var(--pass); }
-
-.tile.is-now {
-  border-color: var(--accent); border-width: 2px; padding: 8px 9px 9px;
-  box-shadow: 0 0 0 4px var(--accent-soft), var(--e2);
+.node-title {
+  font-size: var(--t-xs); font-weight: 600; line-height: 1.3;
+  color: var(--ink); text-align: center;
+  max-width: 100%;
+  /* the trail passes behind these, so they carry their own ground */
+  background: rgba(255, 255, 255, .82);
+  border-radius: var(--r-s);
+  padding: 2px 7px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.tile.is-now .t-sym, .tile.is-now .t-no { color: var(--accent); }
 
-.tile.is-locked { background: var(--surface-2); border-style: dashed; cursor: not-allowed; }
-.tile.is-locked .t-sym, .tile.is-locked .t-no,
-.tile.is-locked .t-name, .tile.is-locked .t-mark { color: var(--lock); }
-.tile.is-locked:hover { transform: none; box-shadow: var(--e1); }
-
-
-/* ---------- Ruby standing on the current tile ---------- */
-.now-slot { position: relative; flex: none; display: flex; }
-.now-ruby {
-  position: absolute; bottom: calc(100% - 6px); left: 50%;
-  width: 76px; pointer-events: none;
-  transform: translateX(-52%);
-  filter: drop-shadow(0 6px 8px rgba(19, 32, 29, .22));
-  animation: ruby-bob 3.8s ease-in-out infinite;
+.node:hover .node-face { filter: brightness(1.05); }
+.node:active .node-face {
+  transform: translateY(calc(var(--lift) - 2px));
+  box-shadow: 0 2px 0 var(--edge);
 }
-@keyframes ruby-bob {
-  0%, 100% { transform: translateX(-52%) translateY(0); }
-  50% { transform: translateX(-52%) translateY(-6px); }
+.node:focus-visible { outline: none; }
+.node:focus-visible .node-face {
+  outline: 3px solid var(--green-deep); outline-offset: 4px;
 }
-.now-label {
-  position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%);
-  background: var(--accent); color: var(--accent-ink);
-  font-weight: 700; font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
-  padding: 3px 10px; border-radius: var(--r-pill); white-space: nowrap;
+
+/* --- states --- */
+.node.is-done .node-face { --face: var(--green-deep); --edge: var(--green-deep-edge); color: #fff; }
+.node.is-done .node-title { color: var(--ink-2); }
+
+.node.is-open .node-face {
+  --face: var(--surface); --edge: var(--line);
+  color: var(--green-deep);
+  border: 2px solid var(--green-soft);
+}
+
+.node.is-now .node-face {
+  width: 96px; height: 96px;
+  --lift: 9px;
+  animation: node-beat 2.4s ease-in-out infinite;
+}
+.node.is-now .node-n { font-size: 2rem; }
+.node.is-now .node-title { color: var(--ink); font-size: var(--t-s); font-weight: 700; }
+
+/* locked is flat on purpose: nothing to press, so nothing to press down */
+.node.is-locked { cursor: not-allowed; }
+.node.is-locked .node-face {
+  --face: var(--lock-fill); --edge: var(--lock-edge); --lift: 0px;
+  color: var(--lock-ink);
+  box-shadow: inset 0 0 0 2px var(--lock-edge);
+}
+.node.is-locked:hover .node-face { filter: none; }
+.node.is-locked:active .node-face { transform: none; }
+.node.is-locked .node-title { color: var(--ink-3); background: rgba(255, 255, 255, .7); }
+
+@keyframes node-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* ---------- "you are here" ---------- */
+/* Ruby and her flag are siblings of the node, not children, so the button
+   keeps a clean hit area and a single accessible name. */
+.now-marker {
+  position: absolute;
+  pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+}
+/* She stands on whichever side the trail is not using, so she never lands on
+   the neighbouring level or its title. */
+.now-marker.to-left  { transform: translate(-100%, -40%); margin-left: -52px; }
+.now-marker.to-right { transform: translate(0, -40%);      margin-left:  52px; }
+.now-ruby { width: 104px; line-height: 0; }
+.now-ruby .ruby { width: 104px; height: auto; }
+.now-flag {
+  background: var(--ruby-strong); color: #fff;
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .02em;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  white-space: nowrap; box-shadow: var(--e2);
 }
 
 /* ---------- legend ---------- */
 .map-legend {
-  display: flex; flex-wrap: wrap; gap: var(--s4);
-  padding: var(--s4) var(--s5) 0; margin-top: var(--s4);
-  border-top: 1px solid var(--line-2);
+  display: flex; gap: var(--s5); flex-wrap: wrap; justify-content: center;
+  margin: 0 var(--s4); padding-top: var(--s4);
+  border-top: 1px solid var(--line);
 }
-.map-legend .leg { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-xs); color: var(--ink-2); }
-.map-legend .sw { width: 13px; height: 13px; border-radius: 4px; border: 1px solid var(--line); flex: none; }
-.map-legend .sw.done { background: var(--pass-soft); border-color: var(--pass); }
-.map-legend .sw.now { background: var(--surface); border: 2px solid var(--accent); }
-.map-legend .sw.locked { background: var(--surface-2); border-style: dashed; }
+.map-legend .leg {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  font-size: var(--t-xs); font-weight: 600; color: var(--ink-2);
+}
+.map-legend .sw { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+.map-legend .sw.done   { background: var(--green-deep); }
+.map-legend .sw.now    { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.map-legend .sw.locked { background: var(--lock-fill); box-shadow: inset 0 0 0 2px var(--lock-edge); }
 
 /* ---------- empty state ---------- */
-.map-empty { padding: var(--s7) var(--s5); text-align: center; color: var(--ink-2); }
-.map-empty img { width: 120px; margin-bottom: var(--s4); }
-.map-empty h2 { color: var(--ink); }
+.map-empty { text-align: center; padding: var(--s7) var(--s4); }
+.map-empty-ruby { display: flex; justify-content: center; margin-bottom: var(--s4); }
+.map-empty h2 { margin-bottom: var(--s2); }
+.map-empty p { color: var(--ink-2); max-width: 46ch; margin: 0 auto; }
 
+/* ---------- narrow screens ---------- */
+/* The trail keeps its shape; only the furniture shrinks. Node geometry lives
+   in js/dashboard.js, which clamps the swing to the container width. */
 @media (max-width: 640px) {
-  .scene { padding: var(--s4) 0; border-radius: var(--r-m); }
-  .unit-head, .chain, .map-legend { padding-left: var(--s4); padding-right: var(--s4); }
-  .tile { width: 96px; height: 106px; }
-  .tile .t-sym { font-size: 1.75rem; }
-  .map-head .map-title-row { align-items: flex-start; }
+  .scene { padding: var(--s2); border-radius: var(--r-l); }
+  .node { width: 100px; }
+  .node-face { width: 64px; height: 64px; --lift: 6px; }
+  .node-face .ic { width: 28px; height: 28px; }
+  .node-n { font-size: 1.35rem; }
+  .node.is-now .node-face { width: 80px; height: 80px; }
+  .node.is-now .node-n { font-size: 1.6rem; }
+  .now-ruby, .now-ruby .ruby { width: 84px; }
+  .now-marker.to-left  { margin-left: -38px; }
+  .now-marker.to-right { margin-left:  38px; }
+  .now-ruby, .now-ruby .ruby { width: 72px; }
+  .trail-under { stroke-width: 22; }
+  .trail, .trail-walked { stroke-width: 17; }
+  .map-legend { gap: var(--s4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node.is-now .node-face { animation: none; }
+  .trail-walked { transition: none; }
 }

@@ -5,7 +5,7 @@
    ========================================================================= */
 
 /* Coin pill in the topbar, sitting next to the existing points pill. */
-.pill.coins { background: #fff1d9; color: #b8791b; }
+/* colour now comes from theme.css, where it is contrast-checked (5.26:1) */
 
 /* ---------------------------------- wallet ---------------------------------- */
 .q-wallet {
