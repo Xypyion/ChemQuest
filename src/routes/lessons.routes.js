@@ -226,6 +226,8 @@ router.get('/', (req, res) => {
       opensAt: unlock.opensAt || null,
       completed,
       preDone: !!p.passed,
+      flow: game.lessonFlow(lesson),
+      storyDone: !!p.storyDone,
       awaitingGrading: !!p.awaitingGrading,
       bestScore: p.bestScore || 0,
       hasCertificate: (req.user.certificates || []).some((c) => c.lessonId === lesson.id),
@@ -251,6 +253,11 @@ router.get('/:id', (req, res) => {
 
   const lesson = lessons[idx];
   const questions = quizFor(lesson, req.user.difficulty);
+  const entry = (req.user.progress || {})[lesson.id] || {};
+  // The storyboard and the pre-test are two separate activities; the teacher's
+  // chosen order decides which one is still locked. Locked content is stripped
+  // here so it can't be read by calling the API directly.
+  const act = game.activityState(lesson, entry);
   res.json({
     lesson: {
       id: lesson.id,
@@ -259,14 +266,45 @@ router.get('/:id', (req, res) => {
       terrain: lesson.terrain,
       icon: lesson.icon,
       timeLimit: lesson.timeLimit || 0,
-      storyboard: buildSteps(lesson),
+      storyboard: act.storyLocked ? [] : buildSteps(lesson),
       difficulty: req.user.difficulty,
-      questions: questions.map(sanitizeQuestion),
+      questions: act.preLocked ? [] : questions.map(sanitizeQuestion),
       postTest: postTestSummary(lesson, req.user),
-      preDone: !!((req.user.progress || {})[lesson.id] || {}).passed,
-      preBestScore: (((req.user.progress || {})[lesson.id]) || {}).bestScore || 0,
+      activities: act,
+      storyCount: (lesson.storyboard || []).length,
+      questionCount: questions.length,
+      preDone: !!entry.passed,
+      preAttempted: act.preAttempted,
+      storyDone: act.storyDone,
+      preBestScore: entry.bestScore || 0,
     },
   });
+});
+
+/**
+ * POST /api/lessons/:id/story-complete — the student finished the storyboard.
+ * Recorded on its own (separate from the pre-test) so that, when the teacher
+ * put the story first, the pre-test can unlock.
+ */
+router.post('/:id/story-complete', (req, res) => {
+  const lessons = orderedLessons();
+  const idx = lessons.findIndex((l) => l.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'That level does not exist.' });
+  const gate = unlockInfo(lessons, idx, req.user);
+  if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
+
+  const lesson = lessons[idx];
+  const progress = (req.user.progress = req.user.progress || {});
+  const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
+  if (game.activityState(lesson, entry).storyLocked) {
+    return res.status(403).json({ error: 'STORY_LOCKED' });
+  }
+  if (!entry.storyDone) {
+    entry.storyDone = true;
+    entry.storyCompletedAt = new Date().toISOString();
+    db.save();
+  }
+  res.json({ ok: true, activities: game.activityState(lesson, entry) });
 });
 
 /* ------------------------------ POST-TEST ------------------------------ */
@@ -374,10 +412,16 @@ router.post('/:id/posttest/complete', (req, res) => {
   });
 });
 
+/** Is the pre-test still locked because the teacher put the storyboard first? */
+function preTestLocked(lesson, user) {
+  return game.activityState(lesson, (user.progress || {})[lesson.id]).preLocked;
+}
+
 /** POST /api/lessons/:id/check — instant feedback for one question. */
 router.post('/:id/check', (req, res) => {
   const lesson = db.findById('lessons', req.params.id);
   if (!lesson) return res.status(404).json({ error: 'That level does not exist.' });
+  if (preTestLocked(lesson, req.user)) return res.status(403).json({ error: 'PRETEST_LOCKED' });
   const questions = quizFor(lesson, req.user.difficulty);
   const { questionIndex, answer } = req.body || {};
   const q = questions[questionIndex];
@@ -401,6 +445,7 @@ router.post('/:id/complete', (req, res) => {
   const progress = (req.user.progress = req.user.progress || {});
   const gate = unlockInfo(lessons, idx, req.user);
   if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
+  if (preTestLocked(lesson, req.user)) return res.status(403).json({ error: 'PRETEST_LOCKED' });
 
   const questions = quizFor(lesson, req.user.difficulty);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];

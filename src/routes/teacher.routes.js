@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const game = require('../game');
 const { finalizeAttempt } = require('../grading');
+const challengeLib = require('../challenges');
 const { authMiddleware, requireRole, publicUser, hashPassword } = require('../auth');
 
 const router = express.Router();
@@ -76,6 +77,11 @@ function normalizeLesson(body, existing) {
   lesson.icon = (body.icon || '🧪').toString().trim() || '🧪';
 
   lesson.storyboard = normalizeStoryboard(body.storyboard);
+
+  // Which of the two level activities comes first for the student: the
+  // storyboard, or the pre-test? (The second one stays locked until the first
+  // is finished — see game.activityState.)
+  lesson.flow = game.FLOWS.includes(body.flow) ? body.flow : 'story-first';
 
   // Per-lesson quiz timer (seconds). 0 = no timer. Capped at 1 hour.
   let timeLimit = parseInt(body.timeLimit, 10);
@@ -339,9 +345,32 @@ router.post('/gradebook/score', (req, res) => {
   res.json({ ok: true, score: user.grades[body.columnId] == null ? null : user.grades[body.columnId] });
 });
 
-/** Create a column pre-filled from a level's pre-test or post-test best scores. */
+/** Create a column pre-filled from a level's pre-test or post-test best scores,
+ *  or from the points students earned on one challenge. */
 router.post('/gradebook/import', (req, res) => {
   const body = req.body || {};
+
+  // Challenge import: one column holding each student's earned challenge points.
+  if (body.challengeId) {
+    const challenge = db.findById('challenges', body.challengeId);
+    if (!challenge) return res.status(404).json({ error: 'Challenge not found.' });
+    const col = {
+      id: crypto.randomUUID(),
+      name: `${challenge.icon || '🧩'} ${challenge.title}`.trim().slice(0, 60),
+      max: Math.max(1, challengeLib.maxPoints(challenge)),
+      order: db.all('gradebook').length,
+    };
+    db.insert('gradebook', col);
+    db.filter('users', (u) => u.role === 'student').forEach((u) => {
+      const sub = db.find('challengeSubmissions', (s) => s.challengeId === challenge.id && s.userId === u.id);
+      if (!sub) return; // never handed it in — leave the cell empty for the teacher
+      u.grades = u.grades || {};
+      u.grades[col.id] = sub.status === 'graded' ? (sub.earned || 0) : (sub.autoEarned || 0);
+    });
+    db.save();
+    return res.json({ columns: gradebookColumns(), rows: gradebookRows() });
+  }
+
   const lesson = db.findById('lessons', body.lessonId);
   if (!lesson) return res.status(404).json({ error: 'Level not found.' });
   const src = body.source === 'pre' ? 'pre' : 'post';

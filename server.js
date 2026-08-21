@@ -22,6 +22,9 @@ app.use((req, res, next) => {
 // ---- API ----
 app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/lessons', require('./src/routes/lessons.routes'));
+const challengeRoutes = require('./src/routes/challenges.routes');
+app.use('/api/challenges', challengeRoutes.studentRouter);          // students answer challenges
+app.use('/api/teacher/challenges', challengeRoutes.teacherRouter);  // teacher builds & grades them
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
 app.use('/api/posts', require('./src/routes/posts.routes'));

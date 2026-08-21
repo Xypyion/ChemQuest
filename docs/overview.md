@@ -7,12 +7,13 @@ served from the same Node.js process.
 ## What it does
 
 - **Students** progress along an adventure map of levels grouped into three biomes
-  (Meadow → Ember Canyon → Sky Summit). Each level opens a **level board** with three
-  activities: start the lesson (storyboard + video + **pre-test**), an **assignments**
-  feed, and a teacher-gated **post-test**.
-- **Teachers** build levels (storyboard, images, videos, per-difficulty quizzes), create a
-  separate post-test, control when each level unlocks, post assignments, review student
-  work and private questions, and manage student accounts.
+  (Meadow → Ember Canyon → Sky Summit). Each level opens a **level board** listing its
+  activities: the **storyboard** (+ video), the **pre-test**, an **assignments** feed,
+  the **challenges** the teacher assigned them, and a teacher-gated **post-test**.
+- **Teachers** build levels (storyboard, images, videos, per-difficulty quizzes), decide
+  whether the storyboard or the pre-test comes first, create a separate post-test, build
+  and assign **challenges**, control when each level unlocks, post assignments, review
+  student work and private questions, and manage student accounts.
 - The whole UI is **bilingual (ไทย / English)** with one accessible switch.
 
 ## High-level shape
@@ -32,7 +33,9 @@ Browser (HTML/CSS/JS)  ──HTTP/JSON──►  Express server (Node.js)  ─�
 
 | Concept | Meaning |
 |---------|---------|
-| **Level / Lesson** | One stop on the map: storyboard, pre-test, post-test, access gate. |
+| **Level / Lesson** | One stop on the map: storyboard, pre-test, challenges, post-test, access gate. |
+| **Activity order** | Per level, whether the **storyboard** or the **pre-test** comes first; the other stays locked until the first is done. |
+| **Challenge** | A teacher-built worksheet in the level's 🧩 tab: categorised, assigned to chosen students, with question types from multiple choice to fill-in-the-table and interactive **simulations**. |
 | **Storyboard** | Ordered steps — dialogue *lines* (with optional images) and *videos*. |
 | **Pre-test** | Quiz taken after the story; passing (≥60%) earns a certificate. |
 | **Post-test** | A separate quiz the teacher opens; passing it unlocks the next level. |

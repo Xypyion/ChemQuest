@@ -13,6 +13,8 @@ const MAX_IMG_BYTES = 800 * 1024;
 
 let LESSONS = [];
 let STUDENTS = [];
+let CHALLENGES = [];                          // challenge summaries (for the gradebook import)
+let CHALLENGES_PENDING = 0;                   // responses waiting to be marked
 let SUBMISSIONS = [];                         // written answers waiting to be graded
 let GRADEBOOK = { columns: [], rows: [] };    // spreadsheet-style gradebook
 let view = 'lessons';
@@ -34,7 +36,20 @@ async function reload() {
   LESSONS = (await API.get('/api/teacher/lessons')).lessons;
   STUDENTS = (await API.get('/api/teacher/students')).students;
   SUBMISSIONS = (await API.get('/api/teacher/submissions')).submissions;
+  try {
+    const ch = await API.get('/api/teacher/challenges');
+    CHALLENGES = ch.challenges;
+    CHALLENGES_PENDING = ch.pending || 0;
+  } catch { CHALLENGES = []; CHALLENGES_PENDING = 0; }
   updateGradingBadge();
+  updateChallengeBadge();
+}
+
+/** Count of challenge responses waiting to be marked, on the Challenges tab. */
+function updateChallengeBadge() {
+  const btn = document.querySelector('.t-nav button[data-view="challenges"]');
+  if (!btn) return;
+  btn.innerHTML = t('t.navChallenges') + (CHALLENGES_PENDING ? ` <span class="t-badge">${CHALLENGES_PENDING}</span>` : '');
 }
 
 /** Show a little count next to the Grading nav button when work is waiting. */
@@ -46,6 +61,7 @@ function updateGradingBadge() {
 }
 function setView(v) {
   view = v; draft = null; boardLessonId = null; preview = null;
+  if (window.TChallenges) TChallenges.reset();
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
   document.getElementById('side').classList.remove('open');
   render();
@@ -55,6 +71,7 @@ function render() {
   if (boardLessonId) return renderBoard();
   if (preview) return renderPreview();
   if (view === 'preview') return renderPreviewPicker();
+  if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'grading') return renderGrading();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();
@@ -75,7 +92,8 @@ function renderLessons() {
       <div class="ico">${esc(l.icon || '🧪')}</div>
       <div class="info">
         <div class="t">${i + 1}. ${esc(l.title)} <span class="terr ${l.terrain}">${l.terrain}</span></div>
-        <div class="d">📖 ${lines} ${t('t.lines')} · 🎬 ${vids} · ❓ ${qCount} ${t('t.questions')} · 🧾 ${ptCount} · ${l.timeLimit ? '⏱ ' + l.timeLimit + 's' : t('t.noTimer')}</div>
+        <div class="d">📖 ${lines} ${t('t.lines')} · 🎬 ${vids} · ❓ ${qCount} ${t('t.questions')} · 🧾 ${ptCount} · ${l.timeLimit ? '⏱ ' + l.timeLimit + 's' : t('t.noTimer')}
+          <span class="flow-tag" title="${esc(l.flow === 'test-first' ? t('t.flowTestFirst') : t('t.flowStoryFirst'))}">${l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory')}</span></div>
       </div>
       <div class="acts">
         <button class="tbtn ${gateBtnClass(l)} sm" onclick="openGate('${l.id}')" title="${t('t.access')}">${gateLabel(l)}</button>
@@ -241,7 +259,7 @@ function blankVideo() { return { type: 'video', url: '', title: '' }; }
 
 function newLesson() {
   draft = {
-    id: null, title: '', description: '', terrain: 'plain', icon: '🧪', timeLimit: 0,
+    id: null, title: '', description: '', terrain: 'plain', icon: '🧪', timeLimit: 0, flow: 'story-first',
     storyboard: [{ type: 'line', character: 'Ruby', mood: 'wave', text: '', image: '' }],
     quizzes: { easy: [blankQuestion()], medium: [], hard: [] },
     postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
@@ -257,6 +275,7 @@ async function editLesson(id) {
       id: lesson.id, title: lesson.title, description: lesson.description || '',
       terrain: lesson.terrain || 'plain', icon: lesson.icon || '🧪', order: lesson.order,
       timeLimit: lesson.timeLimit || 0,
+      flow: lesson.flow === 'test-first' ? 'test-first' : 'story-first',
       storyboard: (lesson.storyboard || []).map((it) => it.type === 'video'
         ? { type: 'video', url: it.url || '', title: it.title || '' }
         : { type: 'line', character: it.character || 'Ruby', mood: it.mood || 'happy', text: it.text || '', image: it.image || '' }),
@@ -344,6 +363,11 @@ function renderEditor() {
       </div>
       <label class="t-label">${t('t.shortDesc')}</label>
       <input id="f-desc" class="t-input" value="${esc(d.description)}" placeholder="${esc(t('t.shortDescPh'))}">
+
+      <label class="t-label" style="margin-top:14px">${t('t.flow')}</label>
+      <div class="sub" style="color:var(--t-soft);margin-bottom:8px">${t('t.flowHint')}</div>
+      ${flowOption('story-first', t('t.flowStoryFirst'), t('t.flowStoryFirstDesc'), d.flow)}
+      ${flowOption('test-first', t('t.flowTestFirst'), t('t.flowTestFirstDesc'), d.flow)}
     </div>
 
     <div class="t-card">
@@ -363,6 +387,20 @@ function renderEditor() {
       <button class="tbtn ghost" onclick="cancelEdit()">${t('common.cancel')}</button>
       <button class="tbtn" onclick="saveLesson()">${t('t.saveLevel')}</button>
     </div>`;
+}
+
+/** One radio card of the "which activity comes first?" picker. */
+function flowOption(value, label, desc, current) {
+  return `
+    <label class="gate-opt ${current === value ? 'on' : ''}">
+      <input type="radio" name="lesson-flow" value="${value}" ${current === value ? 'checked' : ''} onchange="syncFlowUI()">
+      <span><b>${label}</b><br><span class="sub" style="color:var(--t-soft)">${desc}</span></span>
+    </label>`;
+}
+function syncFlowUI() {
+  document.querySelectorAll('input[name=lesson-flow]').forEach((inp) => {
+    inp.closest('.gate-opt').classList.toggle('on', inp.checked);
+  });
 }
 
 function renderStoryItem(it, i, total, moodOpts) {
@@ -495,6 +533,8 @@ function syncDraft() {
   const g = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
   if (document.getElementById('f-title')) {
     draft.title = g('f-title'); draft.icon = g('f-icon'); draft.terrain = g('f-terrain'); draft.description = g('f-desc');
+    const flowPick = document.querySelector('input[name=lesson-flow]:checked');
+    if (flowPick) draft.flow = flowPick.value;
     let tl = parseInt(g('f-timelimit-pre'), 10); draft.timeLimit = Number.isFinite(tl) && tl > 0 ? Math.min(tl, 3600) : 0;
     let tp = parseInt(g('f-timelimit-post'), 10); draft.postTest.timeLimit = Number.isFinite(tp) && tp > 0 ? Math.min(tp, 3600) : 0;
   }
@@ -584,6 +624,7 @@ async function saveLesson() {
   const payload = {
     title: draft.title, description: draft.description, terrain: draft.terrain, icon: draft.icon,
     timeLimit: draft.timeLimit || 0,
+    flow: draft.flow === 'test-first' ? 'test-first' : 'story-first',
     storyboard: draft.storyboard.filter((it) => it.type === 'video' ? it.url.trim() : (it.text.trim() || it.image)),
     quizzes: { easy: mapQ(draft.quizzes.easy), medium: mapQ(draft.quizzes.medium), hard: mapQ(draft.quizzes.hard) },
     postTest: {
@@ -719,11 +760,28 @@ function renderPreviewPicker() {
 }
 function setPreviewDiff(d) { previewDiff = d; render(); }
 
+/** The activities a preview walks through, in the teacher's chosen order. */
+function previewOrder(lesson, difficulty) {
+  const q = lesson.quizzes || {};
+  let quiz = [];
+  for (const key of [difficulty, 'medium', 'easy', 'hard']) { if ((q[key] || []).length) { quiz = q[key]; break; } }
+  const base = lesson.flow === 'test-first' ? ['quiz', 'story'] : ['story', 'quiz'];
+  return base.filter((p) => (p === 'story' ? (lesson.storyboard || []).length > 0 : quiz.length > 0));
+}
+/** Move to whatever the teacher put after `phase` (or the end screen). */
+function pvAdvance(phase) {
+  const i = preview.order.indexOf(phase);
+  const next = preview.order[i + 1];
+  preview.phase = next || 'done';
+  preview.storyIndex = 0;
+  preview.quizIndex = 0;
+}
+
 function startPreview(id) {
   const lesson = LESSONS.find((l) => l.id === id);
   if (!lesson) return;
-  const hasStory = (lesson.storyboard || []).length > 0;
-  preview = { lessonId: id, difficulty: previewDiff, phase: hasStory ? 'story' : 'quiz', storyIndex: 0, quizIndex: 0 };
+  const order = previewOrder(lesson, previewDiff);
+  preview = { lessonId: id, difficulty: previewDiff, order, phase: order[0] || 'done', storyIndex: 0, quizIndex: 0 };
   render();
 }
 function exitPreview() { preview = null; view = 'preview'; render(); }
@@ -748,8 +806,8 @@ function previewStoryHtml(lesson) {
   const steps = lesson.storyboard || [];
   const step = steps[preview.storyIndex] || {};
   const last = preview.storyIndex === steps.length - 1;
-  const hasQuiz = previewQuizSet(lesson).length > 0;
-  const nextLabel = last ? (hasQuiz ? t('t.previewStartQuiz') : t('t.previewFinish')) : t('lesson.next');
+  const after = preview.order[preview.order.indexOf('story') + 1];
+  const nextLabel = last ? (after === 'quiz' ? t('t.previewStartQuiz') : t('t.previewFinish')) : t('lesson.next');
   let body;
   if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
@@ -776,7 +834,7 @@ function pvStory(dir) {
   const steps = lesson.storyboard || [];
   const next = preview.storyIndex + dir;
   if (next < 0) return;
-  if (next >= steps.length) { preview.phase = previewQuizSet(lesson).length ? 'quiz' : 'done'; preview.quizIndex = 0; }
+  if (next >= steps.length) pvAdvance('story');
   else preview.storyIndex = next;
   render();
 }
@@ -815,7 +873,7 @@ function pvQuiz(dir) {
   const total = previewQuizSet(lesson).length;
   const next = preview.quizIndex + dir;
   if (next < 0) return;
-  if (next >= total) preview.phase = 'done';
+  if (next >= total) pvAdvance('quiz');
   else preview.quizIndex = next;
   render();
 }
@@ -833,9 +891,9 @@ function previewDoneHtml(lesson) {
     </div>`;
 }
 function restartPreview() {
-  const lesson = LESSONS.find((l) => l.id === preview.lessonId);
-  const hasStory = (lesson.storyboard || []).length > 0;
-  preview.phase = hasStory ? 'story' : 'quiz'; preview.storyIndex = 0; preview.quizIndex = 0;
+  preview.phase = preview.order[0] || 'done';
+  preview.storyIndex = 0;
+  preview.quizIndex = 0;
   render();
 }
 
@@ -1041,24 +1099,41 @@ async function saveGbColumns(columns) {
 
 function importGbScores() {
   const lessonOpts = LESSONS.map((l, i) => `<option value="${l.id}">${i + 1}. ${esc(l.title)}</option>`).join('');
+  const chOpts = CHALLENGES.map((c) => `<option value="${c.id}">${esc((c.icon || '🧩') + ' ' + c.title)}</option>`).join('');
   openModal(`<h3>${t('t.gbImportTitle')}</h3>
     <p class="sub" style="color:var(--t-soft);margin-top:-4px">${t('t.gbImportHint')}</p>
-    <label class="t-label">${t('t.gbImportPick')}</label>
-    <select id="gi-lesson" class="t-select">${lessonOpts}</select>
     <label class="t-label">${t('t.gbImportSource')}</label>
-    <select id="gi-source" class="t-select">
+    <select id="gi-source" class="t-select" onchange="syncGbImportUI()">
       <option value="post">${t('t.gbImportPost')}</option>
       <option value="pre">${t('t.gbImportPre')}</option>
+      ${CHALLENGES.length ? `<option value="challenge">${t('t.gbImportChallenge')}</option>` : ''}
     </select>
+    <div id="gi-lesson-row">
+      <label class="t-label">${t('t.gbImportPick')}</label>
+      <select id="gi-lesson" class="t-select">${lessonOpts}</select>
+    </div>
+    <div id="gi-challenge-row" style="display:none">
+      <label class="t-label">${t('t.gbImportChallengePick')}</label>
+      <select id="gi-challenge" class="t-select">${chOpts}</select>
+    </div>
     <div class="editor-actions" style="border:none;padding-top:14px">
       <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
       <button class="tbtn" onclick="doImportGbScores()">${t('t.gbImport')}</button></div>`);
 }
+/** Show the level picker or the challenge picker, depending on the source. */
+function syncGbImportUI() {
+  const isChallenge = document.getElementById('gi-source').value === 'challenge';
+  document.getElementById('gi-lesson-row').style.display = isChallenge ? 'none' : '';
+  document.getElementById('gi-challenge-row').style.display = isChallenge ? '' : 'none';
+}
+
 async function doImportGbScores() {
-  const lessonId = document.getElementById('gi-lesson').value;
   const source = document.getElementById('gi-source').value;
+  const body = source === 'challenge'
+    ? { challengeId: document.getElementById('gi-challenge').value }
+    : { lessonId: document.getElementById('gi-lesson').value, source };
   try {
-    GRADEBOOK = await API.post('/api/teacher/gradebook/import', { lessonId, source });
+    GRADEBOOK = await API.post('/api/teacher/gradebook/import', body);
     closeModal();
     paintGradebook();
     toast(t('t.gbImported'), 'good');

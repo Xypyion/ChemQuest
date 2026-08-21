@@ -21,6 +21,8 @@
                          ├─ /api/lessons     → lessons.routes.js   (play, grade, post-test)
                          ├─ /api/teacher     → teacher.routes.js   (CRUD, gate, students)
                          ├─ /api/posts       → posts.routes.js     (assignment board)
+                         ├─ /api/challenges  → challenges.routes.js (student: answer)
+                         ├─ /api/teacher/challenges → challenges.routes.js (teacher: build, mark)
                          ├─ /api/leaderboard → leaderboard.routes.js
                          └─ /uploads         → static file attachments
                          │
@@ -40,6 +42,7 @@ chemquest/
 │   ├── db.js                 # JSON document store (all/find/insert/update/remove/save)
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, guards
 │   ├── game.js               # scoring, pass rule, level completion + gate helpers
+│   ├── challenges.js         # challenge model + auto-marking rules
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/
 │       ├── auth.routes.js
@@ -82,6 +85,8 @@ Centralised so every route agrees on the rules:
 - `isPass(correct,total)` — ≥ 60%.
 - `hasPostTest(lesson)` / `levelDone(lesson, progressEntry)` — completion logic.
 - `gateOpen(lesson)` — evaluates the teacher access gate (`auto` / `locked` / `scheduled`).
+- `activityState(lesson, progress)` — which of the level's two activities (storyboard /
+  pre-test) is open, following the teacher's `flow` order.
 - `recalcPoints(user)` — best pre-test + best post-test scores + teacher bonus.
 
 ## Front-end

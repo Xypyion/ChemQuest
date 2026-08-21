@@ -236,3 +236,51 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
   .menu-toggle { display: inline-flex !important; }
 }
 .menu-toggle { display: none; }
+
+/* =========================================================================
+   Challenges — categories, the question builder (incl. table + simulation)
+   and the response-marking cards.
+   ========================================================================= */
+
+/* activity-order badge on the lessons list */
+.flow-tag {
+  display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px;
+  background: #eef0fb; color: var(--t-indigo); font-weight: 700; font-size: .78rem;
+}
+
+/* published / draft pills */
+.t-pill.pub { background: #d8f5e3; color: #14804a; }
+.t-pill.draft { background: #eeecf6; color: var(--t-soft); }
+
+/* a checkbox + label on one line */
+.check-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 2px; font-size: .92rem; cursor: pointer; }
+.check-row input { width: 16px; height: 16px; accent-color: var(--t-accent); flex: none; }
+.check-row.sm { margin: 4px 0; font-size: .78rem; color: var(--t-soft); }
+
+/* assign-to-students modal */
+.assign-list { max-height: 260px; overflow: auto; border: 1px solid var(--t-line); border-radius: 12px; padding: 8px; margin-top: 6px; }
+.assign-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; cursor: pointer; font-size: .92rem; }
+.assign-row:hover { background: #f6f5fc; }
+.assign-row input { width: 16px; height: 16px; accent-color: var(--t-accent); }
+
+/* question builder: sub-questions under a simulation */
+.qcard.simcard { border-color: #d9d2f5; background: linear-gradient(180deg, #faf8ff, #fff); }
+.q-subs { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+.q-subs .qcard { background: #fff; }
+
+.t-area.code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .84rem; line-height: 1.5; }
+.sim-preview { width: 100%; border: 2px solid var(--t-line); border-radius: 12px; margin-top: 10px; background: #fff; display: block; }
+
+/* fill-in-the-table editor */
+.tb-wrap { overflow-x: auto; }
+.tb-editor { border-collapse: collapse; width: 100%; }
+.tb-editor th, .tb-editor td { border: 1px solid var(--t-line); padding: 6px; vertical-align: top; min-width: 150px; }
+.tb-editor th { background: #f6f5fc; }
+.tb-editor .t-input { margin: 0; font-size: .86rem; padding: 6px 8px; }
+.tb-editor .tb-ans { margin-top: 4px; background: #fffdf3; border-color: #f0e0b0; }
+.tb-editor td.tb-tools { min-width: 0; border: none; background: transparent; }
+
+/* response marking */
+.missing-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.missing-chip { background: #fdeef1; color: #a33; border-radius: 999px; padding: 5px 12px; font-size: .85rem; font-weight: 600; }
+.grade-feedback { margin-bottom: 10px; }

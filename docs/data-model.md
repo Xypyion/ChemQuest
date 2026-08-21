@@ -1,7 +1,9 @@
 # Data Model
 
-All state lives in `data/db.json` with three collections: `users`, `lessons`, `posts`.
-Uploaded files live in `data/uploads/` and are referenced by URL.
+All state lives in `data/db.json`. Collections: `users`, `lessons`, `posts`,
+`submissions`, `gradebook`, `challenges`, `challengeCategories`,
+`challengeSubmissions`. Uploaded files live in `data/uploads/` and are referenced
+by URL.
 
 ## User
 
@@ -19,6 +21,8 @@ Uploaded files live in `data/uploads/` and are referenced by URL.
       "attempts": 2,
       "lastScore": 80, "bestScore": 100, "bestCorrect": 3, "total": 3,
       "passed": true,                // pre-test passed
+      "storyDone": true,             // the storyboard was read to the end
+      "storyCompletedAt": "ISO",
       "completedAt": "ISO",
       "post": {                      // post-test progress (optional)
         "attempts": 1, "lastScore": 100, "bestScore": 100,
@@ -48,6 +52,9 @@ Uploaded files live in `data/uploads/` and are referenced by URL.
   "terrain": "plain",                // plain | mountain | snow  (biome)
   "icon": "🌱",
   "timeLimit": 90,                   // pre-test seconds, 0 = no timer
+  "flow": "story-first",             // story-first | test-first — which activity
+                                     // the student must do first; the other one
+                                     // stays locked until it is finished
 
   "storyboard": [                    // ordered steps
     { "type": "line", "character": "Ruby", "mood": "happy",
@@ -77,6 +84,94 @@ Uploaded files live in `data/uploads/` and are referenced by URL.
   "updatedAt": "ISO"
 }
 ```
+
+## Challenge
+
+A teacher-built worksheet shown in the 🧩 Challenges tab of a level board.
+
+```jsonc
+{
+  "id": "uuid",
+  "lessonId": "uuid",                // which level board it appears on
+  "categoryId": "uuid",              // → challengeCategories ("" = uncategorised)
+  "title": "Build a balanced equation",
+  "description": "…",                // instructions for the student
+  "icon": "🧩",
+  "order": 3,
+  "published": true,                 // students only ever see published ones
+  "allowRetake": false,              // false = one attempt only
+  "timeLimit": 0,                    // seconds, 0 = no timer
+  "dueAt": null,                     // ISO or null
+  "assign": { "mode": "all", "studentIds": [] },   // "some" + ids to hand-pick
+  "questions": [ … ],
+  "createdAt": "ISO", "updatedAt": "ISO"
+}
+```
+
+### Challenge question types
+
+Every question has `{ id, type, question, image, points, explanation }`.
+`image` is a URL or an inline data-URI; `explanation` is the marking guide and is
+never sent to students.
+
+```jsonc
+// mcq — one correct choice
+{ "type": "mcq", "choices": ["…"], "correctIndex": 1 }
+
+// multi — several correct choices (all-or-nothing)
+{ "type": "multi", "choices": ["…"], "correctIndexes": [0, 2] }
+
+// short — typed answer, auto-marked against the accepted list
+{ "type": "short", "accepted": ["water", "H2O"], "caseSensitive": false }
+//   accepted: [] → the teacher marks it by hand
+
+// written — a paragraph; always teacher-marked
+{ "type": "written" }
+
+// table — fill in the blanks
+{ "type": "table", "table": {
+    "columns": ["State", "Shape"],
+    "rows": [{ "cells": [
+      { "text": "Solid", "blank": false, "answer": "" },
+      { "text": "",      "blank": true,  "answer": "fixed" }
+    ]}] } }
+//   every blank has an answer → marked pro-rata; any blank without → teacher marks
+
+// simulation — embedded HTML (or a URL) plus its own sub-questions
+{ "type": "simulation", "points": 0,
+  "sim": { "mode": "html", "html": "<canvas …><script>…<\/script>", "url": "", "height": 420 },
+  "sub": [ /* any of the types above — simulations cannot nest */ ] }
+```
+
+The simulation frame is sandboxed with `allow-scripts allow-popups` and **no**
+`allow-same-origin`, so teacher-authored code runs in an opaque origin.
+
+## Challenge category
+
+```jsonc
+{ "id": "uuid", "name": "Lab simulations", "icon": "🧪", "order": 0 }
+```
+
+## Challenge submission
+
+```jsonc
+{
+  "id": "uuid", "challengeId": "uuid", "lessonId": "uuid",
+  "userId": "uuid", "userName": "…", "userAvatar": "🧑‍🎓",
+  "answers": { "<questionId>": 0 | [0,2] | "text" | { "0_1": "fixed" } },
+  "results": [{ "questionId": "…", "auto": true, "earned": 2, "max": 2, "correct": true }],
+  "autoEarned": 11,                  // machine-marked points
+  "manual": [{ "questionId": "…", "question": "…", "type": "written",
+               "points": 5, "guide": "…", "answer": "…", "awarded": 4 }],
+  "earned": 15,                      // null until every manual part is marked
+  "maxPoints": 21,
+  "status": "graded",                // pending | graded
+  "feedback": "Nice explanation!",
+  "createdAt": "ISO", "gradedAt": "ISO"
+}
+```
+
+Table answers are keyed `"<rowIndex>_<columnIndex>"`, matching the blank cells.
 
 ### Storyboard step types
 - **line** — Ruby dialogue: `character`, `mood` (happy/excited/thinking/wave/cheer/sad),
@@ -113,10 +208,13 @@ never to other students. They are only allowed on a teacher assignment post.
 ## Relationships
 
 ```
-User 1───* progress  *───1 Lesson           (a student's results per level)
-User 1───* certificates                      (one per passed level pre-test)
-Lesson 1───* Post  (by lessonId)             (the level's assignment feed)
-Post  *───1 User (author)                    (denormalised author snapshot)
+User 1───* progress  *───1 Lesson             (a student's results per level)
+User 1───* certificates                        (one per passed level pre-test)
+Lesson 1───* Post  (by lessonId)               (the level's assignment feed)
+Post  *───1 User (author)                      (denormalised author snapshot)
+Lesson 1───* Challenge (by lessonId)           (the level's challenges tab)
+Challenge *───1 ChallengeCategory              (teacher-defined grouping)
+Challenge 1───* ChallengeSubmission *───1 User (one per student, unless retaken)
 ```
 
 ## Reset / seed

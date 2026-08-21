@@ -23,9 +23,11 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
 - 🗺️ **Adventure map** — a winding journey through three illustrated biomes
   (**Meadow → Ember Canyon → Sky Summit**) with rivers, bridges and props, and a
   little 3D-style character model standing on every level. Levels unlock one at a time.
-- 🏠 **Level board** — tapping a level opens a game-themed board with three choices:
-  **Start the Level**, the **Assignments** feed, and the **Post-test** (locked until the
-  teacher opens it).
+- 🏠 **Level board** — tapping a level opens a game-themed board with tabs
+  **🏠 Board · 📒 Assignments · 🧩 Challenges** and a menu of everything the level holds:
+  the **Storyboard**, the **Pre-test**, the **Assignments** feed, your **Challenges**,
+  and the **Post-test** (locked until the teacher opens it). Your teacher decides whether
+  the storyboard or the pre-test comes first — the other one waits its turn.
 - 🔴 **Ruby the guide** — an animated mascot who narrates each storyboard, reacts to
   your answers, and cheers you on. Storyboards can include **pictures/diagrams** and a
   **video dropped in wherever the teacher placed it**.
@@ -38,6 +40,11 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   **image / PDF / any-file attachments** (images preview inline), **like** and **comment**
   on classmates' posts, and quietly ask the teacher a private question
   ("นักเรียนสงสัยอะไรมั้ย") that only they can see.
+- 🧩 **Challenges** — extra worksheets your teacher assigns you, sorted into categories.
+  They can ask you to pick an answer, tick several, type a short answer, write a paragraph,
+  **fill in a table**, or play with an **interactive simulation** and answer the questions
+  underneath it. You get your score the moment you hand in — apart from the parts your
+  teacher marks by hand, which come back with their comments.
 - 🧾 **Post-test** — a separate test the teacher opens when the class is ready; earns
   points (no certificate).
 - 🎖️ **Certificates** — earn one for every level you pass; collect them in your inventory.
@@ -57,6 +64,14 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
 - 🧾 **Post-test builder** — a **separate** question set built the same way, kept **locked** until
   you press **Open post-test** (from the level list or inside the editor). Open or close it for
   the whole class with one click.
+- 🔀 **Order of activities** — choose whether students meet the **storyboard first** or the
+  **pre-test first** on each level. The second activity stays locked until the first is done.
+- 🧩 **Challenges** — build worksheets for any level board, sort them into your own
+  **categories**, and assign them to the whole class or to picked students. Six question
+  types (multiple choice · choose many · short answer · paragraph · **fill in the table** ·
+  **simulation**), an image on any question, and your own points per question. A simulation
+  takes the **HTML of an interactive model** (or a URL) and shows its questions underneath.
+  Machine-markable answers arrive already scored; you award the rest and add feedback.
 - 📒 **Assignment board** — post the assignment for any level, and see **every student post,
   file, comment, and private question** in one place.
 - 🔑 **Reset a student's password** — set a fresh password for any student from the Students tab.
@@ -94,11 +109,13 @@ Students sign up for their own accounts.
 ## 🎮 How to play (student)
 1. Sign up and choose a difficulty.
 2. On the map, click the glowing **PLAY** level to open its **board**.
-3. **Start the Level** → read Ruby's story → watch the video → answer the pre-test.
-4. Score 60%+ to pass, earn a certificate, and unlock the next level.
-5. Visit the **Assignments** tab to post your work and chat with classmates.
-6. When your teacher opens the **Post-test**, take it for bonus points.
-7. Climb the leaderboard!
+3. Do the activities in the order your teacher set — **📖 Storyboard** and **❓ Pre-test**
+   are two separate steps, and the second one unlocks when the first is finished.
+4. Score 60%+ on the pre-test to pass and earn a certificate.
+5. Visit the **📒 Assignments** tab to post your work and chat with classmates.
+6. Check the **🧩 Challenges** tab for the worksheets your teacher assigned you.
+7. When your teacher opens the **Post-test**, take it to unlock the next level.
+8. Climb the leaderboard!
 
 ---
 
@@ -108,24 +125,27 @@ chemquest/
 ├── server.js              # Express server (API + serves the front-end)
 ├── package.json
 ├── data/
-│   ├── db.json            # auto-created JSON database (users + lessons + posts)
+│   ├── db.json            # auto-created JSON database (users, lessons, posts, challenges)
 │   └── uploads/           # assignment file attachments (auto-created)
 ├── src/
 │   ├── db.js              # tiny JSON document store
 │   ├── auth.js            # JWT + password hashing + role middleware
-│   ├── game.js            # scoring & points rules
+│   ├── game.js            # scoring, points & activity-order rules
+│   ├── challenges.js      # challenge model + auto-marking
 │   ├── seed.js            # teacher account + sample levels
 │   └── routes/
 │       ├── auth.routes.js
 │       ├── lessons.routes.js     # student: play & grade pre-test + post-test
 │       ├── teacher.routes.js     # teacher: lesson CRUD, post-test gate, password reset
 │       ├── posts.routes.js       # assignment board: posts, files, comments, questions
+│       ├── challenges.routes.js  # challenges: student answering + teacher building/marking
 │       └── leaderboard.routes.js
 └── public/                # front-end (no build step needed)
     ├── index.html         # welcome / login / signup
     ├── dashboard.html     # adventure map
-    ├── level.html         # level board hub (start / assignments / post-test)
-    ├── lesson.html        # storyboard + video + quiz player (pre & post modes)
+    ├── level.html         # level board hub (story / pre-test / assignments / challenges / post-test)
+    ├── lesson.html        # storyboard + quiz player (story, pre & post modes)
+    ├── challenge.html     # challenge player (all question types + simulations)
     ├── inventory.html     # certificate collection
     ├── leaderboard.html
     ├── teacher.html       # teacher console

@@ -52,11 +52,17 @@ verified end-to-end.
 Implemented features:
 - Sign up / log in (JWT), difficulty choice (easy/medium/hard).
 - Adventure map with 3 biomes, 3D-style Ruby models, props, rivers/bridges.
-- **Level board hub** (`level.html`): Start Level · Assignments · Post-test.
+- **Level board hub** (`level.html`): tabs 🏠 Board · 📒 Assignments · 🧩 Challenges;
+  the board menu lists Storyboard · Pre-test · Assignments · Challenges · Post-test.
 - **Storyboards**: dialogue lines (moods, optional images) + inline YouTube video
-  placed anywhere in the sequence.
+  placed anywhere in the sequence. Played on their own (`lesson.html?mode=story`).
 - **Pre-test**: instant feedback, explanations, per-difficulty questions; passing
-  (≥60%) earns a **certificate**.
+  (≥60%) earns a **certificate**. Played on its own (`lesson.html?mode=pre`).
+- **Activity order** (`lesson.flow`): the storyboard and the pre-test are two
+  separate activities and the teacher picks which comes first —
+  `story-first` (default) or `test-first`. The second one stays locked, and the
+  server refuses it, until the first is finished.
+- **Challenges**: a teacher-built section of the level board (see below).
 - **Post-test**: separate quiz, **teacher-gated** (open/close), **one attempt
   only**, **points-based**, supports **multiple-choice + written** questions.
 - **Written-answer grading**: written questions go to a teacher **"Writing
@@ -66,6 +72,15 @@ Implemented features:
 - **Assignment board** per level: posts with file attachments (image preview /
   PDF / any file), likes, comments, and **private student→teacher questions**
   (only on the teacher's assignment post).
+- **Challenges** per level (the tab right under Assignments): teacher-built
+  worksheets sorted into **categories** and **assigned** to everyone or to picked
+  students. A challenge holds any mix of question types — **multiple choice ·
+  choose-many · short answer · paragraph · fill-in-the-table · simulation** —
+  each with optional **image** and its own points. A **simulation** question
+  embeds teacher-authored HTML (or a URL) in a **sandboxed iframe** with its own
+  sub-questions underneath. Auto-markable answers are scored on submit; the rest
+  land in the challenge's **Responses** list for the teacher to mark, with
+  optional written feedback. Scores can be imported into the gradebook.
 - **Peer + teacher rating**: teacher-defined **rating criteria** per level;
   students rate each other's works 1–5 stars per criterion; teacher rates too.
 - **Gradebook**: spreadsheet-style grid (rows = students, columns = grade items)
@@ -140,7 +155,8 @@ chemquest/
 ├── src/
 │   ├── db.js                 # tiny JSON document store (all/find/insert/update/remove/save)
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, authMiddleware, requireRole
-│   ├── game.js               # scoring, pass rule, level-completion + access-gate helpers
+│   ├── game.js               # scoring, pass rule, level-completion, access gate + activity order
+│   ├── challenges.js         # challenge model: normalising, sanitising, auto-marking
 │   ├── grading.js            # finalizeAttempt() — applies a graded attempt to progress (MCQ+written points)
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/
@@ -149,9 +165,11 @@ chemquest/
 │       ├── teacher.routes.js      # teacher: lesson CRUD, gate, criteria, post-test open,
 │       │                          #          students, password reset, writing grading, gradebook
 │       ├── posts.routes.js        # assignment board: posts, files, comments, likes, questions, ratings
+│       ├── challenges.routes.js   # challenges: student router + teacher router (CRUD, assign, mark)
 │       └── leaderboard.routes.js  # ranked students
 └── public/                   # front-end (served statically; no build)
     ├── index.html            # welcome / login / signup
+    ├── challenge.html        # challenge player (student)
     ├── dashboard.html        # adventure map
     ├── level.html            # level board hub (start / assignments / post-test)
     ├── lesson.html           # storyboard + quiz player (mode=pre | mode=post)
@@ -165,7 +183,9 @@ chemquest/
         ├── character.js      # Ruby mascot (original inline SVG) + hats/moods
         ├── props.js          # decorative SVG props for the map
         ├── welcome.js, dashboard.js, board.js, lesson.js, inventory.js, leaderboard.js
-        └── teacher.js        # the entire teacher console (single file)
+        ├── challenge.js      # challenge player (all question types + sandboxed simulation)
+        ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section
+        └── teacher.js        # the rest of the teacher console (single file)
 ```
 
 ---
@@ -196,18 +216,18 @@ Browser (HTML/CSS/JS)                Express (server.js)                 data/db
 ## 7. Data model
 
 Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
-`gradebook`**. Full field-by-field detail is in
+`gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`**. Full field-by-field detail is in
 [`data-model.md`](data-model.md); the essentials:
 
 - **user**: `{ id, role:'student'|'teacher', name, email(lowercased),
   passwordHash, difficulty, avatar, progress{}, certificates[], earnedPoints,
   bonusPoints, points, grades{colId:score} }`
-  - `progress[lessonId] = { attempts, bestScore, passed (pre-test), post:{ attempts,
-    bestScore, passed, awaitingGrading }, ... }`
+  - `progress[lessonId] = { attempts, bestScore, passed (pre-test), storyDone,
+    post:{ attempts, bestScore, passed, awaitingGrading }, ... }`
 - **lesson**: `{ id, order, title, description, terrain:'plain'|'mountain'|'snow',
-  icon, timeLimit, storyboard[], quizzes{easy,medium,hard}, postTest{ open,
-  timeLimit, quizzes{} }, gate{ mode:'auto'|'locked'|'scheduled', openAt },
-  ratingCriteria[{id,label}] }`
+  icon, timeLimit, flow:'story-first'|'test-first', storyboard[],
+  quizzes{easy,medium,hard}, postTest{ open, timeLimit, quizzes{} },
+  gate{ mode:'auto'|'locked'|'scheduled', openAt }, ratingCriteria[{id,label}] }`
   - **storyboard step**: `{type:'line', character, mood, text, image}` or
     `{type:'video', url, title}`.
   - **question**: `{id, type:'mcq'|'written', question, points, explanation,
@@ -220,6 +240,16 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   awarded}], status:'pending'|'graded' }`.
 - **gradebook**: array of columns `{ id, name, max, order }`; a student's scores
   live on `user.grades[columnId]`.
+- **challenge**: `{ id, lessonId, categoryId, title, description, icon, order,
+  published, allowRetake, timeLimit, dueAt, assign{ mode:'all'|'some', studentIds[] },
+  questions[] }`; a **question** is `{ id, type:'mcq'|'multi'|'short'|'written'|
+  'table'|'simulation', question, image, points, explanation, … }` plus per-type
+  fields (`choices`/`correctIndex`, `correctIndexes`, `accepted`, `table`,
+  `sim`+`sub[]`).
+- **challengeCategory**: `{ id, name, icon, order }` (global, reused across levels).
+- **challengeSubmission**: `{ id, challengeId, userId, answers{}, results[],
+  autoEarned, manual[{questionId,points,awarded}], earned, maxPoints,
+  status:'pending'|'graded', feedback }`.
 
 ---
 
@@ -229,7 +259,19 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   open only when **(a)** the teacher gate is open (`auto`, or `scheduled` time
   reached; `locked` = shut) **and (b)** the previous level is "done" — meaning its
   **post-test passed** when it has one, otherwise its pre-test passed.
+- **Activity order** (`game.activityState`): when a level has **both** a
+  storyboard and a pre-test, the one the teacher put second is locked until the
+  first is done (`progress.storyDone` / `progress.attempts`). An activity the
+  student already finished never re-locks, even if the teacher flips the order.
 - **Certificate**: awarded on the first pre-test pass of a level.
+- **Challenges**: a student sees a challenge only when it is `published` **and**
+  assigned to them. One attempt unless `allowRetake` (then a new submission
+  replaces the old one). Auto-marking: MCQ / choose-many are all-or-nothing;
+  a short answer needs a matching `accepted` entry (trimmed, case-insensitive
+  unless `caseSensitive`); a table is marked pro-rata **only if every blank cell
+  has an answer key**, otherwise the teacher marks it. Paragraphs are always
+  teacher-marked. Challenge points are **separate from the leaderboard** — import
+  them into the gradebook if you want them to count.
 - **Post-test: one attempt only.** Once submitted, the server blocks re-open and
   re-submit (`openPostTest` returns `ALREADY_SUBMITTED`); the board shows a
   non-clickable "done"/"awaiting grading" state.
@@ -325,6 +367,11 @@ here.
   edit, restart.
 - **Live YouTube iframes** hang some headless screenshot tools; verify the video
   step via DOM inspection instead of screenshots.
+- **Simulation HTML is teacher-authored code.** It is rendered with
+  `sandbox="allow-scripts allow-popups"` and **no** `allow-same-origin`, so it
+  runs in an opaque origin and cannot touch the session, the token or the page.
+  Keep it that way — dropping the sandbox would hand any teacher-pasted script
+  full access to student sessions.
 - **Data lives in `data/`** and is git-ignored, so a fresh `git clone` starts with
   an empty DB that re-seeds on first `npm start`. Back up `data/db.json` and
   `data/uploads/` to preserve real classroom data.

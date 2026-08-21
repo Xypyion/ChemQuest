@@ -1,5 +1,10 @@
 // Level board (hub): clicking a level on the map lands here first.
-// Tabs: 🏠 Board (start the level / post-test) and 📒 Assignments (the feed).
+// Tabs: 🏠 Board · 📒 Assignments · 🧩 Challenges.
+//
+// The board menu lists every activity of the level in the order the teacher
+// chose. The storyboard and the pre-test are two SEPARATE activities: the
+// teacher decides which one comes first (lesson.activities.flow) and the other
+// one stays locked until the first is finished.
 
 guard('student');
 addClouds();
@@ -10,7 +15,8 @@ const LESSON_ID = params.get('id');
 const boardEl = document.getElementById('board');
 
 let lesson = null;
-let tab = params.get('tab') === 'assignments' ? 'assignments' : 'board';
+let challenges = null;   // { challenges: [], categories: [] } once loaded
+let tab = ['assignments', 'challenges'].includes(params.get('tab')) ? params.get('tab') : 'board';
 
 init();
 
@@ -22,8 +28,19 @@ async function init() {
     const dp = document.getElementById('diffPill');
     dp.className = 'pill ' + lesson.difficulty;
     dp.textContent = tDiff(lesson.difficulty);
+    loadChallenges();
     render();
   } catch (e) { boardEl.innerHTML = errBox(e.message); }
+}
+
+/** Challenges load in the background so the board paints immediately. */
+async function loadChallenges() {
+  try {
+    challenges = await API.get('/api/challenges/lesson/' + encodeURIComponent(LESSON_ID));
+  } catch (e) {
+    challenges = { challenges: [], categories: [], error: e.message };
+  }
+  render();
 }
 
 function errBox(msg) {
@@ -40,12 +57,90 @@ function setTab(which) {
   render();
 }
 
+/** One row of the board menu. `href` null = not clickable. */
+function menuItem({ emoji, title, sub, state, cls, href, onclick }) {
+  const action = href ? `onclick="location.href='${href}'"` : onclick ? `onclick="${onclick}"` : 'aria-disabled="true"';
+  return `
+    <button class="board-item ${cls || ''}" ${action}>
+      <span class="bi-emoji">${emoji}</span>
+      <span class="bi-text"><span class="bi-title">${title}</span><br><span class="bi-sub">${sub}</span></span>
+      ${state || ''}
+    </button>`;
+}
+
+/** 📖 Storyboard — its own activity now. */
+function storyItem(act) {
+  const href = `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=story`;
+  if (!act.hasStory) {
+    return menuItem({
+      emoji: '📖', title: t('board.storyboard'), sub: t('board.storyboardNone'),
+      state: `<span class="bi-state">—</span>`, cls: 'locked',
+    });
+  }
+  if (act.storyLocked) {
+    return menuItem({
+      emoji: '📖', title: t('board.storyboard'), sub: t('board.storyboardLocked'),
+      state: `<span class="bi-state">🔒</span>`, cls: 'locked',
+    });
+  }
+  return menuItem({
+    emoji: '📖', title: t('board.storyboard'),
+    sub: act.storyDone ? t('board.storyboardDone') : t('board.storyboardSub'),
+    state: act.storyDone ? `<span class="bi-state done">✓</span>` : `<span class="bi-state go">${t('board.play')}</span>`,
+    href,
+  });
+}
+
+/** ❓ Pre-test — its own activity now. */
+function preItem(act) {
+  const href = `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre`;
+  if (!act.hasPre) {
+    return menuItem({
+      emoji: '❓', title: t('board.preTest'), sub: t('board.preTestNone'),
+      state: `<span class="bi-state">—</span>`, cls: 'locked',
+    });
+  }
+  if (act.preLocked) {
+    return menuItem({
+      emoji: '❓', title: t('board.preTest'), sub: t('board.preTestLocked'),
+      state: `<span class="bi-state">🔒</span>`, cls: 'locked',
+    });
+  }
+  return menuItem({
+    emoji: '❓', title: t('board.preTest'),
+    sub: lesson.preDone ? t('board.replay') : t('board.preTestSub'),
+    state: lesson.preDone
+      ? `<span class="bi-state done">${t('board.preDone', { score: lesson.preBestScore })}</span>`
+      : `<span class="bi-state go">${t('board.play')}</span>`,
+    href,
+  });
+}
+
+/** 🧩 Challenges — sits directly under Assignments. */
+function challengesItem() {
+  const list = (challenges && challenges.challenges) || [];
+  const todo = list.filter((c) => c.status === 'todo').length;
+  const sub = !challenges ? t('common.loading')
+    : !list.length ? t('ch.none')
+      : todo ? t('ch.meta', { q: list.length, s: list.length === 1 ? '' : 's', p: list.reduce((n, c) => n + c.maxPoints, 0) })
+        : t('board.challengesSub');
+  return menuItem({
+    emoji: '🧩', title: t('board.challenges'), sub,
+    state: todo ? `<span class="bi-state go">${todo}</span>` : list.length ? `<span class="bi-state done">✓</span>` : '',
+    onclick: "setTab('challenges')",
+  });
+}
+
 function render() {
   const pt = lesson.postTest || {};
+  const act = lesson.activities || { flow: 'story-first', hasStory: true, hasPre: true };
+  const tabBtn = (key, label) =>
+    `<button role="tab" aria-selected="${tab === key}" class="${tab === key ? 'on' : ''}" onclick="setTab('${key}')">${label}</button>`;
   const tabs = `
     <div class="board-tabs" role="tablist">
-      <button role="tab" aria-selected="${tab === 'board'}" class="${tab === 'board' ? 'on' : ''}" onclick="setTab('board')">${t('board.tabBoard')}</button>
-      <button role="tab" aria-selected="${tab === 'assignments'}" class="${tab === 'assignments' ? 'on' : ''}" onclick="setTab('assignments')">${t('board.tabAssignments')}</button>
+      ${tabBtn('board', t('board.tabBoard'))}
+      ${tabBtn('assignments', t('board.tabAssignments'))}
+      ${tabBtn('challenges', t('board.tabChallenges'))}
     </div>`;
 
   const hero = `
@@ -59,14 +154,11 @@ function render() {
 
   let body = '';
   if (tab === 'board') {
-    // 1) Start the level (story + video + pre-test)
-    const preState = lesson.preDone
-      ? `<span class="bi-state done">${t('board.preDone', { score: lesson.preBestScore })}</span>`
-      : `<span class="bi-state go">${t('board.play')}</span>`;
-    const preSub = lesson.preDone ? t('board.replay') : t('board.startLevelSub');
+    // 1 & 2) Storyboard + pre-test, in the order the teacher picked.
+    const first = act.flow === 'test-first' ? preItem(act) : storyItem(act);
+    const second = act.flow === 'test-first' ? storyItem(act) : preItem(act);
 
-    // 2) Assignments
-    // 3) Post-test — one attempt only; not re-enterable once submitted.
+    // 4) Post-test — one attempt only; not re-enterable once submitted.
     const ptOpen = pt.open && pt.questionCount > 0;
     const ptTaken = !!pt.done; // already submitted (graded or awaiting grading)
     let ptSub, ptState, ptCls = '', ptClickable = false;
@@ -83,28 +175,88 @@ function render() {
     }
 
     body = `
+      <div class="flow-note">🔀 ${act.flow === 'test-first' ? t('board.flowTestFirst') : t('board.flowStoryFirst')}</div>
       <div class="board-menu">
-        <button class="board-item" onclick="location.href='/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre'">
-          <span class="bi-emoji">📖</span>
-          <span class="bi-text"><span class="bi-title">${t('board.startLevel')}</span><br><span class="bi-sub">${preSub}</span></span>
-          ${preState}
-        </button>
-
-        <button class="board-item" onclick="setTab('assignments')">
-          <span class="bi-emoji">📒</span>
-          <span class="bi-text"><span class="bi-title">${t('board.assignments')}</span><br><span class="bi-sub">${t('board.assignmentsSub')}</span></span>
-        </button>
-
-        <button class="board-item ${ptCls}" ${ptClickable ? `onclick="location.href='/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post'"` : 'aria-disabled="true"'}>
-          <span class="bi-emoji">🧾</span>
-          <span class="bi-text"><span class="bi-title">${t('board.postTest')}</span><br><span class="bi-sub">${ptSub}</span></span>
-          ${ptState}
-        </button>
+        ${first}
+        ${second}
+        ${menuItem({
+          emoji: '📒', title: t('board.assignments'), sub: t('board.assignmentsSub'),
+          onclick: "setTab('assignments')",
+        })}
+        ${challengesItem()}
+        ${menuItem({
+          emoji: '🧾', title: t('board.postTest'), sub: ptSub, state: ptState, cls: ptCls,
+          href: ptClickable ? `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post` : null,
+        })}
       </div>`;
-  } else {
+  } else if (tab === 'assignments') {
     body = `<div id="feedHost"></div>`;
+  } else {
+    body = renderChallenges();
   }
 
   boardEl.innerHTML = hero + tabs + body;
-  if (tab === 'assignments') Feed.mount(document.getElementById('feedHost'), LESSON_ID, { teacher: false, title: lesson.title, icon: lesson.icon });
+  if (tab === 'assignments') {
+    Feed.mount(document.getElementById('feedHost'), LESSON_ID, { teacher: false, title: lesson.title, icon: lesson.icon });
+  }
+}
+
+/* ----------------------------- challenges tab ---------------------------- */
+
+function renderChallenges() {
+  if (!challenges) return `<p class="center muted">${t('common.loading')}</p>`;
+  const list = challenges.challenges || [];
+  if (!list.length) {
+    return `<div class="card center stack" style="padding:26px">
+      <div>${renderRuby('thinking', { size: 130 })}</div>
+      <h3>${t('ch.title')}</h3>
+      <p class="muted">${t('ch.none')}</p>
+    </div>`;
+  }
+
+  // Group by the teacher's categories, keeping their order; anything without a
+  // category falls into a final "other" group.
+  const cats = (challenges.categories || []).slice();
+  const groups = cats.map((c) => ({ key: c.id, label: `${c.icon || '📂'} ${c.name}`, items: [] }));
+  const other = { key: null, label: t('ch.uncategorized'), items: [] };
+  list.forEach((c) => {
+    const g = groups.find((x) => x.key === c.categoryId);
+    (g || other).items.push(c);
+  });
+  if (other.items.length) groups.push(other);
+
+  return `<div class="ch-groups">${groups.filter((g) => g.items.length).map(challengeGroup).join('')}</div>`;
+}
+
+function challengeGroup(g) {
+  return `
+    <section class="ch-group">
+      <h3 class="ch-group-title">${escapeHtml(g.label)}</h3>
+      <div class="ch-list">${g.items.map(challengeCard).join('')}</div>
+    </section>`;
+}
+
+function challengeCard(c) {
+  const status = c.status === 'graded'
+    ? `<span class="ch-status done">${t('ch.statusGraded', { e: c.earned, m: c.maxPoints })}</span>`
+    : c.status === 'submitted'
+      ? `<span class="ch-status wait">${t('ch.statusSubmitted')}</span>`
+      : `<span class="ch-status todo">${t('ch.statusTodo')}</span>`;
+  const due = c.dueAt
+    ? `<span class="ch-due ${new Date(c.dueAt) < new Date() ? 'late' : ''}">${
+        new Date(c.dueAt) < new Date() ? t('ch.overdue', { time: fmtWhen(c.dueAt) }) : t('ch.due', { time: fmtWhen(c.dueAt) })
+      }</span>`
+    : '';
+  const cta = c.status === 'todo' ? t('ch.start') : c.status === 'graded' ? t('ch.view') : t('ch.continue');
+  return `
+    <button class="ch-card" onclick="location.href='/challenge.html?id=${encodeURIComponent(c.id)}'">
+      <span class="ch-icon">${escapeHtml(c.icon || '🧩')}</span>
+      <span class="ch-body">
+        <span class="ch-name">${escapeHtml(c.title)}</span>
+        ${c.description ? `<span class="ch-desc">${escapeHtml(c.description)}</span>` : ''}
+        <span class="ch-meta">${t('ch.meta', { q: c.questionCount, s: c.questionCount === 1 ? '' : 's', p: c.maxPoints })} ${due}</span>
+        ${status}
+      </span>
+      <span class="ch-go">${cta}</span>
+    </button>`;
 }

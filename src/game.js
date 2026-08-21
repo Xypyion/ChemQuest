@@ -41,6 +41,61 @@ function levelDone(lesson, progressEntry) {
   return !!p.passed;
 }
 
+/* ----------------------- storyboard / pre-test flow ----------------------- */
+
+/**
+ * A level is made of two separate activities: the STORYBOARD and the PRE-TEST.
+ * The teacher decides which one the student meets first:
+ *   'story-first' (default) — read the story, then take the pre-test.
+ *   'test-first'            — take the pre-test cold, then read the story.
+ * The second activity stays locked until the first one is done, so the order
+ * the teacher picked is actually respected (server-side, not just in the UI).
+ */
+const FLOWS = ['story-first', 'test-first'];
+
+function lessonFlow(lesson) {
+  const f = lesson && lesson.flow;
+  return FLOWS.includes(f) ? f : 'story-first';
+}
+
+function hasStory(lesson) {
+  return !!(lesson && (lesson.storyboard || []).length);
+}
+
+/** Does this level have a pre-test built (any difficulty)? */
+function hasPreTest(lesson) {
+  const q = (lesson && lesson.quizzes) || {};
+  return !!((q.easy || []).length || (q.medium || []).length || (q.hard || []).length);
+}
+
+/**
+ * Work out which of the two activities a student may open right now.
+ * `progressEntry` is user.progress[lesson.id] (may be undefined).
+ */
+function activityState(lesson, progressEntry) {
+  const p = progressEntry || {};
+  const flow = lessonFlow(lesson);
+  const story = hasStory(lesson);
+  const pre = hasPreTest(lesson);
+  const storyDone = !!p.storyDone;
+  const preAttempted = !!(p.attempts || p.awaitingGrading);
+
+  // Only gate when BOTH activities exist — otherwise there is no order to keep.
+  // An activity the student already finished never locks again (that would
+  // punish them if the teacher flips the order half-way through a class).
+  const gated = story && pre;
+  return {
+    flow,
+    hasStory: story,
+    hasPre: pre,
+    storyDone,
+    preAttempted,
+    prePassed: !!p.passed,
+    storyLocked: gated && flow === 'test-first' && !preAttempted && !storyDone,
+    preLocked: gated && flow === 'story-first' && !storyDone && !preAttempted,
+  };
+}
+
 /** Teacher access gate: is this level's gate currently open? (separate from progression) */
 function gateOpen(lesson) {
   const g = (lesson && lesson.gate) || { mode: 'auto' };
@@ -65,6 +120,7 @@ function recalcPoints(user) {
 }
 
 module.exports = {
+  FLOWS,
   DIFFICULTY_MULTIPLIER,
   MAX_LESSON_POINTS,
   PASS_RATIO,
@@ -72,6 +128,10 @@ module.exports = {
   computeScore,
   isPass,
   hasPostTest,
+  hasStory,
+  hasPreTest,
+  lessonFlow,
+  activityState,
   levelDone,
   gateOpen,
   recalcPoints,

@@ -16,10 +16,17 @@
   score), or **locked** (silhouette + 🔒). Scheduled levels show their open time.
 
 ### Level board (hub)
-Tapping a level opens a game-themed board with tabs:
-1. **Start the Level** — storyboard (dialogue + images + inline video) → pre-test.
-2. **Assignments** — the class feed for that level.
-3. **Post-test** — locked until the teacher opens it.
+Tapping a level opens a game-themed board with tabs **🏠 Board · 📒 Assignments ·
+🧩 Challenges**. The board menu lists every activity of the level:
+1. **Storyboard** — dialogue + images + inline video, on its own.
+2. **Pre-test** — the questions, on their own.
+3. **Assignments** — the class feed for that level.
+4. **Challenges** — the challenges the teacher assigned to this student.
+5. **Post-test** — locked until the teacher opens it.
+
+The storyboard and the pre-test swap places according to the order the teacher
+chose for the level; whichever comes second stays locked (🔒) until the first is
+finished.
 
 ### Lessons & quizzes
 - **Storyboard** narrated by Ruby with moods/expressions, optional images, and a YouTube
@@ -38,6 +45,17 @@ Tapping a level opens a game-themed board with tabs:
 - **Private question to the teacher** ("นักเรียนสงสัยอะไรมั้ย") appears **only on the
   teacher's assignment post** and is visible **only to the teacher**.
 
+### Challenges 🧩
+- Grouped under the teacher's categories, each card showing its points, due date
+  and state (not started / handed in / marked).
+- Questions can be **multiple choice**, **choose-many**, **short answer**,
+  **paragraph**, **fill in the table**, or a **simulation** — an interactive
+  embed the student plays with, answering the questions printed underneath it.
+- Any question may carry an **image**, and the whole challenge may be timed.
+- Answers the machine can mark are scored the moment the work is handed in; the
+  rest show as "waiting for your teacher" until they are marked, and the teacher
+  can attach a written comment to the score.
+
 ### Rewards
 - **Certificates** collected in a personal inventory.
 - **Leaderboard** with a top-3 podium; highlights the highest and lowest scorers.
@@ -46,6 +64,10 @@ Tapping a level opens a game-themed board with tabs:
 
 ### Level builder
 - Title, emoji icon, terrain/biome, description.
+- **Order of activities:** choose whether students meet the **storyboard first**
+  (then the pre-test) or the **pre-test first** (then the storyboard) — useful for
+  measuring what the class already knows before teaching it. The second activity
+  is locked, server-side, until the first one is done.
 - **Storyboard editor:** ordered list of dialogue lines (character + mood + text + optional
   image by URL or upload) and videos, reorderable with ↑ ↓.
 - **Pre-test builder:** questions, answer choices, correct answer, explanation — a separate
@@ -64,6 +86,19 @@ Tapping a level opens a game-themed board with tabs:
 - Post the assignment for any level.
 - Review **every** student post, attachment, comment, and **private question** in one place.
 
+### Challenges 🧩
+- **Categories** the teacher defines and reuses across levels.
+- A challenge belongs to one level board and is **published** and **assigned**
+  either to the whole class or to hand-picked students.
+- **Question builder** with six types: multiple choice, choose-many, short answer
+  (with a list of accepted answers), paragraph, fill-in-the-table (any cell can be
+  a fixed label or a blank with an answer key), and **simulation** — paste the HTML
+  of an interactive model (or a URL) and add the questions that go underneath it.
+  Every question takes an image, its own points, and a private marking guide.
+- **Responses**: auto-marked answers arrive already scored; the teacher awards the
+  written parts, adds optional feedback, and can see who has not handed in.
+- Challenge scores can be imported into the **gradebook** as a column.
+
 ### Student management
 - View roster with difficulty, levels completed, certificates, and points.
 - Rename, change difficulty, adjust ranking (points), **reset password**, or delete accounts.
@@ -81,3 +116,4 @@ Tapping a level opens a game-themed board with tabs:
 | Points total | best pre-test + best post-test (per level) + teacher bonus |
 | Certificate | granted on first pre-test pass of a level |
 | Next level unlock | previous level's post-test passed **and** access gate open |
+| Challenge score | auto-marked points + teacher-awarded points, out of the challenge total (kept out of the leaderboard; import into the gradebook to use it) |

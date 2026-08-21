@@ -1,7 +1,10 @@
-// Lesson player. Two modes, chosen from the level board:
-//   ?mode=pre  (default) — storyboard (lines + inline videos) → pre-test → results
+// Lesson player. Three modes, chosen from the level board:
+//   ?mode=story          — the storyboard on its own (lines + inline videos)
+//   ?mode=pre  (default) — the pre-test on its own → results
 //   ?mode=post           — the teacher-opened post-test → results (no certificate)
-// Both honour an optional countdown timer and return to the level board.
+// The storyboard and the pre-test are separate activities: the teacher decides
+// which comes first, and the server keeps the other one locked until the first
+// is finished. Quizzes honour an optional countdown timer.
 
 guard('student');
 addClouds();
@@ -9,13 +12,15 @@ mountLangSwitch();
 
 const params = new URLSearchParams(location.search);
 const LESSON_ID = params.get('id');
-const MODE = params.get('mode') === 'post' ? 'post' : 'pre';
+const RAW_MODE = params.get('mode');
+const MODE = RAW_MODE === 'post' ? 'post' : RAW_MODE === 'story' ? 'story' : 'pre';
 const card = document.getElementById('stageCard');
 
 const BOARD_URL = '/level.html?id=' + encodeURIComponent(LESSON_ID || '');
 
 const PHASE_META = {
   story: { icon: '📖', label: () => t('lesson.phase.story') },
+  storyDone: { icon: '✅', label: () => t('lesson.phase.storyDone') },
   quiz: { icon: '❓', label: () => (MODE === 'post' ? t('lesson.phase.posttest') : t('lesson.phase.quiz')) },
   result: { icon: '🏆', label: () => t('lesson.phase.result') },
 };
@@ -49,10 +54,19 @@ async function start() {
     dp.className = 'pill ' + lesson.difficulty;
     dp.textContent = tDiff(lesson.difficulty);
 
-    phases = [];
-    if (MODE === 'pre' && (lesson.storyboard || []).length) phases.push('story');
-    if ((lesson.questions || []).length) phases.push('quiz');
-    phases.push('result');
+    const act = lesson.activities || {};
+    if (MODE === 'story') {
+      if (act.storyLocked) { card.innerHTML = errorBox(t('lesson.storyLockedMsg')); return; }
+      if (!(lesson.storyboard || []).length) { card.innerHTML = errorBox(t('lesson.noStoryYet')); return; }
+      phases = ['story', 'storyDone'];
+    } else {
+      if (MODE === 'pre' && act.preLocked) { card.innerHTML = errorBox(t('lesson.preLockedMsg')); return; }
+      if (!(lesson.questions || []).length) {
+        card.innerHTML = errorBox(MODE === 'post' ? t('board.postTestNoQ') : t('lesson.noQuestionsYet'));
+        return;
+      }
+      phases = ['quiz', 'result'];
+    }
     answers = new Array((lesson.questions || []).length).fill(null);
 
     goPhase(0);
@@ -64,6 +78,8 @@ async function start() {
 /** Map known server error codes to friendly, localized text. */
 function localizeErr(msg) {
   if (msg === 'ALREADY_SUBMITTED') return t('lesson.alreadyPost');
+  if (msg === 'PRETEST_LOCKED') return t('lesson.preLockedMsg');
+  if (msg === 'STORY_LOCKED') return t('lesson.storyLockedMsg');
   return msg;
 }
 
@@ -92,6 +108,7 @@ async function goPhase(idx) {
   const key = phases[idx];
   if (key !== 'quiz') stopQuizTimer();
   if (key === 'story') { storyIndex = Math.min(storyIndex, lesson.storyboard.length - 1); showStory(); }
+  else if (key === 'storyDone') await showStoryDone();
   else if (key === 'quiz') { startQuizTimer(); showQuiz(); }
   else if (key === 'result') await showResult();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -100,7 +117,40 @@ async function goPhase(idx) {
 function nextPhaseLabel() {
   const next = phases[cur + 1];
   if (next === 'quiz') return t('lesson.startQuiz');
+  if (next === 'storyDone') return t('lesson.finishStory');
   return t('lesson.finish');
+}
+
+/**
+ * End of the storyboard. Tell the server the story is done (that is what
+ * unlocks the pre-test when the teacher put the story first) and offer the
+ * next step.
+ */
+async function showStoryDone() {
+  card.innerHTML = `<div class="center"><div>${renderRuby('thinking', { size: 120 })}</div><p class="muted">${t('common.loading')}</p></div>`;
+  let act = lesson.activities || {};
+  try {
+    const r = await API.post(`/api/lessons/${encodeURIComponent(LESSON_ID)}/story-complete`);
+    if (r.activities) act = r.activities;
+  } catch (err) {
+    card.innerHTML = errorBox(localizeErr(err.message));
+    return;
+  }
+  const preHref = `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre`;
+  const canPre = act.hasPre && !act.preLocked;
+  card.innerHTML = `
+    <div class="result">
+      <div>${renderRuby('cheer', { size: 160, float: true })}</div>
+      <h2>${t('lesson.storyDoneTitle')}</h2>
+      <p class="muted">${t('lesson.storyDoneMsg')}</p>
+      <div class="result-actions">
+        ${canPre ? `<a class="btn big green" href="${preHref}">${t('lesson.goPreTest')}</a>` : ''}
+        <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
+        <button class="btn ghost" id="readAgain">${t('lesson.readAgain')}</button>
+      </div>
+    </div>`;
+  confetti(60);
+  document.getElementById('readAgain').onclick = () => { storyIndex = 0; goPhase(phases.indexOf('story')); };
 }
 
 /* ----------------------------- STORYBOARD ----------------------------- */

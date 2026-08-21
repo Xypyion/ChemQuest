@@ -25,7 +25,8 @@ All require a **student** token.
 | Method | Path | Body | Notes |
 |--------|------|------|-------|
 | GET | `/api/lessons` | — | The map: every level with `locked`, `lockReason`, `opensAt`, `completed`, `preDone`, `bestScore`, `postTest` summary. |
-| GET | `/api/lessons/:id` | — | Full level to play (pre-test). Answers stripped. `403` if the level is locked. |
+| GET | `/api/lessons/:id` | — | Full level. Answers stripped, plus `activities` (see below). The storyboard is empty when `storyLocked`; the questions are empty when `preLocked`. `403` if the level is locked. |
+| POST | `/api/lessons/:id/story-complete` | — | Marks the storyboard as read (`progress.storyDone`). This is what unlocks the pre-test under `story-first`. `403` `STORY_LOCKED` if the storyboard is not open yet. |
 | POST | `/api/lessons/:id/check` | `{ questionIndex, answer }` | Instant feedback for one pre-test question. |
 | POST | `/api/lessons/:id/complete` | `{ answers: [...] }` | Grades the pre-test, awards a certificate on first pass, recalculates points. |
 | GET | `/api/lessons/:id/posttest` | — | Post-test questions. `403` unless the level is unlocked **and** the post-test is open. |
@@ -35,6 +36,19 @@ All require a **student** token.
 
 **Lock reasons** (`lockReason`): `teacher` (force-locked), `scheduled` (with `opensAt`),
 `posttest` (previous post-test not passed), `progress` (previous level not done).
+
+**`activities`** (on `GET /api/lessons/:id`) — the storyboard and the pre-test are
+two separate activities and the teacher picks the order:
+
+```jsonc
+{ "flow": "story-first",   // story-first | test-first
+  "hasStory": true, "hasPre": true,
+  "storyDone": false, "preAttempted": false, "prePassed": false,
+  "storyLocked": false,    // true → the storyboard is not open yet
+  "preLocked": true }      // true → /check and /complete return 403 PRETEST_LOCKED
+```
+
+An activity the student already finished never locks again.
 
 ---
 
@@ -54,6 +68,9 @@ All require a **teacher** token.
 | POST | `/api/teacher/lessons/:id/move` | `{ direction: 'up'\|'down' }` | Reorder on the map. |
 | POST | `/api/teacher/lessons/:id/posttest-open` | `{ open: bool }` | Open/close the post-test for all students. |
 | POST | `/api/teacher/lessons/:id/gate` | `{ mode, openAt? }` | Set access gate. `mode` ∈ `auto`/`locked`/`scheduled`; `openAt` (ISO) required for `scheduled`. |
+
+The lesson body also takes **`flow`** (`story-first` | `test-first`) — which of
+the two level activities the student must do first.
 
 **Lesson body shape** (create/update):
 ```jsonc
@@ -105,6 +122,43 @@ Both roles. A teacher's post is flagged `isAssignment: true` and pinned to the t
 | DELETE | `/api/posts/:id` | author/teacher | — | Delete the post (also removes its files). |
 
 ---
+
+## Challenges (student) — `/api/challenges`
+
+All require a **student** token. A challenge is only reachable when it is
+published **and** assigned to the caller.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/challenges/lesson/:lessonId` | — | The challenges assigned to me on this level, plus the category list. Each card carries `status` (`todo`/`submitted`/`graded`), `earned`, `maxPoints`, `dueAt`. |
+| GET | `/api/challenges/:id` | — | The challenge to answer. Answer keys are stripped. Returns `mySubmission` when one exists and `locked: true` when it was handed in and retakes are off. |
+| POST | `/api/challenges/:id/submit` | `{ answers }` | Hand in. Auto-markable questions are scored immediately; anything else waits for the teacher. `403 ALREADY_SUBMITTED` on a second attempt without `allowRetake`. |
+| GET | `/api/challenges/:id/result` | — | My marked result (score, per-question outcome, teacher feedback). |
+
+**Answer shapes** (keyed by question id; simulation sub-questions use their own ids):
+`mcq` → number · `multi` → number[] · `short`/`written` → string ·
+`table` → `{ "<row>_<col>": "text" }`.
+
+## Challenges (teacher) — `/api/teacher/challenges`
+
+All require a **teacher** token.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/teacher/challenges` | — | Every challenge (summaries), the categories, and `pending` = responses waiting to be marked. |
+| GET | `/api/teacher/challenges/item/:id` | — | One challenge in full, **with** answer keys, for the editor. |
+| POST | `/api/teacher/challenges` | challenge | Create. `lessonId` must name a real level. |
+| PUT | `/api/teacher/challenges/:id` | challenge | Update. |
+| DELETE | `/api/teacher/challenges/:id` | — | Delete the challenge **and its responses**. |
+| POST | `/api/teacher/challenges/:id/publish` | `{ published }` | Show/hide it for students. |
+| POST | `/api/teacher/challenges/:id/assign` | `{ mode, studentIds? }` | `mode` ∈ `all`/`some`. |
+| POST | `/api/teacher/challenges/:id/move` | `{ direction }` | Reorder (`up`/`down`). |
+| POST | `/api/teacher/challenges/categories` | `{ categories:[{id?,name,icon}] }` | Bulk save (add / rename / reorder / delete). Challenges in a deleted category become uncategorised. |
+| GET | `/api/teacher/challenges/:id/responses` | — | Every response, the parts still needing marks, and who has not handed in. |
+| POST | `/api/teacher/challenges/responses/:sid/grade` | `{ scores:{qid:n}, feedback? }` | Award the manual parts and finalise the score. |
+
+`POST /api/teacher/gradebook/import` also accepts `{ challengeId }` to create a
+gradebook column filled with each student's challenge points.
 
 ## Leaderboard — `/api/leaderboard`
 
