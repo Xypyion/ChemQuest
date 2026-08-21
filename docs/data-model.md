@@ -45,10 +45,69 @@ by URL.
 One submission per `(questId, userId)`: a quest is a single attempt, because it
 pays out.
 
+## Battle
+
+One raid: who fought whom, the questions they were actually given, and what it
+cost. Written by `POST /api/battles/start` and finished by `.../answer`.
+
+```jsonc
+{
+  "id": "uuid",
+  "attackerId": "uuid", "attackerName": "…", "attackerAvatar": "🦊",
+  "defenderId": "uuid", "defenderName": "…", "defenderAvatar": "🐼",
+  "difficulty": "easy",          // easy | medium | hard
+  "stake": 5,                    // coins at risk on BOTH sides
+  "questions": [],               // the drawn set, answer keys included — grading
+                                 // must use the questions the student was shown
+  "status": "open",              // open | won | lost   (from the attacker's side)
+  "late": false,                 // answered after expiresAt = an automatic loss
+  "coinsMoved": 5,               // what actually moved, after the balance cap
+  "earned": 1, "maxPoints": 1,
+  "results": [], "answers": {},  // same shapes as a challenge submission
+  "startedAt": "iso",
+  "expiresAt": "iso",            // null when that difficulty has no timer
+  "resolvedAt": "iso"
+}
+```
+
+A student may hold only **one** `open` battle: re-opening the page resumes it.
+
+## Battle question bank
+
+One document per question, so a bank holding images stays a small diff for the
+Postgres backend. Same shape as a challenge question, plus:
+
+```jsonc
+{ "difficulty": "easy", "order": 0, … }
+```
+
+Only `mcq | multi | short | table` with a real answer key survive
+`battles.normalizeBankQuestion()` — coins move the moment a student answers, so
+nothing may wait for marking.
+
+## Battle settings
+
+A single document, `id: "settings"`, in `battleSettings`:
+
+```jsonc
+{
+  "id": "settings",
+  "enabled": true,
+  "stakes":     { "easy": 5,  "medium": 15, "hard": 30 },
+  "timeLimits": { "easy": 60, "medium": 60, "hard": 90 },   // seconds, 0 = none
+  "questionsPerBattle": 1,       // the student must get every one right to win
+  "cooldownMinutes": 10,         // before the same opponent can be raided again
+  "dailyLimit": 10,              // battles started per student per day, 0 = unlimited
+  "updatedAt": "iso"
+}
+```
+
 ## Coins on the user
 
 `user.coins` (spendable balance) and `user.coinsEarned` (lifetime total) are
-added lazily, like `user.grades`. They are deliberately **outside**
+added lazily, like `user.grades`. Quests and battles both credit them; a battle
+loss is the only path that debits `coins` without a teacher doing it by hand,
+and it never takes a balance below zero (`battles.transferCoins`). They are deliberately **outside**
 `game.recalcPoints()`, which rebuilds `points` from quiz scores and would wipe
 anything folded into it. `publicUser()` strips only `passwordHash`, so both
 fields reach the client with no change to `auth.js`.

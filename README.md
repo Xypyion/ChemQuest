@@ -47,6 +47,9 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   teacher marks by hand, which come back with their comments.
 - 🧾 **Post-test** — a separate test the teacher opens when the class is ready; earns
   points (no certificate).
+- 🤺 **Coin Battles** — stake your coins against a classmate and answer your teacher's
+  questions. Win and you take their coins; lose and you pay up. Easy, medium and hard
+  each put a different amount on the line.
 - 🎖️ **Certificates** — earn one for every level you pass; collect them in your inventory.
 - 🏆 **Leaderboard** — see who has the highest (and lowest) points, with a podium for the top 3.
 
@@ -77,6 +80,9 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   beside anything they got wrong. One click exports the whole class set to **CSV**.
 - 📒 **Assignment board** — post the assignment for any level, and see **every student post,
   file, comment, and private question** in one place.
+- 🤺 **Coin Battles** — set the stake, timer, cooldown and daily limit, then fill three
+  question banks (easy / medium / hard). Students raid each other for coins by answering
+  them, and the battle log shows every fight.
 - 🔑 **Reset a student's password** — set a fresh password for any student from the Students tab.
 - 🔀 **Reorder levels** on the map.
 - 👩‍🎓 **Manage students** — rename, change difficulty, update ranking (points), or delete accounts.

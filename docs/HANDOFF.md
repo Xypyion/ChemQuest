@@ -110,6 +110,14 @@ Implemented features:
   `recalcPoints`. There is no shop yet — the balance and its history are the
   reward. Teacher console gets a read-only Responses view and a manual coin
   adjustment (the only debit path).
+- **Coin Battles**: a global `battle.html` arena where a student stakes coins,
+  answers questions from the teacher's bank for the difficulty they picked, and
+  either takes that many coins off a classmate or hands the same number over.
+  Instant raid — the opponent is passive and sees it in their battle log. The
+  question set is **drawn and stored on the battle document** so it cannot be
+  re-rolled, the win rule is "every drawn question right", and coins can never
+  take a balance below zero. Guard rails: one open battle at a time, a cooldown
+  per opponent, a daily limit, and the arena has an off switch.
 - **Leaderboard** (podium + full ranking), **certificate inventory**.
 - **Teacher console**: lesson CRUD + storyboard builder, per-difficulty quiz
   builder (MCQ + written, per-question points), post-test open/close, per-level
@@ -252,7 +260,7 @@ Browser (HTML/CSS/JS)                Express (server.js)                 data/db
 
 Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 `gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`,
-`quests`, `questSubmissions`**. Full field-by-field detail is in
+`quests`, `questSubmissions`, `battles`, `battleQuestions`, `battleSettings`**. Full field-by-field detail is in
 [`data-model.md`](data-model.md); the essentials:
 
 - **user**: `{ id, role:'student'|'teacher', name, email(lowercased),
@@ -315,6 +323,16 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   `round(reward x earned / maxPoints)`, paid once (one submission per
   quest+student) and recorded in `coinsAwarded`. **The open/close window is
   enforced on the server**, unlike a challenge's advisory `dueAt`.
+- **Coin battles**: `battles.canAttack()` is the single gate — it covers the off
+  switch, self-attack, an unfinished battle, the daily limit, the per-opponent
+  cooldown, "you cannot stake what you do not hold" and "they have nothing to
+  take". The client greys out the same cases purely to save a round trip; the
+  server is authoritative. The drawn questions are written onto the battle
+  document, so grading uses the set the student actually saw and abandoning a
+  hard draw is a **loss on the next answer**, not a free re-roll.
+  `battles.transferCoins()` caps the move at what the loser actually holds, so a
+  balance can never go negative; only the winner's `coinsEarned` moves, matching
+  the manual adjustment path.
 - **Coins are not points.** `game.recalcPoints()` rebuilds `user.points` from
   quiz scores on every award path, so anything added to `points` is wiped.
   Coins therefore live in their own fields and never touch that function; the
@@ -421,6 +439,16 @@ here.
   edit, restart.
 - **Live YouTube iframes** hang some headless screenshot tools; verify the video
   step via DOM inspection instead of screenshots.
+- **Coin transfers are not atomic across serverless instances.** Two battles
+  resolving against the same defender on two Vercel instances can each read the
+  balance before either flushes, so the pair can over-deduct in total (each is
+  still capped at what that instance saw, so nobody goes negative). A single
+  `npm start` process is unaffected because a whole handler runs before the
+  flush. Fixing it properly means a conditional UPDATE in Postgres rather than
+  the whole-document diff `db.js` uses today.
+- **Deleting a student leaves their battle history behind**, exactly as it
+  leaves quest and challenge submissions behind — the teacher's battle log can
+  therefore name an account that no longer exists.
 - **Simulation HTML is teacher-authored code.** It is rendered with
   `sandbox="allow-scripts allow-popups"` and **no** `allow-same-origin`, so it
   runs in an opaque origin and cannot touch the session, the token or the page.

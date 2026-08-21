@@ -242,6 +242,38 @@ Mounted **before** the generic `/api/teacher` router, or these paths are swallow
 `dropped` counts questions the server threw away because they had no usable
 answer key; the console surfaces it as a warning toast.
 
+## Coin Battles (student) — `/api/battles`
+
+All require a **student** token.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/battles/settings` | — | Stakes, time limits, questions per battle, cooldown, daily limit, bank sizes, my balance and `battlesLeft`. |
+| GET | `/api/battles/opponents` | — | Classmates: `{ id, name, avatar, coins, attackable, reason, readyAt }`. **No email addresses** — this list goes to every student. |
+| GET | `/api/battles/history` | — | My last 30 battles, attacking and defending, with `outcome` already flipped to my side. |
+| GET | `/api/battles/open` | — | The battle I walked away from, so the page can resume it. |
+| POST | `/api/battles/start` | `{ opponentId, difficulty }` | Draws the questions and puts the stake at risk. Returns them **with answer keys stripped**. |
+| POST | `/api/battles/:id/answer` | `{ answers }` | Grades, moves the coins, and returns the outcome plus a review with the correct answers. |
+
+Answer shapes are the challenge/quest shapes — see
+[Challenges (student)](#challenges-student--apichallenges).
+
+`POST /start` refuses with a **reason code** the client localises, not a
+sentence: `disabled`, `battleInProgress`, `self`, `notAStudent`, `dailyLimit`,
+`cooldown` (with `readyAt`), `poor`, `targetBroke`, `noQuestions`.
+
+## Coin Battles (teacher) — `/api/teacher/battles`
+
+All require a **teacher** token.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/teacher/battles` | — | Settings, per-difficulty bank sizes, and the 40 most recent battles. |
+| GET | `/api/teacher/battles/bank/:difficulty` | — | That bank, answer keys included. |
+| POST | `/api/teacher/battles/bank/:difficulty` | `{ questions }` | Replaces the bank. Question ids are preserved by the editor, so re-saving is a small diff. Returns `dropped` = how many were thrown away for having no answer key. |
+| POST | `/api/teacher/battles/settings` | settings | Stakes, time limits, questions per battle, cooldown, daily limit, on/off. Any field left out keeps its current value. |
+| GET | `/api/teacher/battles/log` | — | Every battle, newest first, both names, outcome and coins moved. |
+
 ## Leaderboard — `/api/leaderboard`
 
 | Method | Path | Role | Notes |
