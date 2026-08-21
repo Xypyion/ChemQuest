@@ -56,9 +56,30 @@ finished.
   rest show as "waiting for your teacher" until they are marked, and the teacher
   can attach a written comment to the score.
 
+### Coin Battles 🤺
+- Stake coins against a classmate and answer questions your teacher wrote.
+  Get them right and you **take** the stake off them; get them wrong and you
+  **pay** the same number over.
+- Three difficulties, each with its own stake and timer — hard is worth more.
+- The opponent list shows everyone's balance, and greys out anyone you are on
+  cooldown with, anyone with an empty purse, and anything you cannot afford.
+- Nobody can be pushed below zero: the win is capped at what the loser holds.
+- A battle log records both sides — the raids you made and the ones made on you.
+
 ### Rewards
 - **Certificates** collected in a personal inventory.
 - **Leaderboard** with a top-3 podium; highlights the highest and lowest scorers.
+
+### ⚔️ Daily Quests
+
+- A page of its own (`quests.html`), reached from the topbar on every student page.
+- Short **side questions the teacher assigns**, each worth a **coin reward**.
+- Marked instantly, so the coins arrive the moment the quest is handed in.
+  Partial credit pays the same share of the reward.
+- **One try per quest**, and the teacher decides when it opens and closes.
+- A **wallet** shows the balance and the recent rewards that built it.
+- There is **no shop yet** — the balance is the reward. Teachers can adjust a
+  balance by hand if they need to.
 
 ## Teacher console
 
@@ -105,6 +126,17 @@ finished.
   with a UTF-8 byte-order mark so Excel opens Thai answers correctly.
 - Challenge scores can be imported into the **gradebook** as a column.
 
+### Coin Battles 🤺
+- **Battle rules**: coins at stake and a time limit for each difficulty, how many
+  questions a battle draws, the cooldown before the same student can be raided
+  again, a daily cap per student, and a switch that closes the arena entirely.
+- **Three question banks** — easy, medium, hard. Each battle draws at random from
+  the bank for the difficulty the student picked, so no two battles are alike.
+  Auto-marked types only (choice · choose-many · short answer · fill-in-the-table);
+  anything without an answer key is refused, and the teacher is told how many.
+- **Battle log**: who fought whom, at what difficulty, who won, and how many
+  coins changed hands.
+
 ### Student management
 - View roster with difficulty, levels completed, certificates, and points.
 - Rename, change difficulty, adjust ranking (points), **reset password**, or delete accounts.
@@ -123,3 +155,4 @@ finished.
 | Certificate | granted on first pre-test pass of a level |
 | Next level unlock | previous level's post-test passed **and** access gate open |
 | Challenge score | auto-marked points + teacher-awarded points, out of the challenge total (kept out of the leaderboard; import into the gradebook to use it) |
+| Quest coins | `round(reward × earned ÷ quest total)`, paid once on submit (kept out of the leaderboard — coins are meant to be spent) |

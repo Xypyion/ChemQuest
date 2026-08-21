@@ -26,14 +26,24 @@ const API = {
     } catch (e) {
       throw new Error('Cannot reach the server. Is it running?');
     }
-    const json = await res.json().catch(() => ({}));
+    // Not every failure comes back as JSON — a host can reject an oversized
+    // upload or time the function out before the app is reached, and those
+    // reply in plain text or HTML. Fall back to a message that says what
+    // actually happened instead of a blank "something went wrong".
+    const json = await res.json().catch(() => null);
     if (res.status === 401 && !path.endsWith('/login') && !path.endsWith('/signup')) {
       API.clear();
       location.href = '/';
-      throw new Error(json.error || 'Session expired');
+      throw new Error((json && json.error) || 'Session expired');
     }
-    if (!res.ok) throw new Error(json.error || 'Something went wrong.');
-    return json;
+    if (!res.ok) {
+      if (json && json.error) throw new Error(json.error);
+      if (res.status === 413) throw new Error('That upload is too large. Try smaller images, or fewer of them in one save.');
+      if (res.status === 504 || res.status === 408) throw new Error('The server took too long to respond. Your change may not have been saved.');
+      if (res.status >= 500) throw new Error(`The server could not complete that (error ${res.status}). Your change was not saved.`);
+      throw new Error(`Request failed (${res.status}).`);
+    }
+    return json || {};
   },
   get(p) { return API.call('GET', p); },
   post(p, b) { return API.call('POST', p, b); },
@@ -118,3 +128,24 @@ function youtubeEmbed(url) {
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
 
+/* ---------- Daily-quest coin balance in the topbar ---------- */
+
+/** Write a balance into the #navCoins pill, if the page has one. */
+function setNavCoins(n) {
+  const el = document.getElementById('navCoins');
+  if (el) el.textContent = n || 0;
+}
+
+/**
+ * Fetch the balance and show it. Pages that render from the cached
+ * localStorage user must not trust it for a number that changes as the
+ * student plays, so this asks the server.
+ */
+async function refreshNavCoins() {
+  if (!document.getElementById('navCoins')) return;
+  try {
+    const me = await API.get('/api/auth/me');
+    API.updateUser(me.user);
+    setNavCoins(me.user.coins);
+  } catch { /* the pill just stays at 0 — never block a page over it */ }
+}

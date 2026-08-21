@@ -234,6 +234,10 @@ const LESSONS = [
   },
 ];
 
+/** Stable ids for the seeded rows — see the note in seedIfEmpty(). */
+const SEED_TEACHER_ID = '00000000-0000-4000-8000-00000000c0de';
+const seedLessonId = (i) => `00000000-0000-4000-8000-0000000001${String(i).padStart(2, '0')}`;
+
 function seedIfEmpty() {
   const hasTeacher = db.find('users', (u) => u.role === 'teacher');
   if (hasTeacher) return false;
@@ -241,7 +245,10 @@ function seedIfEmpty() {
   console.log('[seed] First run detected — creating teacher account and sample levels…');
 
   db.insert('users', {
-    id: crypto.randomUUID(),
+    // Deterministic ids: on a serverless host two cold instances can seed an
+    // empty database at the same time. Fixed ids make the writes collide on the
+    // same rows instead of creating duplicate teachers and duplicate levels.
+    id: SEED_TEACHER_ID,
     role: 'teacher',
     name: TEACHER.name,
     email: TEACHER.email,
@@ -251,7 +258,7 @@ function seedIfEmpty() {
 
   LESSONS.forEach((lesson, i) => {
     db.insert('lessons', {
-      id: crypto.randomUUID(),
+      id: seedLessonId(i),
       order: i + 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -275,9 +282,20 @@ function seedIfEmpty() {
 }
 
 if (require.main === module) {
-  const created = seedIfEmpty();
-  if (!created) console.log('[seed] A teacher already exists — nothing to do.');
-  process.exit(0);
+  // Load first (Postgres cannot be read synchronously) and flush before exiting,
+  // or the seed would be lost.
+  db.ready()
+    .then(async () => {
+      const created = seedIfEmpty();
+      if (!created) console.log('[seed] A teacher already exists — nothing to do.');
+      await db.flush();
+      await db.close();
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error('[seed] Failed:', err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = { seedIfEmpty, LESSONS, TEACHER };

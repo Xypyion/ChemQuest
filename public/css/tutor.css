@@ -1,0 +1,74 @@
+/* =========================================================================
+   Ruby the AI tutor — the "Ask Ruby" button on a challenge question, and the
+   floating help panel it opens. Uses the existing theme tokens only.
+   ========================================================================= */
+
+.ch-q-head-right { display: flex; align-items: center; gap: 8px; }
+
+.ch-tutor-btn {
+  border: none; background: #f3efff; color: var(--accent); font-weight: 800;
+  font-size: .78rem; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  white-space: nowrap;
+}
+.ch-tutor-btn:hover { background: #e9e0ff; }
+
+.tutor-widget { position: relative; }
+
+.tutor-panel {
+  position: fixed; right: 18px; bottom: 18px; z-index: 80;
+  width: min(360px, calc(100vw - 28px)); max-height: min(560px, calc(100vh - 40px));
+  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-soft);
+  border: 3px solid #fff; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.tutor-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #f6f1ff; border-bottom: 2px solid #ece4ff;
+}
+.tutor-title { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--ink); }
+.tutor-title svg { display: block; }
+.tutor-close {
+  border: none; background: transparent; color: var(--ink-soft); font-size: 1rem;
+  cursor: pointer; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+}
+.tutor-close:hover { background: #eee9fb; }
+
+.tutor-context {
+  padding: 8px 14px; font-size: .8rem; color: var(--ink-soft); font-weight: 600;
+  border-bottom: 2px solid #f4f1fb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.tutor-log {
+  flex: 1; min-height: 120px; max-height: 320px; overflow-y: auto;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.tutor-msg {
+  max-width: 86%; padding: 9px 12px; border-radius: 14px; font-size: .92rem;
+  line-height: 1.4; white-space: pre-wrap; word-break: break-word;
+}
+.tutor-msg.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.tutor-msg.ruby { align-self: flex-start; background: #f3efff; color: var(--ink); border-bottom-left-radius: 4px; }
+.tutor-msg.ruby.note { background: #fff4e0; color: #8a5a06; font-weight: 600; }
+.tutor-msg.typing { opacity: .7; font-style: italic; }
+
+.tutor-blocked {
+  margin: 0 14px 10px; padding: 8px 10px; border-radius: 12px; background: #fff0f2;
+  color: #c92d47; font-size: .82rem; font-weight: 700;
+}
+
+.tutor-bar { display: flex; gap: 8px; padding: 10px 14px; border-top: 2px solid #f4f1fb; }
+.tutor-input {
+  flex: 1; resize: none; font-family: var(--font); font-size: .92rem; color: var(--ink);
+  border: 2px solid #e5e2f2; border-radius: 12px; padding: 8px 10px; max-height: 90px;
+}
+.tutor-input:focus { outline: none; border-color: var(--secondary); }
+.tutor-send { padding: 8px 14px; font-size: .86rem; }
+
+.tutor-foot { padding: 0 14px 10px; }
+.tutor-quota { font-size: .74rem; color: var(--ink-soft); font-weight: 700; }
+
+.tutor-unavailable { padding: 16px 14px; font-size: .88rem; color: var(--ink-soft); }
+
+@media (max-width: 480px) {
+  .tutor-panel { right: 10px; left: 10px; bottom: 10px; width: auto; }
+}

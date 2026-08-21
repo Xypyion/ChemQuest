@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node src/seed.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "migrate": "node scripts/migrate-to-postgres.js"
   },
   "keywords": [
     "education",
@@ -18,8 +19,10 @@
   "author": "Suankularb Wittayalai Nonthaburi School",
   "license": "MIT",
   "dependencies": {
+    "@google/genai": "^2.18.0",
     "bcryptjs": "^2.4.3",
     "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.23.0"
   }
 }

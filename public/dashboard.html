@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
+  <link rel="stylesheet" href="/css/quests.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/map.css" />
 </head>
@@ -20,9 +21,12 @@
       ChemQuest
     </div>
     <div class="nav-actions">
+      <span class="pill coins"><b id="navCoins">0</b> <span data-i18n="nav.coins">coins</span></span>
       <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
       <span class="pill" id="navUser">Explorer</span>
       <a class="btn ghost" href="/inventory.html" data-i18n="nav.certificates">Certificates</a>
+      <a class="btn ghost" href="/quests.html" data-i18n="nav.quests">Quests</a>
+      <a class="btn ghost" href="/battle.html" data-i18n="nav.battle">Battle</a>
       <a class="btn ghost" href="/leaderboard.html" data-i18n="nav.leaderboard">Leaderboard</a>
       <span id="langHost"></span>
       <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>

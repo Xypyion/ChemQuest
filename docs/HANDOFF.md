@@ -7,6 +7,18 @@
 
 ---
 
+> ✅ **RECENTLY FIXED — READ FIRST:** every save on the Vercel deployment used to
+> return *"Something went wrong on the server."* while appearing to save after a
+> refresh. Cause: a serverless read-only filesystem vs. the `data/db.json` store.
+> **`src/db.js` now supports Postgres** (selected automatically when
+> `DATABASE_URL` is set; the file backend is unchanged for the school machine).
+>
+> ⚠️ **The live site stays broken until someone creates a Postgres database and
+> sets `DATABASE_URL` + `JWT_SECRET` in Vercel.** Steps:
+> **[KNOWN-ISSUE-vercel-persistence.md §7b](KNOWN-ISSUE-vercel-persistence.md#7-finishing-the-deployment)**.
+
+---
+
 ## 0. ⚠️ Mandatory rules (do not skip)
 
 1. **Push to GitHub every time a job is finished.** When a unit of work is done
@@ -89,6 +101,23 @@ Implemented features:
   students rate each other's works 1–5 stars per criterion; teacher rates too.
 - **Gradebook**: spreadsheet-style grid (rows = students, columns = grade items)
   with editable cells, totals, and import of pre/post-test scores.
+- **Daily Quests + coins**: a global `quests.html` page of teacher-assigned
+  side questions that pay an in-game currency. Auto-marked only (mcq /
+  choose-many / short answer / fill-in-the-table, each needing an answer key),
+  so coins land on submit; payout is `round(reward x earned / maxPoints)`. One
+  attempt per quest, and the teacher's opens/closes window is enforced by the
+  server. Coins live in `user.coins` / `user.coinsEarned`, deliberately outside
+  `recalcPoints`. There is no shop yet — the balance and its history are the
+  reward. Teacher console gets a read-only Responses view and a manual coin
+  adjustment (the only debit path).
+- **Coin Battles**: a global `battle.html` arena where a student stakes coins,
+  answers questions from the teacher's bank for the difficulty they picked, and
+  either takes that many coins off a classmate or hands the same number over.
+  Instant raid — the opponent is passive and sees it in their battle log. The
+  question set is **drawn and stored on the battle document** so it cannot be
+  re-rolled, the win rule is "every drawn question right", and coins can never
+  take a balance below zero. Guard rails: one open battle at a time, a cooldown
+  per opponent, a daily limit, and the arena has an off switch.
 - **Leaderboard** (podium + full ranking), **certificate inventory**.
 - **Teacher console**: lesson CRUD + storyboard builder, per-difficulty quiz
   builder (MCQ + written, per-question points), post-test open/close, per-level
@@ -134,12 +163,12 @@ To reset everything: stop the server, delete `data/db.json` (and optionally
 | Runtime | Node.js (CommonJS) |
 | Server | Express 4 |
 | Auth | `jsonwebtoken` (JWT) + `bcryptjs` (password hashing) |
-| Storage | Custom JSON document store → `data/db.json` (atomic writes) |
+| Storage | Custom document store → `data/db.json` (atomic writes), **or Postgres when `DATABASE_URL` is set** |
 | Uploads | Files written to `data/uploads/`, served at `/uploads` |
 | Front-end | Plain HTML + CSS + vanilla JS — **no framework, no bundler** |
 | Fonts | Google Fonts (Fredoka + **Mali** for Thai glyphs) |
 
-Only three runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`). Keep it
+Four runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`, `pg`). Keep it
 that way unless there's a strong reason — the "just `npm install` and run" story
 is a feature for a school with minimal infrastructure.
 
@@ -149,18 +178,24 @@ is a feature for a school with minimal infrastructure.
 
 ```
 chemquest/
-├── server.js                 # Express bootstrap: mounts routes, static, seed-on-first-run
-├── package.json              # scripts: start / dev / seed
+├── server.js                 # Express bootstrap: routes, static, db bootstrap; exports the app
+├── vercel.json               # serverless deployment config (routes everything to api/index.js)
+├── api/index.js              # serverless entrypoint — imports the exported Express app
+├── scripts/
+│   └── migrate-to-postgres.js  # one-off: data/db.json -> Postgres  (npm run migrate)
+├── package.json              # scripts: start / dev / seed / migrate
 ├── .gitignore                # ignores node_modules, data/db.json(.tmp), data/uploads/, .env
 ├── README.md                 # player-facing readme
 ├── data/                     # RUNTIME STATE — git-ignored, do not commit
 │   ├── db.json               # the whole database (users, lessons, posts, submissions, gradebook)
 │   └── uploads/              # assignment file attachments
 ├── src/
-│   ├── db.js                 # tiny JSON document store (all/find/insert/update/remove/save)
+│   ├── db.js                 # document store (all/find/insert/update/remove/save)
+│   │                         #   backends: data/db.json  OR  Postgres (DATABASE_URL)
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, authMiddleware, requireRole
 │   ├── game.js               # scoring, pass rule, level-completion, access gate + activity order
 │   ├── challenges.js         # challenge model: normalising, sanitising, auto-marking
+│   ├── quests.js             # daily-quest model on top of challenges.js (auto-mark only)
 │   ├── grading.js            # finalizeAttempt() — applies a graded attempt to progress (MCQ+written points)
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/
@@ -170,6 +205,7 @@ chemquest/
 │       │                          #          students, password reset, writing grading, gradebook
 │       ├── posts.routes.js        # assignment board: posts, files, comments, likes, questions, ratings
 │       ├── challenges.routes.js   # challenges: student router + teacher router (CRUD, assign, mark)
+│       ├── quests.routes.js       # daily quests: student router + teacher router, coin payouts
 │       └── leaderboard.routes.js  # ranked students
 └── public/                   # front-end (served statically; no build)
     ├── index.html            # welcome / login / signup
@@ -187,7 +223,10 @@ chemquest/
         ├── character.js      # Ruby mascot (original inline SVG) + hats/moods
         ├── props.js          # decorative SVG props for the map
         ├── welcome.js, dashboard.js, board.js, lesson.js, inventory.js, leaderboard.js
+        ├── qrender.js        # SHARED question markup + answer collection (challenge + quest)
         ├── challenge.js      # challenge player (all question types + sandboxed simulation)
+        ├── quests.js         # daily quest page: list, player and wallet
+        ├── teacher-quests.js # teacher console: the ⚔️ Daily Quests section
         ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section
         └── teacher.js        # the rest of the teacher console (single file)
 ```
@@ -220,7 +259,8 @@ Browser (HTML/CSS/JS)                Express (server.js)                 data/db
 ## 7. Data model
 
 Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
-`gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`**. Full field-by-field detail is in
+`gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`,
+`quests`, `questSubmissions`, `battles`, `battleQuestions`, `battleSettings`**. Full field-by-field detail is in
 [`data-model.md`](data-model.md); the essentials:
 
 - **user**: `{ id, role:'student'|'teacher', name, email(lowercased),
@@ -276,6 +316,27 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   has an answer key**, otherwise the teacher marks it. Paragraphs are always
   teacher-marked. Challenge points are **separate from the leaderboard** — import
   them into the gradebook if you want them to count.
+- **Daily quests**: visible only when `published` **and** assigned. Every
+  question must be auto-markable — `normalizeQuestion` defaults a missing mcq
+  `correctIndex` to 0, so `quests.rawKeyed()` rejects keyless mcqs up front
+  rather than letting choice "A" become a key nobody set. Coins =
+  `round(reward x earned / maxPoints)`, paid once (one submission per
+  quest+student) and recorded in `coinsAwarded`. **The open/close window is
+  enforced on the server**, unlike a challenge's advisory `dueAt`.
+- **Coin battles**: `battles.canAttack()` is the single gate — it covers the off
+  switch, self-attack, an unfinished battle, the daily limit, the per-opponent
+  cooldown, "you cannot stake what you do not hold" and "they have nothing to
+  take". The client greys out the same cases purely to save a round trip; the
+  server is authoritative. The drawn questions are written onto the battle
+  document, so grading uses the set the student actually saw and abandoning a
+  hard draw is a **loss on the next answer**, not a free re-roll.
+  `battles.transferCoins()` caps the move at what the loser actually holds, so a
+  balance can never go negative; only the winner's `coinsEarned` moves, matching
+  the manual adjustment path.
+- **Coins are not points.** `game.recalcPoints()` rebuilds `user.points` from
+  quiz scores on every award path, so anything added to `points` is wiped.
+  Coins therefore live in their own fields and never touch that function; the
+  leaderboard stays ranked on `points`.
 - **Post-test: one attempt only.** Once submitted, the server blocks re-open and
   re-submit (`openPostTest` returns `ALREADY_SUBMITTED`); the board shows a
   non-clickable "done"/"awaiting grading" state.
@@ -320,7 +381,9 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 - **Teacher (seeded):** `Shinozuke67@skn.ac.th` / `12345678`. Change the password
   for production. (The 🔑 reset in the console resets *student* passwords.)
 - **Env vars:** `PORT` (default 4000), `JWT_SECRET` (set a strong value in
-  production — it falls back to a dev default otherwise).
+  production — it falls back to a dev default otherwise), `DATABASE_URL`
+  (unset = JSON file store; set = Postgres — **required on serverless hosts**),
+  `JSON_LIMIT` (default `16mb`).
 - **Real student accounts currently in the DB:** Jerry, Jenny, Google,
   `sorry@skn.ac.th` (do not delete during testing).
 - **Preview launch config** for the in-editor browser lives at the workspace root:
@@ -366,11 +429,26 @@ here.
 ## 13. Gotchas & known issues
 
 - **Port 4000, not 3000** (rule #2). Changing to 3000 will `EADDRINUSE`.
+- **Question markup is shared.** `public/js/qrender.js` renders the answer
+  controls and collects the answers for **both** the challenge and quest
+  players. Its output must keep matching what `challenges.gradeQuestion`
+  expects (index for mcq, index array for multi, `{"row_col": value}` for
+  table) — change it and test both players.
 - **Editing `data/db.json` directly** while the server is running is unsafe — the
   in-memory copy will overwrite your file on the next mutation. Stop the server,
   edit, restart.
 - **Live YouTube iframes** hang some headless screenshot tools; verify the video
   step via DOM inspection instead of screenshots.
+- **Coin transfers are not atomic across serverless instances.** Two battles
+  resolving against the same defender on two Vercel instances can each read the
+  balance before either flushes, so the pair can over-deduct in total (each is
+  still capped at what that instance saw, so nobody goes negative). A single
+  `npm start` process is unaffected because a whole handler runs before the
+  flush. Fixing it properly means a conditional UPDATE in Postgres rather than
+  the whole-document diff `db.js` uses today.
+- **Deleting a student leaves their battle history behind**, exactly as it
+  leaves quest and challenge submissions behind — the teacher's battle log can
+  therefore name an account that no longer exists.
 - **Simulation HTML is teacher-authored code.** It is rendered with
   `sandbox="allow-scripts allow-popups"` and **no** `allow-same-origin`, so it
   runs in an opaque origin and cannot touch the session, the token or the page.
@@ -394,6 +472,7 @@ Other docs in this folder:
 
 | File | What |
 |------|------|
+| 🔴 [KNOWN-ISSUE-vercel-persistence.md](KNOWN-ISSUE-vercel-persistence.md) | **Open bug: saves fail on Vercel — diagnosis + fix plan** |
 | [overview.md](overview.md) | Plain-language system overview |
 | [architecture.md](architecture.md) | Deeper architecture & module notes |
 | [features.md](features.md) | Full feature catalog |

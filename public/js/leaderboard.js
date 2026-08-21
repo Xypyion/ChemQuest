@@ -4,6 +4,7 @@
 const me = guard('student');
 mountLangSwitch();
 if (me) document.getElementById('navPoints').textContent = me.points || 0;
+refreshNavCoins();
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 

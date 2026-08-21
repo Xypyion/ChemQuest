@@ -74,3 +74,37 @@ Source: <https://github.com/Xypyion/ChemQuest>
 | Thai text shows boxes | The **Mali**/**TH Sarabun** font failed to load — check internet/font availability. |
 | Uploaded image not showing | Confirm `data/uploads/` exists and is writable. |
 | Video won't embed | Use a standard YouTube link/ID; some videos disable embedding. |
+| Every save shows *"Something went wrong on the server."* (but seems to save after a refresh) | You are on a **serverless host with a read-only filesystem** (e.g. Vercel). `db.json` cannot be written. See [KNOWN-ISSUE-vercel-persistence.md](KNOWN-ISSUE-vercel-persistence.md). |
+| Saving a level with images fails with a 413 | Serverless request-body cap (~4.5 MB on Vercel) vs. the app's 16 MB limit. Same doc, §4. |
+
+## Storage backends
+
+The app picks its storage automatically from the environment:
+
+| `DATABASE_URL` | Backend | Use for |
+|----------------|---------|---------|
+| **not set** | `data/db.json` file | local dev, the school machine, any host with a real disk (Render, Railway, a VPS) |
+| **set** | Postgres, table `chemquest_docs` | Vercel and other serverless hosts |
+
+The startup banner prints which one is active (`➜ Storage: file` / `postgres`).
+
+### Deploying to a serverless host (Vercel)
+
+Serverless functions have a **read-only filesystem**, so the file backend cannot
+work there — `DATABASE_URL` is mandatory.
+
+1. Create a free Postgres database (Neon, Supabase, or Vercel Postgres).
+2. Move the existing data across, from the machine holding the real `db.json`:
+   ```bash
+   DATABASE_URL="postgresql://…" npm run migrate
+   ```
+3. In Vercel → Settings → Environment Variables, set `DATABASE_URL` **and**
+   `JWT_SECRET` for Production and Preview.
+4. Redeploy.
+
+`vercel.json` and `api/index.js` in the repo define the deployment; the app is
+served entirely by the Express function.
+
+> ⚠️ **If `DATABASE_URL` is missing on a serverless host, every save fails.**
+> The server logs a loud warning at boot when it detects this. Full background:
+> [KNOWN-ISSUE-vercel-persistence.md](KNOWN-ISSUE-vercel-persistence.md).

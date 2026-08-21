@@ -29,7 +29,7 @@ async function init() {
     const data = await API.get('/api/lessons');
     LESSONS = data.lessons;
     document.getElementById('navPoints').textContent = data.points || 0;
-
+    refreshNavCoins();
     const done = LESSONS.filter((l) => l.completed).length;
     const total = LESSONS.length;
     const pct = total ? Math.round((done / total) * 100) : 0;
