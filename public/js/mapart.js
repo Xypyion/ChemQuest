@@ -28,8 +28,12 @@ function seeded(a, b) {
   return n - Math.floor(n);
 }
 
-const GLASS = '#94a7a1';   /* outline for anything made of glass */
+/* Props sit on the deep enamel board, so they are painted the way a sign is:
+   a light body, a bright fill, and the same dark outline every other object
+   on this map carries. A dark-on-dark prop simply disappears. */
+const GLASS = '#12233f';   /* the painted outline */
 const GLINT = '#ffffff';
+const STEEL = '#dfe8f5';   /* light fittings: necks, racks, burner bodies */
 
 /* ---- individual props (all drawn inside 0 0 100 100) ---- */
 
@@ -41,7 +45,7 @@ function pFlask(liquid) {
     <circle class="bub b1" cx="42" cy="72" r="3.2" fill="${GLINT}" fill-opacity=".65"/>
     <circle class="bub b2" cx="55" cy="76" r="2.4" fill="${GLINT}" fill-opacity=".55"/>
     <circle class="bub b3" cx="49" cy="70" r="1.9" fill="${GLINT}" fill-opacity=".6"/>
-    <rect x="39" y="6" width="22" height="9" rx="4.5" fill="${GLASS}"/>`;
+    <rect x="39" y="6" width="22" height="9" rx="4.5" fill="${STEEL}" stroke="${GLASS}" stroke-width="3"/>`;
 }
 
 function pBeaker(liquid) {
@@ -51,8 +55,8 @@ function pBeaker(liquid) {
     <path d="M27 54h46v20a9 9 0 0 1-9 9H36a9 9 0 0 1-9-9z" fill="${liquid}"/>
     <circle class="bub b2" cx="44" cy="66" r="2.6" fill="${GLINT}" fill-opacity=".6"/>
     <circle class="bub b1" cx="57" cy="70" r="2" fill="${GLINT}" fill-opacity=".5"/>
-    <rect x="22" y="18" width="56" height="9" rx="4.5" fill="${GLASS}"/>
-    <path d="M36 34v14" stroke="${GLASS}" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>`;
+    <rect x="22" y="18" width="56" height="9" rx="4.5" fill="${STEEL}" stroke="${GLASS}" stroke-width="3"/>
+    <path d="M36 34v14" stroke="${GLASS}" stroke-width="2.5" stroke-linecap="round" opacity=".45"/>`;
 }
 
 function pTubes(liquid) {
@@ -64,7 +68,7 @@ function pTubes(liquid) {
     ${tube(20, liquid, 54)}
     ${tube(42, liquid, 62)}
     ${tube(64, liquid, 48)}
-    <rect x="12" y="60" width="76" height="10" rx="4" fill="${GLASS}" opacity=".85"/>`;
+    <rect x="12" y="60" width="76" height="10" rx="4" fill="${STEEL}" stroke="${GLASS}" stroke-width="3"/>`;
 }
 
 function pMolecule(tint) {
@@ -72,20 +76,22 @@ function pMolecule(tint) {
     <g stroke="${tint}" stroke-width="5" stroke-linecap="round">
       <path d="M30 62 60 42M60 42 82 58M60 42 54 18"/>
     </g>
-    <circle cx="30" cy="62" r="12" fill="${tint}"/>
-    <circle cx="60" cy="42" r="14" fill="${tint}"/>
-    <circle cx="82" cy="58" r="9" fill="${tint}"/>
-    <circle cx="54" cy="18" r="9" fill="${tint}"/>
+    <g stroke="${GLASS}" stroke-width="3.5">
+      <circle cx="30" cy="62" r="12" fill="${tint}"/>
+      <circle cx="60" cy="42" r="14" fill="${tint}"/>
+      <circle cx="82" cy="58" r="9" fill="${tint}"/>
+      <circle cx="54" cy="18" r="9" fill="${tint}"/>
+    </g>
     <circle cx="56" cy="38" r="4.5" fill="${GLINT}" fill-opacity=".5"/>`;
 }
 
 function pCrystal(tint, dark) {
   return `
-    <path d="M50 6 74 40 62 92H38L26 40z" fill="${tint}"/>
+    <path d="M50 6 74 40 62 92H38L26 40z" fill="${tint}" stroke="${GLASS}" stroke-width="3.5" stroke-linejoin="round"/>
     <path d="M50 6 74 40 50 48z" fill="${GLINT}" fill-opacity=".3"/>
     <path d="M50 48 62 92H50z" fill="${dark}" fill-opacity=".35"/>
-    <path d="M18 52 30 68 24 94H12L8 68z" fill="${tint}" fill-opacity=".8"/>
-    <path d="M82 58 92 72 88 94H78L74 72z" fill="${tint}" fill-opacity=".7"/>`;
+    <path d="M18 52 30 68 24 94H12L8 68z" fill="${tint}" stroke="${GLASS}" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M82 58 92 72 88 94H78L74 72z" fill="${tint}" stroke="${GLASS}" stroke-width="3" stroke-linejoin="round"/>`;
 }
 
 function pAtom(tint) {
@@ -95,35 +101,35 @@ function pAtom(tint) {
       <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(60 50 50)"/>
       <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(120 50 50)"/>
     </g>
-    <circle cx="50" cy="50" r="11" fill="${tint}"/>`;
+    <circle cx="50" cy="50" r="11" fill="${tint}" stroke="${GLASS}" stroke-width="3.5"/>`;
 }
 
 function pBurner(tint) {
   return `
-    <path d="M44 40h12v26H44z" fill="${GLASS}"/>
-    <path d="M26 66h48l6 14H20z" fill="${GLASS}"/>
-    <path class="flame" d="M50 12c8 10 11 15 11 21a11 11 0 0 1-22 0c0-6 3-11 11-21z" fill="${tint}"/>
+    <path d="M44 40h12v26H44z" fill="${STEEL}" stroke="${GLASS}" stroke-width="3"/>
+    <path d="M26 66h48l6 14H20z" fill="${STEEL}" stroke="${GLASS}" stroke-width="3" stroke-linejoin="round"/>
+    <path class="flame" d="M50 12c8 10 11 15 11 21a11 11 0 0 1-22 0c0-6 3-11 11-21z" fill="${tint}" stroke="${GLASS}" stroke-width="3"/>
     <path class="flame" d="M50 24c3 5 4 7 4 10a4 4 0 0 1-8 0c0-3 1-5 4-10z" fill="${GLINT}" fill-opacity=".55"/>`;
 }
 
 /* ---- what each place is made of ---- */
 const PLACES = {
   plain: {
-    liquid: '#84b4bd',
-    tint: '#7fa88c',
-    dark: '#4a7a5e',
+    liquid: '#3fc4d8',
+    tint: '#f7bf2e',
+    dark: '#c8930f',
     props: [pFlask, pBeaker, pTubes, pBurner, pMolecule],
   },
   mountain: {
-    liquid: '#a99cc0',
-    tint: '#9b8fb2',
-    dark: '#5f5480',
+    liquid: '#c79bf0',
+    tint: '#b98fe0',
+    dark: '#7b57a8',
     props: [pCrystal, pMolecule, pCrystal, pFlask, pAtom],
   },
   snow: {
-    liquid: '#93b1c9',
-    tint: '#8aa3bd',
-    dark: '#4e6a85',
+    liquid: '#6fd2f5',
+    tint: '#8fd8f0',
+    dark: '#3b8fb5',
     props: [pAtom, pCrystal, pTubes, pMolecule, pCrystal],
   },
 };

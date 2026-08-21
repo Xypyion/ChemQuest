@@ -11,65 +11,88 @@
    ========================================================================= */
 
 :root {
+  /* =====================================================================
+     THE WORLD: hand-painted enamel signage, cartoon register.
+
+     Not the arcade green of a certain language app, and not the grey-green
+     it was replaced with, which read as a hospital corridor. This is the
+     saturated painted signboard the students walk past on the way to
+     school: a deep enamel ground, a small set of loud colours used as
+     ROLES rather than decoration, thick dark outlines, and hard painted
+     drop shadows.
+
+     The outline and the hard shadow are the material here, which is why
+     this palette is allowed the zero-blur block shadow that a neutral
+     design system would be wrong to reach for. Elevated surfaces that are
+     not painted objects still get real soft shadows.
+     ===================================================================== */
+
   /* ---------- surfaces ---------- */
-  --ground: #e7ecea;      /* page canvas — the original green-grey */
+  --ground: #fff6e4;      /* page canvas — warm painted cream */
   --surface: #ffffff;     /* cards, bars */
-  --surface-2: #f3f6f5;   /* inset: inputs, quiet rows */
+  --surface-2: #fdf3dd;   /* inset: inputs, quiet rows */
+
+  /* the map is a painted board, and text on it is cream, never grey */
+  --board: #1b3a6b;
+  --board-lit: #24487d;   /* a band catching light */
+  --board-deep: #16305a;  /* a band in shade */
+  --board-ink: #fff6e4;   /* 10.5:1 on the board */
+  --board-ink-2: #a8bcdc; /* secondary, tinted from the hue — 5.8:1 */
 
   /* ---------- text ---------- */
-  --ink: #13201d;         /* primary       14.0:1 on ground */
-  --ink-2: #55645f;       /* secondary      5.2:1 on ground */
-  --ink-3: #5f6a67;       /* meta / labels  4.7:1 on ground */
+  --ink: #14243f;         /* primary      14.4:1 on cream */
+  --ink-2: #4a5a76;       /* secondary     6.5:1 on cream */
+  --ink-3: #55647e;       /* meta          5.6:1 on cream */
+  --outline: #12233f;     /* the painted outline every object carries */
 
   /* ---------- lines ---------- */
-  --line: #d2dbd8;
-  --line-2: #e3e9e7;
+  --line: #e6d9bd;
+  --line-2: #f2e7cf;
 
   /* =====================================================================
-     Green.
-     Muted and grey-leaning, not the bright arcade green — this is a school
-     chemistry platform, and the saturated version read as a copy of a
-     certain language app. Still two greens, still one rule:
+     Roles. Four painted colours, each meaning one thing. A colour never
+     appears just to add interest — that is how a sign turns into noise.
 
-       --green       the mid fill. Nodes, the walked trail, progress.
-                     Anything on top of it takes --green-ink (7.3:1).
-       --green-deep  the dark green. The 3D lip under a mid face, and the
-                     background for any green surface carrying WHITE text
-                     (6.3:1).
-
-     Never put white on --green, and never put --green-ink on --green-deep.
+       gold   the thing to do next, and anything earned
+       green  finished
+       red    Ruby, and only Ruby
+       navy   the board, and anything locked on it
      ===================================================================== */
-  --green: #7bb897;
-  --green-edge: #5f9e7c;       /* the hard lip under a mid-green face */
-  --green-deep: #2f6b4c;       /* white sits on this */
-  --green-deep-edge: #22523a;
-  --green-ink: #13201d;        /* dark ink that sits on mid green */
-  --green-soft: #e2efe8;       /* tint: chips, current-page nav */
+  --gold: #f7bf2e;        --gold-edge: #c8930f;   --gold-soft: #ffe9b0;
+  --green: #0d7d55;       --green-edge: #095c3e;  --green-soft: #d8ecdf;
+  --red: #d92f28;         --red-edge: #a81f1a;    --red-soft: #ffd9dd;
+  --locked: #3e5883;      --locked-edge: #56709c;
 
-  /* the muted grey-green a locked node is drawn in — flat, never pressable */
-  --lock-fill: #c8d5d0;
-  --lock-edge: #9aada6;   /* a rim, not a lip — see .node.is-locked in map.css */
-  --lock-ink: #3f4a47;
+  /* gold carries dark ink (9.2:1); green and red carry white (5.1, 4.8) */
+  --gold-ink: var(--ink);
+  --green-ink: #ffffff;
 
   /* ---------- brand ---------- */
-  --accent: #ca4e1d;      /* points and rewards only */
-  --accent-strong: #a83f16;
+  --accent: #d9741b;      /* coins and warm rewards only */
+  --accent-strong: #a8530c;
   --accent-ink: #ffffff;
-  --accent-soft: #fbe9e1;
+  --accent-soft: #ffdcb0;
 
-  --ruby: #e03a32;        /* the mascot's own red — Ruby and "you are here" */
-  --ruby-strong: #c62d25;  /* white on this: 5.5:1 */
+  --ruby: var(--red);
+  --ruby-strong: var(--red-edge);
 
   /* ---------- unit colours (map groups) ---------- */
-  --u1: #2b7483;  --u1-soft: #e2eef0;
-  --u2: #6f52a3;  --u2-soft: #ece7f5;
-  --u3: #8f6510;  --u3-soft: #f7eed8;
+  --u1: #1f6f7d;  --u1-soft: #d7ecef;
+  --u2: #6a4fa3;  --u2-soft: #e7e1f5;
+  --u3: #9a6410;  --u3-soft: #f8eed6;
 
   /* ---------- semantic state ---------- */
-  --pass: var(--green-deep);   --pass-soft: var(--green-soft);
-  --danger: #b3261e;    --danger-soft: #fbe6e4;
-  --warn: #8a5a06;      --warn-soft: #fdf0da;
-  --lock: #5f6a67;
+  --pass: var(--green);   --pass-soft: var(--green-soft);
+  --danger: #c0261e;      --danger-soft: #ffdedb;
+  --warn: #96590a;        --warn-soft: #ffe9c4;
+  --lock: #55647e;
+
+  /* legacy names kept for the not-yet-converted stylesheets */
+  --green-deep: var(--green);
+  --green-deep-edge: var(--green-edge);
+  --lock-fill: var(--locked);
+  --lock-edge: var(--locked-edge);
+  --lock-ink: var(--board-ink);
 
   /* ---------- spacing scale (4px base) ---------- */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -88,9 +111,9 @@
   --t-3xl: 2.25rem; /* 36px — hero */
 
   /* ---------- elevation ---------- */
-  --e1: 0 1px 2px rgba(19, 32, 29, .06);
-  --e2: 0 1px 2px rgba(19, 32, 29, .06), 0 8px 24px -12px rgba(19, 32, 29, .22);
-  --e3: 0 2px 4px rgba(19, 32, 29, .08), 0 18px 40px -18px rgba(19, 32, 29, .32);
+  --e1: 0 1px 2px rgba(18, 35, 63, .10);
+  --e2: 0 2px 3px rgba(18, 35, 63, .10), 0 10px 26px -14px rgba(18, 35, 63, .38);
+  --e3: 0 3px 6px rgba(18, 35, 63, .14), 0 20px 44px -20px rgba(18, 35, 63, .46);
 
   /* ---------- type ---------- */
   --font: 'Anuphan', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -102,14 +125,14 @@
      every page from this one file instead of leaving them on the old palette.
      Prefer the tokens above in new code.
      ======================================================================= */
-  --primary: var(--green-deep);
-  --primary-dark: var(--green-deep-edge);
+  --primary: var(--gold);
+  --primary-dark: var(--gold-edge);
   --secondary: var(--u1);
   --secondary-dark: #1f5b68;
   --pink: var(--ruby);
   --sun: var(--u3);
-  --grass: var(--green-deep);
-  --grass-dark: var(--green-deep-edge);
+  --grass: var(--green);
+  --grass-dark: var(--green-edge);
   --rock: #b3a795;
   --rock-dark: #7d7364;
   --snow: var(--surface-2);
@@ -159,9 +182,9 @@ h1 { font-size: var(--t-2xl); }
 h2 { font-size: var(--t-xl); }
 h3 { font-size: var(--t-l); }
 p { margin: 0; }
-a { color: var(--green-deep); }
+a { color: var(--green); }
 
-:focus-visible { outline: 3px solid var(--green-deep); outline-offset: 3px; border-radius: var(--r-s); }
+:focus-visible { outline: 3px solid var(--outline); outline-offset: 3px; border-radius: var(--r-s); }
 
 /* ---------- language switch (EN | ไทย) ---------- */
 .lang-switch {
@@ -192,7 +215,7 @@ hr.soft { border: none; border-top: 1px solid var(--line); margin: var(--s5) 0; 
 /* ---------- cards ---------- */
 .card {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 2px solid var(--outline);
   border-radius: var(--r-l);
   box-shadow: var(--e2);
   padding: var(--s5);
@@ -206,9 +229,9 @@ hr.soft { border: none; border-top: 1px solid var(--line); margin: var(--s5) 0; 
    than re-invented per component.
    Each variant sets --btn-bg / --btn-edge; nothing else changes. */
 .btn {
-  --btn-bg: var(--green-deep);
-  --btn-edge: var(--green-deep-edge);
-  --btn-ink: #ffffff;
+  --btn-bg: var(--gold);
+  --btn-edge: var(--gold-edge);
+  --btn-ink: var(--ink);
   --lift: 4px;
 
   font-family: var(--font);
@@ -216,11 +239,11 @@ hr.soft { border: none; border-top: 1px solid var(--line); margin: var(--s5) 0; 
   font-weight: 700;
   color: var(--btn-ink);
   background: var(--btn-bg);
-  border: none;
+  border: 2px solid var(--outline);
   border-radius: var(--r-m);
-  padding: 11px 18px;
+  padding: 10px 17px;
   cursor: pointer;
-  box-shadow: 0 var(--lift) 0 var(--btn-edge);
+  box-shadow: 0 var(--lift) 0 var(--outline);
   transform: translateY(0);
   transition: filter .15s ease, transform .06s ease, box-shadow .06s ease;
   text-decoration: none;
@@ -230,24 +253,21 @@ hr.soft { border: none; border-top: 1px solid var(--line); margin: var(--s5) 0; 
 .btn:hover { filter: brightness(1.06); }
 .btn:active {
   transform: translateY(calc(var(--lift) - 1px));
-  box-shadow: 0 1px 0 var(--btn-edge);
+  box-shadow: 0 1px 0 var(--outline);
 }
 .btn:disabled {
   opacity: .5; cursor: not-allowed; filter: none;
-  transform: none; box-shadow: 0 var(--lift) 0 var(--btn-edge);
+  transform: none; box-shadow: 0 var(--lift) 0 var(--outline);
 }
 
-/* The bright green face takes dark ink — white on it is only 2.09:1. */
-.btn.green   { --btn-bg: var(--green); --btn-edge: var(--green-edge); --btn-ink: var(--green-ink); }
-.btn.secondary { --btn-bg: var(--u1); --btn-edge: #1f5b68; }
-.btn.grape   { --btn-bg: var(--u2); --btn-edge: #533c7d; }
-.btn.warm    { --btn-bg: var(--accent); --btn-edge: var(--accent-strong); }
-.btn.danger  { --btn-bg: var(--danger); --btn-edge: #8b1b15; }
-.btn.ghost {
-  --btn-bg: var(--surface); --btn-edge: var(--line); --btn-ink: var(--ink);
-  border: 1px solid var(--line);
-}
-.btn.ghost:hover { background: var(--surface-2); filter: none; }
+/* Gold takes dark ink (9.2:1); green and red take white. Never the reverse. */
+.btn.green   { --btn-bg: var(--green); --btn-ink: #fff; }
+.btn.secondary { --btn-bg: var(--u1); --btn-ink: #fff; }
+.btn.grape   { --btn-bg: var(--u2); --btn-ink: #fff; }
+.btn.warm    { --btn-bg: var(--accent); --btn-ink: #fff; }
+.btn.danger  { --btn-bg: var(--danger); --btn-ink: #fff; }
+.btn.ghost   { --btn-bg: var(--surface); --btn-ink: var(--ink); }
+.btn.ghost:hover { background: var(--gold-soft); filter: none; }
 .btn.big { font-size: var(--t-l); padding: 14px 24px; --lift: 6px; }
 .btn.block { width: 100%; }
 .btn.flat { box-shadow: none; --lift: 0px; }
@@ -266,55 +286,79 @@ input, select, textarea {
 }
 input::placeholder, textarea::placeholder { color: var(--ink-3); }
 input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--green-deep);
-  box-shadow: 0 0 0 3px var(--green-soft);
+  outline: none; border-color: var(--outline);
+  box-shadow: 0 0 0 3px var(--gold-soft);
 }
 textarea { resize: vertical; min-height: 90px; }
 
 /* ---------- pills / badges ---------- */
 .pill {
   display: inline-flex; align-items: center; gap: var(--s1);
-  padding: 5px 12px; border-radius: var(--r-pill);
-  font-weight: 600; font-size: var(--t-xs);
-  background: var(--u2-soft); color: var(--u2);
+  padding: 4px 11px; border-radius: var(--r-pill);
+  border: 2px solid var(--outline);
+  font-weight: 700; font-size: var(--t-xs);
+  background: var(--u2-soft); color: var(--ink);
 }
-.pill.easy { background: var(--pass-soft); color: var(--pass); }
-.pill.medium { background: var(--warn-soft); color: var(--warn); }
-.pill.hard { background: var(--danger-soft); color: var(--danger); }
-/* --accent itself is only 3.86:1 on its own tint; the strong tone clears 4.5 */
-.pill.points { background: var(--accent-soft); color: var(--accent-strong); font-variant-numeric: tabular-nums; }
-.pill.coins { background: var(--warn-soft); color: var(--warn); font-variant-numeric: tabular-nums; }
+.pill.easy { background: var(--green-soft); }
+.pill.medium { background: var(--warn-soft); }
+.pill.hard { background: var(--danger-soft); }
+/* Painted labels: dark ink on a tint clears 12:1, so the colour is free to
+   carry meaning rather than having to carry contrast as well. */
+.pill.points { background: var(--gold-soft); font-variant-numeric: tabular-nums; }
+.pill.coins  { background: var(--accent-soft); font-variant-numeric: tabular-nums; }
 
 /* ---------- top navigation bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s3); padding: var(--s3) var(--s5);
-  background: var(--surface); border-bottom: 1px solid var(--line);
+  background: var(--surface); border-bottom: 2px solid var(--outline);
 }
 .brand {
   display: flex; align-items: center; gap: var(--s2);
   font-weight: 700; font-size: var(--t-l); color: var(--ink); letter-spacing: -.02em;
 }
-.brand .logo { display: inline-flex; color: var(--accent); }
+.brand .logo { display: inline-flex; color: var(--red); }
 .brand .logo svg { display: block; }
-.nav-actions { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
-.nav-actions .btn { font-size: var(--t-s); padding: 8px 14px; }
-.nav-actions .pill.user { background: var(--surface-2); color: var(--ink-2); }
-
-/* The section links are one group, always the same five in the same order.
-   The page you are on stays in place and is marked, rather than being
-   dropped from the list and shuffling everything along. */
-.nav-links { display: flex; gap: var(--s1); align-items: center; flex-wrap: wrap; }
-.nav-link { --lift: 0px; box-shadow: none; font-weight: 600; }
-.nav-link.is-current {
-  background: var(--green-soft);
-  border-color: var(--green-deep);
-  color: var(--green-deep);
-  font-weight: 700;
-  cursor: default;
+.nav-actions {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: var(--s2) var(--s4);   /* the wider gap separates the three groups */
 }
-.nav-link.is-current:hover { background: var(--green-soft); }
+.nav-stats, .nav-account { display: flex; align-items: center; gap: var(--s2); }
+
+/* The five destinations share one painted plaque, so navigation reads as a
+   single control instead of five buttons competing with the stat pills. The
+   current page is filled rather than removed, and never moves. */
+.nav-links {
+  display: flex; align-items: center; gap: 2px;
+  background: var(--surface);
+  border: 2px solid var(--outline);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  box-shadow: 0 3px 0 var(--outline);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-link {
+  flex: none;
+  font-family: var(--font); font-size: var(--t-s); font-weight: 700;
+  color: var(--ink-2); text-decoration: none;
+  padding: 6px 14px; border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition: background .12s ease, color .12s ease;
+}
+.nav-link:hover { background: var(--gold-soft); color: var(--ink); }
+.nav-link.is-current { background: var(--gold); color: var(--ink); cursor: default; }
+.nav-link.is-current:hover { background: var(--gold); }
+
+/* who you are is information, not a control — it should not look pressable */
+.nav-who {
+  font-size: var(--t-xs); font-weight: 700; color: var(--ink-3);
+  white-space: nowrap; max-width: 16ch; overflow: hidden; text-overflow: ellipsis;
+}
+.nav-out { --lift: 3px; font-size: var(--t-xs); padding: 6px 12px; }
 
 /* ---------- icons ---------- */
 /* One drawn set at a single stroke weight. Emoji render differently on every

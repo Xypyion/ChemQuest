@@ -12,7 +12,7 @@
 
 .map-progress { flex: none; text-align: right; }
 .map-progress .mp-n {
-  font-weight: 700; font-size: var(--t-xl); color: var(--green-deep);
+  font-weight: 700; font-size: var(--t-xl); color: var(--ink);
   font-variant-numeric: tabular-nums; letter-spacing: -.03em; line-height: 1;
 }
 .map-progress .mp-l {
@@ -22,21 +22,21 @@
 
 .progress-wrap { margin-top: var(--s4); }
 .progress-bar {
-  height: 10px; background: var(--line-2); border-radius: var(--r-pill);
-  overflow: hidden; box-shadow: inset 0 1px 2px rgba(22, 41, 10, .12);
+  height: 12px; background: var(--surface); border: 2px solid var(--outline);
+  border-radius: var(--r-pill); overflow: hidden;
 }
 /* scaleX rather than width: width animation forces layout on every frame */
 .progress-bar > span {
   display: block; height: 100%; width: 100%; border-radius: var(--r-pill);
-  background: var(--green); transform: scaleX(0); transform-origin: left;
+  background: var(--gold); transform: scaleX(0); transform-origin: left;
   transition: transform .7s cubic-bezier(.2, .8, .3, 1);
 }
 
 /* ---------- the map surface ---------- */
 .scene {
   position: relative;
-  background: #eef2f0;
-  border: 1px solid var(--line);
+  background: var(--board);
+  border: 3px solid var(--outline);
   border-radius: var(--r-xl);
   box-shadow: var(--e2);
   padding: 0 0 var(--s4);
@@ -57,27 +57,26 @@
 /* Progress, not hue, separates the units — so green stays the one dominant
    colour: ground already walked reads richer, the unit in play is lightest,
    everything still ahead recedes into the page. */
-/* Every layer has to separate from the page behind the card, or the palest
-   one reads as "the card stopped here". --ground is #e7ecea, so these sit
-   either side of it, all in the same grey-green family. */
-.sky  { fill: #eef2f0; }
-.hill { fill: #dfe7e3; }
-.hill.is-cleared { fill: #c9d8d1; }
-.hill.is-now     { fill: #d8e5df; }
-.hill.is-ahead   { fill: #e4eae7; }
+/* The board is one painted field. Bands are light and shade in the same
+   enamel blue, not different colours — colour on this map means state. */
+.sky  { fill: var(--board); }
+.hill { fill: var(--board-lit); }
+.hill.is-cleared { fill: #2c5490; }  /* ground already walked, catching light */
+.hill.is-now     { fill: var(--board-lit); }
+.hill.is-ahead   { fill: var(--board-deep); }
 
 /* ---------- the trail ---------- */
 .trail-under {
-  fill: none; stroke: #bcc9c4; stroke-width: 26;
+  fill: none; stroke: var(--outline); stroke-width: 28;
   stroke-linecap: round; stroke-linejoin: round;
 }
 .trail {
-  fill: none; stroke: #f7faf9; stroke-width: 20;
+  fill: none; stroke: #f0e4c6; stroke-width: 20;
   stroke-linecap: round; stroke-linejoin: round;
 }
 /* the stretch already walked, drawn over the top and clipped by dasharray */
 .trail-walked {
-  fill: none; stroke: var(--green); stroke-width: 20;
+  fill: none; stroke: var(--gold); stroke-width: 20;
   stroke-linecap: round; stroke-linejoin: round;
   transition: stroke-dasharray .8s cubic-bezier(.2, .8, .3, 1);
 }
@@ -86,16 +85,16 @@
 .unit-chip {
   position: absolute; left: 50%; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; gap: var(--s2);
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--r-pill); padding: 6px 16px;
-  box-shadow: var(--e1); white-space: nowrap;
+  background: var(--ground); border: 2px solid var(--outline);
+  border-radius: var(--r-pill); padding: 5px 15px;
+  box-shadow: 0 3px 0 var(--outline); white-space: nowrap;
 }
 .unit-chip .uc-name {
-  font-weight: 700; font-size: var(--t-s); color: var(--green-deep);
+  font-weight: 700; font-size: var(--t-s); color: var(--ink);
   letter-spacing: -.01em;
 }
 .unit-chip .uc-count {
-  font-size: var(--t-xs); font-weight: 600; color: var(--ink-3);
+  font-size: var(--t-xs); font-weight: 700; color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -109,12 +108,13 @@
   font-family: var(--font); cursor: pointer;
 }
 
-/* The face is the pressable node — a hexagon, because this is chemistry and
-   a plain circle is somebody else's app. clip-path clips box-shadow too, so
-   the 3D lip is a second hexagon sitting behind and below the first. */
+/* Each level is a painted plaque — a hexagon, because this is chemistry and
+   a plain circle is somebody else's app. clip-path clips borders and shadows
+   alike, so the outline AND the hard painted shadow are both drawn by a
+   second hexagon sitting behind and below the first. */
 .node-face {
-  --face: var(--green);
-  --edge: var(--green-edge);
+  --face: var(--gold);
+  --edge: var(--outline);
   --lift: 7px;
   position: relative;
   width: 78px; height: 86px;
@@ -123,17 +123,17 @@
   position: absolute; inset: 0;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
-.hex-edge { background: var(--edge); transform: translateY(var(--lift)); }
+.hex-edge { background: var(--edge); transform: translateY(var(--lift)); inset: -3px; }
 .hex-top {
   background: var(--face);
-  color: var(--green-ink);
+  color: var(--gold-ink);
   display: grid; place-items: center;
   transition: transform .07s ease, filter .15s ease;
 }
 /* a soft top-left glint so the face reads as a solid object, not a swatch */
 .hex-top::after {
   content: ''; position: absolute; inset: 0;
-  background: linear-gradient(155deg, rgba(255,255,255,.42), rgba(255,255,255,0) 58%);
+  background: linear-gradient(155deg, rgba(255,255,255,.34), rgba(255,255,255,0) 55%);
   pointer-events: none;
 }
 .node-face .ic { width: 32px; height: 32px; position: relative; z-index: 1; }
@@ -147,10 +147,11 @@
   font-size: var(--t-xs); font-weight: 600; line-height: 1.3;
   color: var(--ink); text-align: center;
   max-width: 100%;
-  /* the trail passes behind these, so they carry their own ground */
-  background: rgba(255, 255, 255, .86);
+  /* a painted label panel: the board and the trail both pass behind these */
+  background: var(--ground);
+  border: 2px solid var(--outline);
   border-radius: var(--r-s);
-  padding: 2px 7px;
+  padding: 1px 7px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -164,12 +165,12 @@
 }
 
 /* --- states --- */
-.node.is-done .node-face { --face: var(--green-deep); --edge: var(--green-deep-edge); }
+.node.is-done .node-face { --face: var(--green); }
 .node.is-done .hex-top { color: #fff; }
 .node.is-done .node-title { color: var(--ink-2); }
 
-.node.is-open .node-face { --face: var(--surface); --edge: #c8d3cf; }
-.node.is-open .hex-top { color: var(--green-deep); }
+.node.is-open .node-face { --face: var(--ground); }
+.node.is-open .hex-top { color: var(--ink); }
 
 .node.is-now .node-face { width: 96px; height: 106px; --lift: 9px; }
 /* The current level has to out-rank the finished ones, which are darker and
@@ -183,13 +184,13 @@
    Against a muted hill no fill is different enough on its own (1.3:1 at
    best), so the edge layer is grown into a rim on all six sides instead. */
 .node.is-locked { cursor: not-allowed; }
-.node.is-locked .node-face { --face: var(--lock-fill); --edge: var(--lock-edge); --lift: 0px; }
+.node.is-locked .node-face { --face: var(--locked); --lift: 0px; }
 .node.is-locked .hex-edge { inset: -3px; transform: none; }
-.node.is-locked .hex-top { color: var(--lock-ink); }
+.node.is-locked .hex-top { color: var(--board-ink-2); }
 .node.is-locked .hex-top::after { background: none; }
 .node.is-locked:hover .hex-top { filter: none; }
 .node.is-locked:active .hex-top { transform: none; }
-.node.is-locked .node-title { color: var(--ink-3); background: rgba(255, 255, 255, .72); }
+.node.is-locked .node-title { color: var(--ink-3); opacity: .82; }
 
 @keyframes node-beat {
   0%, 100% { transform: scale(1); }
@@ -199,7 +200,7 @@
 /* ---------- drawn scenery ---------- */
 /* Props sit in the margins either side of the trail. They fill the page but
    must never compete with the thing you press, hence the opacity. */
-.prop { opacity: .82; }
+.prop { opacity: .92; }
 
 .bub { animation: bubble-rise 3.4s ease-in-out infinite; }
 .bub.b2 { animation-duration: 4.2s; animation-delay: .7s; }
@@ -241,22 +242,22 @@
 .map-legend {
   display: flex; gap: var(--s5); flex-wrap: wrap; justify-content: center;
   margin: 0 var(--s4); padding-top: var(--s4);
-  border-top: 1px solid var(--line);
+  border-top: 2px solid rgba(255, 246, 228, .25);
 }
 .map-legend .leg {
   display: inline-flex; align-items: center; gap: var(--s2);
-  font-size: var(--t-xs); font-weight: 600; color: var(--ink-2);
+  font-size: var(--t-xs); font-weight: 600; color: var(--board-ink);
 }
 .map-legend .sw { width: 16px; height: 16px; border-radius: 50%; flex: none; }
-.map-legend .sw.done   { background: var(--green-deep); }
-.map-legend .sw.now    { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
-.map-legend .sw.locked { background: var(--lock-fill); box-shadow: inset 0 0 0 2px var(--lock-edge); }
+.map-legend .sw.done   { background: var(--green); border: 2px solid var(--outline); }
+.map-legend .sw.now    { background: var(--gold); border: 2px solid var(--outline); }
+.map-legend .sw.locked { background: var(--locked); border: 2px solid var(--outline); }
 
 /* ---------- empty state ---------- */
 .map-empty { text-align: center; padding: var(--s7) var(--s4); }
 .map-empty-ruby { display: flex; justify-content: center; margin-bottom: var(--s4); }
-.map-empty h2 { margin-bottom: var(--s2); }
-.map-empty p { color: var(--ink-2); max-width: 46ch; margin: 0 auto; }
+.map-empty h2 { margin-bottom: var(--s2); color: var(--board-ink); }
+.map-empty p { color: var(--board-ink-2); max-width: 46ch; margin: 0 auto; }
 
 /* ---------- narrow screens ---------- */
 /* The trail keeps its shape; only the furniture shrinks. Node geometry lives

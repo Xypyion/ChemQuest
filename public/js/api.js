@@ -94,18 +94,25 @@ function mountNav() {
 
   const links = NAV_ITEMS.map((item) => {
     const current = item.page === here;
-    return `<a class="btn ghost nav-link${current ? ' is-current' : ''}"
+    return `<a class="nav-link${current ? ' is-current' : ''}"
                href="${item.href}"${current ? ' aria-current="page"' : ''}
                data-i18n="${item.key}">${escapeHtml(t(item.key))}</a>`;
   }).join('');
 
+  /* Three groups, not one undifferentiated row: what you have, where you can
+     go, and who you are. The destinations share a single plaque so they read
+     as one control rather than five loose buttons competing with the pills. */
   host.innerHTML = `
-    <span class="pill coins"><b id="navCoins">0</b> <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
-    <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>
+    <div class="nav-stats">
+      <span class="pill coins"><b id="navCoins">0</b> <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
+      <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>
+    </div>
     <nav class="nav-links" aria-label="${escapeHtml(t('nav.sections'))}">${links}</nav>
-    <span class="pill user" id="navUser"></span>
-    <span id="langHost"></span>
-    <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</button>`;
+    <div class="nav-account">
+      <span class="nav-who" id="navUser"></span>
+      <span id="langHost"></span>
+      <button class="btn ghost nav-out" onclick="logout()" data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</button>
+    </div>`;
 
   // every hub page shows who is signed in; pages that know better overwrite it
   const user = API.user();

@@ -354,9 +354,14 @@ function drawGround(groups, pts, w, h, currentIdx) {
     return `<path class="hill ${cls}" d="${d}"/>`;
   }).join('');
 
-  /* the drawn world, in the margins either side of the trail column */
+  /* The drawn world, in the margins either side of the trail column.
+     js/mapart.js is a separate file, and script load order in this app is
+     load-bearing - a stale cached dashboard.html without that tag used to
+     take the whole map down with a ReferenceError. Scenery is decoration,
+     so its absence must cost the decoration and nothing else. */
   const col = Math.min(w, COL);
   const colLeft = (w - col) / 2;
+  const drawScenery = typeof sceneryFor === 'function' ? sceneryFor : () => '';
   const scenery = groups.map((grp, gi) => {
     const firstY = pts[grp.items[0].index].y;
     const lastY = pts[grp.items[grp.items.length - 1].index].y;
@@ -364,8 +369,8 @@ function drawGround(groups, pts, w, h, currentIdx) {
     const bottom = gi === groups.length - 1
       ? h - 12
       : pts[groups[gi + 1].items[0].index].y - SPACING * 0.5 - UNIT_GAP * 0.5;
-    return sceneryFor(grp.terrain, gi, { top, bottom: Math.max(bottom, lastY + 40) },
-                      w, colLeft, colLeft + col);
+    return drawScenery(grp.terrain, gi, { top, bottom: Math.max(bottom, lastY + 40) },
+                       w, colLeft, colLeft + col);
   }).join('');
 
   const d = trailPath(pts);
