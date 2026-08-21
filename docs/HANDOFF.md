@@ -7,6 +7,18 @@
 
 ---
 
+> ✅ **RECENTLY FIXED — READ FIRST:** every save on the Vercel deployment used to
+> return *"Something went wrong on the server."* while appearing to save after a
+> refresh. Cause: a serverless read-only filesystem vs. the `data/db.json` store.
+> **`src/db.js` now supports Postgres** (selected automatically when
+> `DATABASE_URL` is set; the file backend is unchanged for the school machine).
+>
+> ⚠️ **The live site stays broken until someone creates a Postgres database and
+> sets `DATABASE_URL` + `JWT_SECRET` in Vercel.** Steps:
+> **[KNOWN-ISSUE-vercel-persistence.md §7b](KNOWN-ISSUE-vercel-persistence.md#7-finishing-the-deployment)**.
+
+---
+
 ## 0. ⚠️ Mandatory rules (do not skip)
 
 1. **Push to GitHub every time a job is finished.** When a unit of work is done
@@ -134,12 +146,12 @@ To reset everything: stop the server, delete `data/db.json` (and optionally
 | Runtime | Node.js (CommonJS) |
 | Server | Express 4 |
 | Auth | `jsonwebtoken` (JWT) + `bcryptjs` (password hashing) |
-| Storage | Custom JSON document store → `data/db.json` (atomic writes) |
+| Storage | Custom document store → `data/db.json` (atomic writes), **or Postgres when `DATABASE_URL` is set** |
 | Uploads | Files written to `data/uploads/`, served at `/uploads` |
 | Front-end | Plain HTML + CSS + vanilla JS — **no framework, no bundler** |
 | Fonts | Google Fonts (Fredoka + **Mali** for Thai glyphs) |
 
-Only three runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`). Keep it
+Four runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`, `pg`). Keep it
 that way unless there's a strong reason — the "just `npm install` and run" story
 is a feature for a school with minimal infrastructure.
 
@@ -149,15 +161,20 @@ is a feature for a school with minimal infrastructure.
 
 ```
 chemquest/
-├── server.js                 # Express bootstrap: mounts routes, static, seed-on-first-run
-├── package.json              # scripts: start / dev / seed
+├── server.js                 # Express bootstrap: routes, static, db bootstrap; exports the app
+├── vercel.json               # serverless deployment config (routes everything to api/index.js)
+├── api/index.js              # serverless entrypoint — imports the exported Express app
+├── scripts/
+│   └── migrate-to-postgres.js  # one-off: data/db.json -> Postgres  (npm run migrate)
+├── package.json              # scripts: start / dev / seed / migrate
 ├── .gitignore                # ignores node_modules, data/db.json(.tmp), data/uploads/, .env
 ├── README.md                 # player-facing readme
 ├── data/                     # RUNTIME STATE — git-ignored, do not commit
 │   ├── db.json               # the whole database (users, lessons, posts, submissions, gradebook)
 │   └── uploads/              # assignment file attachments
 ├── src/
-│   ├── db.js                 # tiny JSON document store (all/find/insert/update/remove/save)
+│   ├── db.js                 # document store (all/find/insert/update/remove/save)
+│   │                         #   backends: data/db.json  OR  Postgres (DATABASE_URL)
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, authMiddleware, requireRole
 │   ├── game.js               # scoring, pass rule, level-completion, access gate + activity order
 │   ├── challenges.js         # challenge model: normalising, sanitising, auto-marking
@@ -320,7 +337,9 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 - **Teacher (seeded):** `Shinozuke67@skn.ac.th` / `12345678`. Change the password
   for production. (The 🔑 reset in the console resets *student* passwords.)
 - **Env vars:** `PORT` (default 4000), `JWT_SECRET` (set a strong value in
-  production — it falls back to a dev default otherwise).
+  production — it falls back to a dev default otherwise), `DATABASE_URL`
+  (unset = JSON file store; set = Postgres — **required on serverless hosts**),
+  `JSON_LIMIT` (default `16mb`).
 - **Real student accounts currently in the DB:** Jerry, Jenny, Google,
   `sorry@skn.ac.th` (do not delete during testing).
 - **Preview launch config** for the in-editor browser lives at the workspace root:
@@ -394,6 +413,7 @@ Other docs in this folder:
 
 | File | What |
 |------|------|
+| 🔴 [KNOWN-ISSUE-vercel-persistence.md](KNOWN-ISSUE-vercel-persistence.md) | **Open bug: saves fail on Vercel — diagnosis + fix plan** |
 | [overview.md](overview.md) | Plain-language system overview |
 | [architecture.md](architecture.md) | Deeper architecture & module notes |
 | [features.md](features.md) | Full feature catalog |
