@@ -484,7 +484,7 @@ const TChallenges = (() => {
     }
     if (!(sim.html || '').trim()) return '';
     const doc = `<!doctype html><html><head><meta charset="utf-8">
-<style>html,body{margin:0;padding:12px;font-family:'Rubik','Mitr',system-ui,sans-serif;color:#28243d;background:#fff}img,canvas,svg,video{max-width:100%}</style>
+<style>html,body{margin:0;padding:12px;font-family:'Anuphan',system-ui,sans-serif;color:#28243d;background:#fff}img,canvas,svg,video{max-width:100%}</style>
 </head><body>${sim.html}</body></html>`;
     return `<iframe class="sim-preview" style="height:${h}px" srcdoc="${esc(doc)}" sandbox="allow-scripts allow-popups" title="simulation"></iframe>`;
   }

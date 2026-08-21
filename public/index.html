@@ -6,7 +6,7 @@
   <title>ChemQuest — Chemistry Learning Adventure</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/login.css" />
 </head>
@@ -14,15 +14,21 @@
   <!-- Header: logo + language toggle -->
   <header class="login-header">
     <div class="login-brand">
-      <span class="logo-mark" aria-hidden="true"></span>
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg>
+      </span>
       <span class="logo-text">Chem<b>Quest</b></span>
     </div>
     <div class="login-lang" id="langHost"></div>
   </header>
 
-  <!-- Login stage: waving mascot + entry card -->
+  <!-- Login stage: Ruby introduces herself, entry card alongside -->
   <main class="login-stage">
-    <img class="login-mascot" src="/assets/mascot-wave.png" alt="Ruby the ChemQuest mascot, waving" />
+    <div class="login-art">
+      <img class="login-mascot" src="/assets/mascot-wave.png" alt="Ruby the ChemQuest mascot, waving" />
+      <p class="login-quote" data-i18n="welcome.rubyLine">“Goggles on. Let’s find out what everything is made of.”</p>
+      <p class="login-quote-who" data-i18n="welcome.rubyWho">Ruby · your lab partner</p>
+    </div>
 
     <div class="login-card">
       <!-- LOGIN ("Laboratory Entry") -->
@@ -67,19 +73,22 @@
 
         <label data-i18n="welcome.chooseDiff">Choose your difficulty</label>
         <div class="diff-grid" id="diffGrid">
-          <div class="diff sel" data-diff="easy">
-            <div class="emoji">🌱</div><div class="name" data-i18n="welcome.easy">Easy</div><div class="desc" data-i18n="welcome.easyDesc">Gentle start</div>
+          <div class="diff sel" data-diff="easy" role="radio" aria-checked="true" tabindex="0">
+            <svg class="diff-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 18h0M12 18v-4M19 18v-9" stroke-opacity=".28"/><path d="M5 18v-2"/></svg>
+            <div class="name" data-i18n="welcome.easy">Easy</div><div class="desc" data-i18n="welcome.easyDesc">Gentle start</div>
           </div>
-          <div class="diff" data-diff="medium">
-            <div class="emoji">⛰️</div><div class="name" data-i18n="welcome.medium">Medium</div><div class="desc" data-i18n="welcome.mediumDesc">A real climb</div>
+          <div class="diff" data-diff="medium" role="radio" aria-checked="false" tabindex="0">
+            <svg class="diff-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M19 18v-9" stroke-opacity=".28"/><path d="M5 18v-2M12 18v-4"/></svg>
+            <div class="name" data-i18n="welcome.medium">Medium</div><div class="desc" data-i18n="welcome.mediumDesc">A real climb</div>
           </div>
-          <div class="diff" data-diff="hard">
-            <div class="emoji">🏔️</div><div class="name" data-i18n="welcome.hard">Hard</div><div class="desc" data-i18n="welcome.hardDesc">Summit challenge</div>
+          <div class="diff" data-diff="hard" role="radio" aria-checked="false" tabindex="0">
+            <svg class="diff-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M5 18v-2M12 18v-4M19 18v-9"/></svg>
+            <div class="name" data-i18n="welcome.hard">Hard</div><div class="desc" data-i18n="welcome.hardDesc">Summit challenge</div>
           </div>
         </div>
 
         <div class="login-error" id="signupErr"></div>
-        <button class="login-cta" type="submit" data-i18n="welcome.create">Create Explorer 🎒</button>
+        <button class="login-cta" type="submit" data-i18n="welcome.create">Create Explorer</button>
 
         <div class="login-links">
           <a id="toLogin" role="button" tabindex="0" data-i18n="welcome.backToLogin">Back to login</a>

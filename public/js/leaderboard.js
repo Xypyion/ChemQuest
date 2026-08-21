@@ -2,7 +2,6 @@
 // and a sticky "your rank" bar. Points = best pre + post per level + bonus.
 
 const me = guard('student');
-addClouds();
 mountLangSwitch();
 if (me) document.getElementById('navPoints').textContent = me.points || 0;
 

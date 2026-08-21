@@ -7,7 +7,6 @@
 // one stays locked until the first is finished.
 
 guard('student');
-addClouds();
 mountLangSwitch();
 
 const params = new URLSearchParams(location.search);

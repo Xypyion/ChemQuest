@@ -1,33 +1,26 @@
-// Student dashboard: build a vertical journey through 3 biomes with 3D-style
-// models and props, from the lesson list.
+// Student course map: levels drawn as element tiles, grouped into units by
+// terrain and joined by bond lines. Position is the sequence, colour is the
+// unit, the border is the state.
 
 const me = guard('student');
-addClouds();
 mountLangSwitch();
 
 let LESSONS = [];
 
-document.getElementById('navUser').innerHTML = `${me.avatar || '🧑‍🎓'} ${escapeHtml(me.name)}`;
+document.getElementById('navUser').textContent = me.name;
 
-const BIOMES = {
-  plain: { name: () => t('biome.meadow'), grad: 'linear-gradient(180deg,#a9e87f,#73c94f)', props: ['tree', 'flower', 'mushroom', 'bush', 'log', 'flower', 'rock', 'tree'] },
-  mountain: { name: () => t('biome.ember'), grad: 'linear-gradient(180deg,#f7d99a,#e3a25f)', props: ['rock', 'crystalAmber', 'campfire', 'signpost', 'crystalAmber', 'rock'] },
-  snow: { name: () => t('biome.sky'), grad: 'linear-gradient(180deg,#e3f1ff,#f3d6ef)', props: ['arch', 'crystalBlue', 'portal', 'cloud', 'crystalPink', 'arch'] },
+// Terrain already groups consecutive levels, so units come from the data the
+// teacher authors today — no extra field required.
+const UNIT_LABEL = {
+  plain: () => t('unit.one'),
+  mountain: () => t('unit.two'),
+  snow: () => t('unit.three'),
 };
-const PROP_SIZE = {
-  tree: [98, 130], bush: [82, 112], flower: [40, 60], mushroom: [46, 70], rock: [62, 104], log: [92, 122],
-  campfire: [64, 86], crystalAmber: [66, 98], crystalBlue: [66, 98], crystalPink: [60, 88], arch: [72, 102], portal: [92, 122], cloud: [110, 152], signpost: [60, 84],
-};
-const SWAY = new Set(['tree', 'bush', 'flower']);
-const BOBBLE = new Set(['crystalAmber', 'crystalBlue', 'crystalPink', 'portal', 'cloud']);
-const MOODS = ['wave', 'happy', 'excited', 'cheer', 'thinking', 'happy'];
-const HATS = ['cap', 'wizard', 'crown'];
 
-// seeded RNG so the prop layout stays stable across resizes
-let _seed = 9173;
-function srand() { _seed = (_seed * 1103515245 + 12345) & 0x7fffffff; return _seed / 0x7fffffff; }
-function srange(a, b) { return a + srand() * (b - a); }
-function spick(a) { return a[Math.floor(srand() * a.length)]; }
+const ICON = {
+  check: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
+  lock: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>',
+};
 
 init();
 
@@ -36,165 +29,194 @@ async function init() {
     const data = await API.get('/api/lessons');
     LESSONS = data.lessons;
     document.getElementById('navPoints').textContent = data.points || 0;
+
     const done = LESSONS.filter((l) => l.completed).length;
-    const pct = LESSONS.length ? Math.round((done / LESSONS.length) * 100) : 0;
-    document.getElementById('progFill').style.width = pct + '%';
+    const total = LESSONS.length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+
+    document.getElementById('progFill').style.transform = `scaleX(${pct / 100})`;
+    document.getElementById('progPct').textContent = pct + '%';
     document.getElementById('progLabel').textContent =
-      done === LESSONS.length && LESSONS.length
-        ? t('dash.progressDone', { done, total: LESSONS.length })
-        : t('dash.progress', { done, total: LESSONS.length });
+      done === total && total
+        ? t('dash.progressDone', { done, total })
+        : t('dash.progress', { done, total });
+
     buildMap();
-  } catch (err) { toast(err.message, 'bad'); }
+  } catch (err) {
+    toast(err.message, 'bad');
+  }
 }
 
-function propSvg(token) {
-  if (token === 'crystalAmber') return PROPS.crystal('amber');
-  if (token === 'crystalBlue') return PROPS.crystal('blue');
-  if (token === 'crystalPink') return PROPS.crystal('pink');
-  if (token === 'flower') return PROPS.flower(spick(['#ff6fb5', '#ffd23f', '#a86bff', '#ff8a3d', '#ff5d5d']));
-  if (token === 'arch') return PROPS.arch('ice');
-  return PROPS[token] ? PROPS[token]() : PROPS.tree();
+// Words that carry no meaning in a title, so they never decide a symbol.
+const SKIP_WORDS = new Set(['a', 'an', 'the', 'is', 'are', 'of', 'on', 'in', 'to', 'and', 'or', 'for', 'with', 'what']);
+
+/**
+ * The tile symbol. The teacher may set one explicitly; otherwise it derives
+ * from the title they already wrote, so no new required field is introduced.
+ *
+ * Latin: the first two letters of the first meaningful word, so
+ * "States of Matter" becomes "St". Thai and other non-Latin scripts have no
+ * clean two-letter form and slicing them mangles the word, so those tiles
+ * carry the level number and let the title underneath do the work.
+ *
+ * `used` keeps symbols unique across the map — two tiles both reading "Mi"
+ * would defeat the point of having a symbol at all.
+ */
+function symbolFor(lesson, index, used) {
+  const num = String(index + 1).padStart(2, '0');
+  const explicit = (lesson.symbol || '').trim();
+  if (explicit) {
+    const key = explicit.toLowerCase();
+    if (used.has(key)) return { text: num, long: false };
+    used.add(key);
+    return { text: explicit, long: explicit.length > 2 };
+  }
+
+  const title = (lesson.title || '').trim();
+  if (!title) return { text: num, long: false };
+
+  // Non-Latin script (Thai included): the level number is the honest symbol.
+  const isAscii = Array.from(title).every((ch) => ch.charCodeAt(0) < 128);
+  if (!isAscii) return { text: num, long: false };
+
+  const words = title.split(/\s+/).map((w) => w.replace(/[^A-Za-z]/g, '')).filter(Boolean);
+  const meaningful = words.filter((w) => !SKIP_WORDS.has(w.toLowerCase()));
+  const base = meaningful[0] || words[0];
+  if (!base) return { text: num, long: false };
+
+  const cap = (a, b) => a.toUpperCase() + (b || '').toLowerCase();
+
+  // first two letters, then the first paired with each later letter,
+  // then the next word's initial, and finally the number
+  const tries = [cap(base[0], base[1])];
+  for (let i = 2; i < base.length; i++) tries.push(cap(base[0], base[i]));
+  if (meaningful[1]) tries.push(cap(base[0], meaningful[1][0]));
+
+  for (const c of tries) {
+    if (!used.has(c.toLowerCase())) { used.add(c.toLowerCase()); return { text: c, long: false }; }
+  }
+  return { text: num, long: false };
 }
 
 function buildMap() {
-  _seed = 9173;
+  const usedSymbols = new Set();
   const scene = document.getElementById('scene');
-  const W = scene.clientWidth || 920;
-  const n = LESSONS.length;
-  const spacing = W < 560 ? 200 : 240;
-  const topPad = 150;
-  const bottomPad = 150;
-  const H = topPad + Math.max(0, n - 1) * spacing + bottomPad;
-  scene.style.height = H + 'px';
 
-  // node coordinates (Lv.1 at the top, descending through the biomes)
-  const coords = LESSONS.map((_, i) => {
-    const y = topPad + i * spacing;
-    let x = W * (0.5 + 0.3 * Math.sin(i * 0.95 + 0.6));
-    x = Math.max(86, Math.min(W - 86, x));
-    return { x, y };
-  });
+  if (!LESSONS.length) {
+    scene.innerHTML = `
+      <div class="map-empty">
+        <img src="/assets/mascot-wave.png" alt="" />
+        <h2>${escapeHtml(t('dash.emptyTitle'))}</h2>
+        <p>${escapeHtml(t('dash.emptyBody'))}</p>
+      </div>`;
+    return;
+  }
 
-  // group consecutive levels by terrain into biome bands
+  // group consecutive levels sharing a terrain into units
   const groups = [];
   LESSONS.forEach((l, i) => {
-    const terr = l.terrain || 'plain';
+    const terrain = l.terrain || 'plain';
     const last = groups[groups.length - 1];
-    if (last && last.terrain === terr) last.end = i;
-    else groups.push({ terrain: terr, start: i, end: i });
-  });
-  groups.forEach((grp, gi) => {
-    grp.topY = gi === 0 ? 0 : (coords[grp.start].y + coords[grp.start - 1].y) / 2;
-    grp.botY = gi === groups.length - 1 ? H : (coords[grp.end].y + coords[grp.end + 1].y) / 2;
+    if (last && last.terrain === terrain) last.items.push({ lesson: l, index: i });
+    else groups.push({ terrain, items: [{ lesson: l, index: i }] });
   });
 
-  let html = '';
+  const currentIdx = LESSONS.findIndex((l) => !l.locked && !l.completed);
 
-  // ---- biome bands ----
-  groups.forEach((grp) => {
-    const b = BIOMES[grp.terrain] || BIOMES.plain;
-    html += `<div class="band" style="top:${grp.topY}px;height:${grp.botY - grp.topY}px;background:${b.grad};z-index:1">
-      <div class="band-label">${b.name()}</div></div>`;
-  });
+  const html = groups.map((grp) => {
+    const label = (UNIT_LABEL[grp.terrain] || UNIT_LABEL.plain)();
+    const cleared = grp.items.filter((it) => it.lesson.completed).length;
+    const hasNow = grp.items.some((it) => it.index === currentIdx);
 
-  // ---- props per band ----
-  groups.forEach((grp) => {
-    const b = BIOMES[grp.terrain] || BIOMES.plain;
-    const h = grp.botY - grp.topY;
-    const count = Math.max(3, Math.min(10, Math.round(h / 120)));
-    for (let j = 0; j < count; j++) {
-      const token = b.props[j % b.props.length];
-      const left = (j % 2 === 0) ? srange(5, 22) : srange(78, 95);
-      const y = grp.topY + ((j + 0.6) / count) * h + srange(-20, 20);
-      const size = srange(PROP_SIZE[token][0], PROP_SIZE[token][1]);
-      const anim = SWAY.has(token) ? ' sway' : BOBBLE.has(token) ? ' bobble' : '';
-      html += `<div class="prop-wrap${anim}" style="left:${left}%;top:${y}px;width:${size}px;transform:translate(-50%,-50%)">${propSvg(token)}</div>`;
-    }
-  });
+    const chain = grp.items.map((it, j) => {
+      const prev = grp.items[j - 1];
+      const bond = j === 0 ? '' :
+        `<span class="bond${prev.lesson.completed ? ' walked' : ''}" aria-hidden="true"></span>`;
+      return bond + tileHtml(it.lesson, it.index, it.index === currentIdx, usedSymbols);
+    }).join('');
 
-  // ---- rivers + bridges at biome boundaries ----
-  groups.forEach((grp, gi) => {
-    if (gi === 0) return;
-    const by = grp.topY;
-    const bridgeX = (coords[grp.start].x + coords[grp.start - 1].x) / 2;
-    html += `<div class="river" style="top:${by - 45}px"></div>`;
-    html += `<div class="bridge" style="left:${bridgeX}px;top:${by}px"></div>`;
-  });
+    return `
+      <section class="unit u-${escapeHtml(grp.terrain)}" aria-label="${escapeHtml(label)}">
+        <div class="unit-head">
+          <span class="unit-chip">${escapeHtml(label)}</span>
+          <span class="unit-count">${cleared} / ${grp.items.length}</span>
+        </div>
+        <div class="chain${hasNow ? ' has-now' : ''}">${chain}</div>
+      </section>`;
+  }).join('');
 
-  // ---- trail (path segments) ----
-  let segs = '';
-  for (let i = 0; i < n - 1; i++) {
-    const a = coords[i], c = coords[i + 1];
-    const walked = LESSONS[i].completed;
-    segs += `<line x1="${a.x}" y1="${a.y}" x2="${c.x}" y2="${c.y}" stroke="#b58a52" stroke-width="28" stroke-linecap="round"/>`;
-    segs += `<line x1="${a.x}" y1="${a.y}" x2="${c.x}" y2="${c.y}" stroke="${walked ? '#ffe1a0' : '#f0d6a0'}" stroke-width="18" stroke-linecap="round"/>`;
-    if (walked) segs += `<line x1="${a.x}" y1="${a.y}" x2="${c.x}" y2="${c.y}" stroke="#ffb43d" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 16"/>`;
-  }
-  html += `<svg class="trail" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" style="z-index:4">${segs}</svg>`;
+  scene.innerHTML = `
+    <div class="units">${html}</div>
+    <div class="map-legend">
+      <span class="leg"><span class="sw done"></span> ${escapeHtml(t('dash.legendDone'))}</span>
+      <span class="leg"><span class="sw now"></span> ${escapeHtml(t('dash.legendNow'))}</span>
+      <span class="leg"><span class="sw locked"></span> ${escapeHtml(t('dash.legendLocked'))}</span>
+    </div>`;
 
-  // ---- banners ----
-  html += `<div class="banner" style="top:14px;color:#236b18;background:rgba(255,255,255,.82);padding:6px 18px;border-radius:999px;box-shadow:var(--shadow-soft)">${t('dash.start')}</div>`;
-  html += `<div class="banner" style="bottom:12px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.3)"><span style="font-size:1.7rem">🏁</span><br>${t('dash.summit')}</div>`;
-
-  // ---- level nodes (models) ----
-  let currentIdx = LESSONS.findIndex((l) => !l.locked && !l.completed);
-  LESSONS.forEach((l, i) => {
-    const { x, y } = coords[i];
-    const state = l.locked ? 'locked' : l.completed ? 'done' : 'available';
-    let model, extra = '';
-    if (state === 'locked') {
-      model = renderRuby('thinking', { size: 92, silhouette: true });
-    } else if (state === 'done') {
-      const hat = (i + 1) % 3 === 0 ? HATS[Math.floor(i / 3) % HATS.length] : null;
-      model = renderRuby(MOODS[i % MOODS.length], { size: 96, hat });
-      extra = `<div class="score-pop">⭐ ${l.bestScore}</div>`;
-    } else {
-      model = renderRuby('wave', { size: 100, float: true });
-      extra = `<div class="here-bubble">${t('dash.tapToPlay')}</div>`;
-    }
-    const tagIcon = state === 'done' ? '<span class="ck">✓</span>' : state === 'locked' ? '<span class="lk">🔒</span>' : '';
-    // surface a scheduled-open time right on the locked node
-    if (state === 'locked' && l.lockReason === 'scheduled' && l.opensAt) {
-      extra = `<div class="here-bubble">🗓 ${fmtWhen(l.opensAt)}</div>`;
-    }
-    html += `
-      <div class="node ${state}" style="left:${x}px;top:${y}px" data-id="${l.id}" data-state="${state}"
-           data-reason="${l.lockReason || ''}" data-opens-at="${l.opensAt || ''}">
-        ${extra}
-        <div class="model">${model}</div>
-        <div class="lvtag">${tagIcon} ${t('dash.lv', { n: i + 1 })}</div>
-      </div>`;
-  });
-
-  scene.innerHTML = html;
-
-  // ---- interactions ----
-  scene.querySelectorAll('.node').forEach((node) => {
-    node.addEventListener('click', () => {
-      if (node.dataset.state === 'locked') {
-        toast(lockedToastFor(node.dataset.reason, node.dataset.opensAt), 'bad');
-        node.classList.add('shake');
-        setTimeout(() => node.classList.remove('shake'), 500);
+  scene.querySelectorAll('.tile').forEach((tile) => {
+    tile.addEventListener('click', () => {
+      if (tile.dataset.state === 'locked') {
+        toast(lockedToastFor(tile.dataset.reason, tile.dataset.opensAt), 'bad');
+        tile.classList.add('shake');
+        setTimeout(() => tile.classList.remove('shake'), 450);
         return;
       }
-      // The level board (hub) opens first: start level / assignments / post-test.
-      location.href = `/level.html?id=${encodeURIComponent(node.dataset.id)}`;
+      location.href = `/level.html?id=${encodeURIComponent(tile.dataset.id)}`;
     });
   });
 
-  if (currentIdx >= 0) {
-    const target = scene.querySelector(`.node[data-id="${LESSONS[currentIdx].id}"]`);
-    if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+  // bring the open level into view inside its own horizontal chain
+  const now = scene.querySelector('.tile.is-now');
+  if (now) {
+    setTimeout(() => {
+      now.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, 250);
   }
 }
 
-// Pick the right "why is this locked" message for a node.
+function tileHtml(lesson, index, isNow, used) {
+  const state = lesson.locked ? 'locked' : lesson.completed ? 'done' : (isNow ? 'now' : 'open');
+  const sym = symbolFor(lesson, index, used);
+  const n = String(index + 1).padStart(2, '0');
+
+  const mark =
+    state === 'done' ? `<span class="t-mark">${ICON.check}</span>`
+    : state === 'locked' ? `<span class="t-mark">${ICON.lock}</span>`
+    : '';
+
+  const aria = t('dash.tileAria', {
+    n: index + 1,
+    title: lesson.title || '',
+    state: t('dash.state.' + state),
+  });
+
+  const tile = `
+    <button type="button" class="tile is-${state}" data-id="${escapeHtml(lesson.id)}"
+            data-state="${state === 'now' || state === 'open' ? 'open' : state}"
+            data-reason="${escapeHtml(lesson.lockReason || '')}"
+            data-opens-at="${escapeHtml(lesson.opensAt || '')}"
+            ${state === 'locked' ? 'aria-disabled="true"' : ''}
+            aria-label="${escapeHtml(aria)}">
+      <span class="t-no">${n}</span>
+      ${mark}
+      <span class="t-sym${sym.long ? ' long' : ''}">${escapeHtml(sym.text)}</span>
+      <span class="t-name">${escapeHtml(lesson.title || '')}</span>
+    </button>`;
+
+  if (!isNow) return tile;
+
+  return `
+    <span class="now-slot">
+      <img class="now-ruby" src="/assets/mascot-wave.png" alt="" />
+      ${tile}
+      <span class="now-label">${escapeHtml(t('dash.youAreHere'))}</span>
+    </span>`;
+}
+
+// Pick the right "why is this locked" message for a tile.
 function lockedToastFor(reason, opensAt) {
   if (reason === 'teacher') return t('dash.lockedTeacher');
   if (reason === 'scheduled') return t('dash.lockedSchedule', { time: opensAt ? fmtWhen(opensAt) : '' });
   if (reason === 'posttest') return t('dash.lockedPost');
   return t('dash.lockedToast');
 }
-
-let rt;
-window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(buildMap, 200); });

@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChemQuest — Teacher Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/teacher.css" />
   <link rel="stylesheet" href="/css/feed.css" />
@@ -13,15 +14,15 @@
 <body class="teacher">
   <div class="t-shell">
     <aside class="t-side" id="side">
-      <div class="t-brand">🧪 ChemQuest</div>
+      <div class="t-brand"><span class="t-logo" aria-hidden="true"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg></span> ChemQuest</div>
       <div class="t-role" data-i18n="t.console">Teacher Console</div>
       <nav class="t-nav">
-        <button data-view="lessons" class="active" onclick="setView('lessons')" data-i18n="t.navLessons">📚 Lessons &amp; Levels</button>
+        <button data-view="lessons" class="active" onclick="setView('lessons')" data-i18n="t.navLessons">Lessons &amp; Levels</button>
         <button data-view="challenges" onclick="setView('challenges')" data-i18n="t.navChallenges">&#129513; Challenges</button>
-        <button data-view="grading" onclick="setView('grading')" data-i18n="t.navGrading">✍️ Writing Grading</button>
-        <button data-view="gradebook" onclick="setView('gradebook')" data-i18n="t.navGradebook">📊 Gradebook</button>
-        <button data-view="students" onclick="setView('students')" data-i18n="t.navStudents">👩‍🎓 Students</button>
-        <button data-view="preview" onclick="setView('preview')" data-i18n="t.playAsStudent">🎮 Play as student</button>
+        <button data-view="grading" onclick="setView('grading')" data-i18n="t.navGrading">Writing Grading</button>
+        <button data-view="gradebook" onclick="setView('gradebook')" data-i18n="t.navGradebook">Gradebook</button>
+        <button data-view="students" onclick="setView('students')" data-i18n="t.navStudents">Students</button>
+        <button data-view="preview" onclick="setView('preview')" data-i18n="t.playAsStudent">Play as student</button>
       </nav>
       <div id="langHost" style="margin:10px 0"></div>
       <div class="t-foot">
@@ -31,7 +32,7 @@
     </aside>
 
     <main class="t-main">
-      <button class="tbtn ghost sm menu-toggle" onclick="document.getElementById('side').classList.toggle('open')">☰ Menu</button>
+      <button class="tbtn ghost sm menu-toggle" onclick="document.getElementById('side').classList.toggle('open')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg> Menu</button>
       <div id="view"></div>
     </main>
   </div>

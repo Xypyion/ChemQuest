@@ -118,10 +118,3 @@ function youtubeEmbed(url) {
   return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
 }
 
-/* ---------- Decorative clouds (call once per page) ---------- */
-function addClouds() {
-  const host = document.createElement('div');
-  host.className = 'clouds';
-  host.innerHTML = '<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>';
-  document.body.prepend(host);
-}

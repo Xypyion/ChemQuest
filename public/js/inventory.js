@@ -3,7 +3,6 @@
 // earned / in-progress / locked.
 
 const me = guard('student');
-addClouds();
 mountLangSwitch();
 
 (async () => {

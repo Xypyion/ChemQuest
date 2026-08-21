@@ -5,25 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ChemQuest — My Certificates</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/pages.css" />
 </head>
 <body>
   <div class="topbar">
-    <div class="brand"><span class="logo">🧪</span> ChemQuest</div>
+    <div class="brand"><span class="logo" aria-hidden="true"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg></span> ChemQuest</div>
     <div class="nav-actions">
-      <span class="pill points">⭐ <b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
-      <a class="btn ghost" href="/dashboard.html" data-i18n="nav.map">🗺️ Map</a>
-      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">🏆 Leaderboard</a>
+      <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
+      <a class="btn ghost" href="/dashboard.html" data-i18n="nav.map">Map</a>
+      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">Leaderboard</a>
       <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
     </div>
   </div>
 
   <div class="wrap">
     <div class="page-title">
-      <h1 data-i18n="inv.title">🎖️ My Certificate Collection</h1>
+      <h1 data-i18n="inv.title">My Certificate Collection</h1>
       <p class="page-sub" id="sub" data-i18n="inv.sub">Every level you conquer earns a shiny certificate!</p>
     </div>
     <div id="content"><p class="center muted" data-i18n="common.loading">Loading…</p></div>

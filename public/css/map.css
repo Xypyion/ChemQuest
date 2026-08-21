@@ -1,103 +1,168 @@
-/* Adventure map: a vertical journey through 3 biomes
-   (Meadow → Ember Canyon → Sky Summit) with 3D-style models & props. */
+/* Course map — levels as element tiles, grouped into units and joined by bonds.
+   The number is the sequence, the colour is the unit, the border is the state. */
 
-.map-head { text-align: center; margin: 18px 0 6px; }
-.map-head h1 { font-size: 2rem; }
-.progress-wrap { max-width: 520px; margin: 6px auto 16px; }
-.progress-bar { height: 18px; background: #fff; border-radius: 999px; overflow: hidden; border: 3px solid #fff; box-shadow: var(--shadow-soft); }
-.progress-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--grass), var(--sun), var(--pink)); width: 0; transition: width .8s ease; }
-.progress-label { font-weight: 600; color: var(--ink-soft); font-size: .9rem; margin-top: 6px; }
+.map-head { margin: var(--s5) 0 var(--s4); }
+.map-head .map-title-row {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--s4); flex-wrap: wrap;
+}
+.map-head h1 { margin: 0; font-size: var(--t-2xl); }
+.map-head .map-sub { color: var(--ink-2); font-size: var(--t-s); margin-top: var(--s1); }
 
+.map-progress { flex: none; text-align: right; }
+.map-progress .mp-n {
+  font-weight: 700; font-size: var(--t-xl);
+  font-variant-numeric: tabular-nums; letter-spacing: -.03em; line-height: 1;
+}
+.map-progress .mp-l {
+  font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 600; margin-top: var(--s1);
+}
+
+.progress-wrap { margin-top: var(--s4); }
+.progress-bar {
+  height: 6px; background: var(--line-2); border-radius: var(--r-pill); overflow: hidden;
+}
+/* scaleX rather than width: width animation forces layout on every frame */
+.progress-bar > span {
+  display: block; height: 100%; width: 100%; border-radius: var(--r-pill);
+  background: var(--accent); transform: scaleX(0); transform-origin: left;
+  transition: transform .7s cubic-bezier(.2, .8, .3, 1);
+}
+.progress-label { font-weight: 500; color: var(--ink-2); font-size: var(--t-s); margin-top: var(--s2); }
+
+/* ---------- the map surface ---------- */
 .scene {
   position: relative;
-  width: min(980px, 100%);
-  margin: 0 auto 40px;
-  border-radius: 30px;
-  overflow: hidden;
-  border: 7px solid #fff;
-  box-shadow: var(--shadow-soft);
-  background: #bfe7ff;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  box-shadow: var(--e2);
+  padding: var(--s5) 0;
+  margin-bottom: var(--s7);
 }
 
-/* biome bands */
-.band { position: absolute; left: 0; right: 0; overflow: hidden; }
-.band::after { /* soft blend with the band above */
-  content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 70px;
-  background: linear-gradient(180deg, rgba(255,255,255,.45), transparent);
-  pointer-events: none;
+.units { display: flex; flex-direction: column; gap: var(--s5); }
+
+.unit { display: flex; flex-direction: column; gap: var(--s3); }
+.unit-head { display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s5); }
+.unit-chip {
+  font-weight: 700; font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: var(--r-s); white-space: nowrap;
 }
-.band-label {
-  position: absolute; top: 12px; left: 14px;
-  font-weight: 800; letter-spacing: 2px; font-size: .76rem; color: rgba(255,255,255,.95);
-  text-shadow: 0 1px 3px rgba(0,0,0,.3); background: rgba(0,0,0,.16); padding: 5px 14px; border-radius: 999px;
-  z-index: 5; white-space: nowrap;
+.unit-count {
+  margin-left: auto; font-size: var(--t-xs); color: var(--ink-3);
+  font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap;
+}
+.unit.u-plain .unit-chip { background: var(--u1-soft); color: var(--u1); }
+.unit.u-mountain .unit-chip { background: var(--u3-soft); color: var(--u3); }
+.unit.u-snow .unit-chip { background: var(--u2-soft); color: var(--u2); }
+
+/* ---------- the bond chain ---------- */
+.chain {
+  display: flex; align-items: center;
+  overflow-x: auto; overscroll-behavior-x: contain;
+  padding: 0 var(--s5) var(--s1);
+  scrollbar-width: thin;
+}
+/* overflow-x also clips vertically, so the row holding the current level
+   needs headroom for Ruby standing on it and the label beneath it */
+.chain.has-now { padding-top: 74px; padding-bottom: 30px; }
+.chain::-webkit-scrollbar { height: 6px; }
+.chain::-webkit-scrollbar-thumb { background: var(--line); border-radius: var(--r-pill); }
+
+/* One consistent line. A single/double/triple distinction would imply real
+   bond orders the course data does not carry, so the only thing the line
+   encodes is whether the level before it has been cleared. */
+.bond { flex: none; width: 18px; height: 2px; background: var(--line); }
+.bond.walked { background: var(--pass); }
+
+/* ---------- the element tile ---------- */
+.tile {
+  flex: none; width: 104px; height: 112px;
+  border-radius: var(--r-m); background: var(--surface);
+  border: 1px solid var(--line); padding: 9px 10px 10px;
+  display: flex; flex-direction: column; position: relative;
+  cursor: pointer; text-align: left; font-family: var(--font); color: var(--ink);
+  box-shadow: var(--e1);
+  transition: transform .14s cubic-bezier(.2, .8, .3, 1), box-shadow .14s, border-color .14s;
+}
+.tile:hover { transform: translateY(-3px); box-shadow: var(--e3); }
+.tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.tile .t-no {
+  font-size: var(--t-xs); font-weight: 700; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; letter-spacing: .03em;
+}
+.tile .t-sym {
+  font-weight: 700; font-size: 2rem; line-height: 1;
+  letter-spacing: -.04em; margin-top: auto;
+}
+/* a Thai or unabbreviated symbol needs to shrink to fit the tile */
+.tile .t-sym.long { font-size: 1.1rem; letter-spacing: 0; line-height: 1.2; }
+.tile .t-name {
+  font-size: var(--t-xs); font-weight: 600; color: var(--ink-2);
+  line-height: 1.25; margin-top: 3px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tile .t-mark { position: absolute; top: 8px; right: 9px; width: 15px; height: 15px; }
+
+.tile.is-done { background: var(--pass-soft); border-color: transparent; }
+.tile.is-done .t-sym, .tile.is-done .t-no,
+.tile.is-done .t-name, .tile.is-done .t-mark { color: var(--pass); }
+
+.tile.is-now {
+  border-color: var(--accent); border-width: 2px; padding: 8px 9px 9px;
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--e2);
+}
+.tile.is-now .t-sym, .tile.is-now .t-no { color: var(--accent); }
+
+.tile.is-locked { background: var(--surface-2); border-style: dashed; cursor: not-allowed; }
+.tile.is-locked .t-sym, .tile.is-locked .t-no,
+.tile.is-locked .t-name, .tile.is-locked .t-mark { color: var(--lock); }
+.tile.is-locked:hover { transform: none; box-shadow: var(--e1); }
+
+
+/* ---------- Ruby standing on the current tile ---------- */
+.now-slot { position: relative; flex: none; display: flex; }
+.now-ruby {
+  position: absolute; bottom: calc(100% - 6px); left: 50%;
+  width: 76px; pointer-events: none;
+  transform: translateX(-52%);
+  filter: drop-shadow(0 6px 8px rgba(19, 32, 29, .22));
+  animation: ruby-bob 3.8s ease-in-out infinite;
+}
+@keyframes ruby-bob {
+  0%, 100% { transform: translateX(-52%) translateY(0); }
+  50% { transform: translateX(-52%) translateY(-6px); }
+}
+.now-label {
+  position: absolute; top: calc(100% + 7px); left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: var(--accent-ink);
+  font-weight: 700; font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: var(--r-pill); white-space: nowrap;
 }
 
-/* rivers at biome boundaries */
-.river {
-  position: absolute; left: -2%; width: 104%; height: 90px; z-index: 2;
-  background: linear-gradient(180deg, #6fc6ff, #3a9bef 60%, #2f86d6);
-  box-shadow: inset 0 8px 14px rgba(255,255,255,.4), inset 0 -8px 14px rgba(0,0,0,.12);
+/* ---------- legend ---------- */
+.map-legend {
+  display: flex; flex-wrap: wrap; gap: var(--s4);
+  padding: var(--s4) var(--s5) 0; margin-top: var(--s4);
+  border-top: 1px solid var(--line-2);
 }
-.river::before, .river::after {
-  content: ''; position: absolute; left: 0; right: 0; height: 8px; background: rgba(255,255,255,.5); border-radius: 50%;
-}
-.river::before { top: 16px; } .river::after { bottom: 16px; opacity: .6; }
-.bridge {
-  position: absolute; z-index: 3; width: 120px; height: 54px; transform: translate(-50%, -50%);
-  background: repeating-linear-gradient(90deg, #b07b46 0 14px, #9c6b3f 14px 17px);
-  border-radius: 8px; box-shadow: 0 8px 0 rgba(0,0,0,.18), inset 0 4px 0 rgba(255,255,255,.25);
-  border: 3px solid #8a5e34;
-}
+.map-legend .leg { display: flex; align-items: center; gap: var(--s2); font-size: var(--t-xs); color: var(--ink-2); }
+.map-legend .sw { width: 13px; height: 13px; border-radius: 4px; border: 1px solid var(--line); flex: none; }
+.map-legend .sw.done { background: var(--pass-soft); border-color: var(--pass); }
+.map-legend .sw.now { background: var(--surface); border: 2px solid var(--accent); }
+.map-legend .sw.locked { background: var(--surface-2); border-style: dashed; }
 
-/* path / trail */
-.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+/* ---------- empty state ---------- */
+.map-empty { padding: var(--s7) var(--s5); text-align: center; color: var(--ink-2); }
+.map-empty img { width: 120px; margin-bottom: var(--s4); }
+.map-empty h2 { color: var(--ink); }
 
-/* decorative props */
-.prop { width: 100%; height: auto; display: block; overflow: visible; }
-.prop-wrap { position: absolute; z-index: 2; pointer-events: none; user-select: none; }
-.prop-wrap.sway { animation: sway 5s ease-in-out infinite; transform-origin: bottom center; }
-.prop-wrap.bobble { animation: float-y 4s ease-in-out infinite; }
-.prop .glow { filter: drop-shadow(0 0 8px rgba(255,255,255,.5)); }
-.prop .flame { animation: flameflick .5s ease-in-out infinite alternate; transform-origin: bottom center; }
-@keyframes sway { 0%,100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
-@keyframes flameflick { from { transform: scaleY(1) scaleX(1); } to { transform: scaleY(1.08) scaleX(.94); } }
-
-/* level nodes (model standing on the path) */
-.node { position: absolute; transform: translate(-50%, -82%); z-index: 6; text-align: center; cursor: pointer; width: 150px; }
-.node .model { transition: transform .14s ease; }
-.node .model svg { margin: 0 auto; }
-.node:hover .model { transform: translateY(-6px) scale(1.05); }
-.node.locked { cursor: not-allowed; }
-.node.locked:hover .model { transform: none; }
-.lvtag {
-  display: inline-flex; align-items: center; gap: 5px; background: #fff; border-radius: 999px;
-  padding: 5px 15px; font-weight: 800; font-style: italic; color: var(--ink);
-  box-shadow: 0 5px 0 rgba(0,0,0,.13); margin-top: -8px; font-size: .98rem; position: relative; z-index: 1;
+@media (max-width: 640px) {
+  .scene { padding: var(--s4) 0; border-radius: var(--r-m); }
+  .unit-head, .chain, .map-legend { padding-left: var(--s4); padding-right: var(--s4); }
+  .tile { width: 96px; height: 106px; }
+  .tile .t-sym { font-size: 1.75rem; }
+  .map-head .map-title-row { align-items: flex-start; }
 }
-.lvtag .ck { color: var(--good); font-style: normal; }
-.lvtag .lk { color: var(--ink-soft); font-style: normal; }
-.node.available .lvtag { color: var(--primary-dark); box-shadow: 0 5px 0 #e0a900, 0 0 0 3px var(--sun); }
-.node.locked .lvtag { background: #efeaf6; color: var(--ink-soft); }
-.play-bubble {
-  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
-  background: var(--primary); color: #fff; font-weight: 800; font-size: .72rem; letter-spacing: .5px;
-  padding: 4px 14px; border-radius: 999px; box-shadow: 0 4px 0 var(--primary-dark); white-space: nowrap; z-index: 2;
-  animation: pulse 1.3s ease-in-out infinite;
-}
-.score-pop {
-  position: absolute; top: 4px; right: 8px; background: var(--sun); color: #7a5b00; font-weight: 800;
-  font-size: .68rem; padding: 2px 9px; border-radius: 999px; box-shadow: 0 3px 0 #e0a900; z-index: 2;
-}
-.here-bubble {
-  position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
-  background: #fff; color: var(--ink); font-weight: 800; font-size: .72rem; padding: 4px 12px; border-radius: 12px;
-  box-shadow: var(--shadow-soft); white-space: nowrap; z-index: 2;
-}
-.here-bubble::after { content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-top-color: #fff; }
-
-/* summit / start banners */
-.banner { position: absolute; left: 50%; transform: translateX(-50%); z-index: 4; text-align: center; font-weight: 800; }
-.banner.summit { top: 16px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
-.banner.summit .flag { font-size: 2rem; display: block; }
-.banner.start { bottom: 14px; color: #2c6e1f; background: rgba(255,255,255,.8); padding: 6px 16px; border-radius: 999px; box-shadow: var(--shadow-soft); }

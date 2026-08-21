@@ -3,41 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChemQuest — Adventure Map</title>
+  <title>ChemQuest — Course Map</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/map.css" />
 </head>
 <body>
   <div class="topbar">
-    <div class="brand"><span class="logo">🧪</span> ChemQuest</div>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg>
+      </span>
+      ChemQuest
+    </div>
     <div class="nav-actions">
-      <span class="pill points">⭐ <b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
-      <span class="pill" id="navUser">🧑‍🎓 Explorer</span>
-      <a class="btn ghost" href="/inventory.html" data-i18n="nav.certificates">🎖️ Certificates</a>
-      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">🏆 Leaderboard</a>
+      <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
+      <span class="pill" id="navUser">Explorer</span>
+      <a class="btn ghost" href="/inventory.html" data-i18n="nav.certificates">Certificates</a>
+      <a class="btn ghost" href="/leaderboard.html" data-i18n="nav.leaderboard">Leaderboard</a>
+      <span id="langHost"></span>
       <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
     </div>
   </div>
 
   <div class="wrap">
     <div class="map-head">
-      <h1 data-i18n="dash.title">Your Chemistry Adventure 🗺️</h1>
+      <div class="map-title-row">
+        <div>
+          <h1 data-i18n="dash.title">Your chemistry course</h1>
+          <p class="map-sub" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</p>
+        </div>
+        <div class="map-progress">
+          <div class="mp-n" id="progPct">0%</div>
+          <div class="mp-l" data-i18n="dash.courseComplete">Course complete</div>
+        </div>
+      </div>
       <div class="progress-wrap">
         <div class="progress-bar"><span id="progFill"></span></div>
-        <div class="progress-label" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</div>
       </div>
     </div>
 
-    <div class="scene" id="scene" aria-label="Adventure map"></div>
+    <div class="scene" id="scene" aria-label="Course map"></div>
   </div>
 
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
-  <script src="/js/props.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

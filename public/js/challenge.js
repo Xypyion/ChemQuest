@@ -9,7 +9,6 @@
  */
 
 guard('student');
-addClouds();
 mountLangSwitch();
 
 const params = new URLSearchParams(location.search);
@@ -191,7 +190,7 @@ function simDocument(html) {
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  html,body{margin:0;padding:12px;font-family:'Rubik','Mitr',system-ui,sans-serif;color:#3a3357;background:#fff}
+  html,body{margin:0;padding:12px;font-family:'Anuphan',system-ui,sans-serif;color:#3a3357;background:#fff}
   img,canvas,svg,video{max-width:100%}
 </style></head><body>${html}</body></html>`;
 }

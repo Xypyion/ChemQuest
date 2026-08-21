@@ -7,7 +7,6 @@
 // is finished. Quizzes honour an optional countdown timer.
 
 guard('student');
-addClouds();
 mountLangSwitch();
 
 const params = new URLSearchParams(location.search);
