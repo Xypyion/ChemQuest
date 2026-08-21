@@ -30,7 +30,12 @@ on the welcome page.
 
 ## Data & backups
 - All state is in **`data/db.json`** — back this file up to preserve accounts, lessons,
-  progress, and posts.
+  progress, posts, challenges and challenge responses.
+- **Watch the file size.** Storyboard images, challenge question images and simulation HTML
+  are stored inline in `db.json` (images up to ~900 KB each, simulation snippets up to
+  ~400 KB). A level pack full of uploaded pictures will grow the file quickly; if it becomes
+  slow, move those images to `data/uploads/` or migrate the store (see
+  [HANDOFF.md](HANDOFF.md) §13).
 - Uploaded assignment files live in **`data/uploads/`** — back this up too.
 - Both are git-ignored, so they are **not** committed to the repository.
 - To reset to a clean install: stop the server, delete `data/db.json` (and optionally

@@ -3,9 +3,11 @@
 ChemQuest is a colorful, bilingual (ไทย / English) chemistry learning game built for
 **Suankularb Wittayalai Nonthaburi School (โรงเรียนสวนกุหลาบวิทยาลัย นนทบุรี)**.
 Students climb an adventure map through three biomes, learn from storyboards narrated by
-the mascot **Ruby**, take pre-tests and teacher-gated post-tests, submit assignments on a
-class feed, and earn certificates and leaderboard points. Teachers get a full console to
-build levels, control access, and manage students.
+the mascot **Ruby**, take pre-tests and teacher-gated post-tests, answer teacher-built
+**challenges** (including interactive simulations), submit assignments on a class feed, and
+earn certificates and leaderboard points. Teachers get a full console to build levels,
+decide whether the storyboard or the pre-test comes first, create and mark challenges,
+control access, and manage students.
 
 This folder contains the project's documentation.
 
