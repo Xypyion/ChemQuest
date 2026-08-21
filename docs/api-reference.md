@@ -154,8 +154,50 @@ All require a **teacher** token.
 | POST | `/api/teacher/challenges/:id/assign` | `{ mode, studentIds? }` | `mode` ∈ `all`/`some`. |
 | POST | `/api/teacher/challenges/:id/move` | `{ direction }` | Reorder (`up`/`down`). |
 | POST | `/api/teacher/challenges/categories` | `{ categories:[{id?,name,icon}] }` | Bulk save (add / rename / reorder / delete). Challenges in a deleted category become uncategorised. |
-| GET | `/api/teacher/challenges/:id/responses` | — | Every response, the parts still needing marks, and who has not handed in. |
+| GET | `/api/teacher/challenges/:id/responses` | — | The whole class set — see the shape below. |
 | POST | `/api/teacher/challenges/responses/:sid/grade` | `{ scores:{qid:n}, feedback? }` | Award the manual parts and finalise the score. |
+
+**Responses payload.** The question list is sent once, then every student's answer
+to **every** question — not only the ones still waiting for a mark:
+
+```jsonc
+{
+  "challenge": {
+    "id": "…", "title": "…", "icon": "🧩", "maxPoints": 21,
+    "questions": [{                  // flattened: a simulation contributes its sub-questions
+      "id": "…", "type": "mcq", "question": "…", "points": 2,
+      "guide": "…",                  // the teacher's private marking note
+      "expected": "a compound",      // the correct answer as text ('' for paragraphs)
+      "simTitle": "",                // the simulation this question sits under, if any
+      "choices": ["…"],              // mcq / multi
+      "table": { "columns": [], "rows": [] }   // table, with answer keys
+    }]
+  },
+  "assignedCount": 12,
+  "missing": [{ "id": "…", "name": "…", "email": "…", "avatar": "🧑‍🎓" }],
+  "responses": [{
+    "id": "…", "userId": "…", "userName": "…", "userEmail": "…", "userAvatar": "🧑‍🎓",
+    "status": "pending", "autoEarned": 11, "earned": null, "maxPoints": 21,
+    "feedback": "", "createdAt": "ISO", "gradedAt": null,
+    "answers": [{                    // same order as challenge.questions
+      "questionId": "…",
+      "raw": 0,                      // as the student sent it (number | number[] | string | {cell:value})
+      "text": "a compound",          // readable — table cells read "Solid / Shape: fixed"
+      "answered": true,
+      "auto": true,                  // false = only the teacher can mark it
+      "correct": true,               // null when not machine-markable
+      "earned": 2,                   // null while a manual part is unmarked
+      "max": 2,
+      "awarded": null,               // what the teacher gave a manual part
+      "needsMark": false
+    }]
+  }]
+}
+```
+
+Question **images are not included** — they can be megabytes of data-URI and the
+teacher wrote the question themselves. The CSV export in the teacher console is
+built in the browser from this payload, so no token ever appears in a URL.
 
 `POST /api/teacher/gradebook/import` also accepts `{ challengeId }` to create a
 gradebook column filled with each student's challenge points.

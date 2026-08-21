@@ -194,12 +194,26 @@ function norm(s, caseSensitive) {
   return caseSensitive ? v : v.toLowerCase();
 }
 
-/** Blank cells of a table question, as `${rowIndex}_${colIndex}` keys. */
+/**
+ * Blank cells of a table question, as `${rowIndex}_${colIndex}` keys, each with
+ * a human label built from the row's first fixed cell and the column header —
+ * so a teacher reads "Solid / Shape" instead of "0_1".
+ */
 function tableBlanks(q) {
+  const columns = (q.table && q.table.columns) || [];
   const out = [];
   ((q.table && q.table.rows) || []).forEach((row, r) => {
+    const rowLabel = (row.cells || []).find((c) => !c.blank && c.text);
     (row.cells || []).forEach((cell, c) => {
-      if (cell.blank) out.push({ key: r + '_' + c, answer: cell.answer });
+      if (!cell.blank) return;
+      const parts = [rowLabel ? rowLabel.text : '', columns[c] || ''].filter(Boolean);
+      out.push({
+        key: r + '_' + c,
+        answer: cell.answer,
+        label: parts.join(' / ') || `R${r + 1}C${c + 1}`,
+        row: r,
+        col: c,
+      });
     });
   });
   return out;
@@ -248,16 +262,37 @@ function gradeQuestion(q, answer) {
   }
 }
 
-/** A readable copy of the student's answer, for the teacher's grading queue. */
+/**
+ * A readable copy of the student's answer — used by the grading queue, the
+ * teacher's response list and the CSV export.
+ */
 function answerText(q, answer) {
+  if (answer == null || answer === '') return '';
+  if (q.type === 'mcq') {
+    const i = Number(answer);
+    return (q.choices || [])[i] == null ? '' : String(q.choices[i]);
+  }
   if (q.type === 'multi') {
     return (Array.isArray(answer) ? answer : []).map((i) => (q.choices || [])[i]).filter(Boolean).join(', ');
   }
   if (q.type === 'table') {
     const given = (answer && typeof answer === 'object') ? answer : {};
-    return tableBlanks(q).map((b) => b.key + ': ' + (given[b.key] || '—')).join(' | ');
+    return tableBlanks(q)
+      .map((b) => `${b.label}: ${given[b.key] || '—'}`)
+      .join(' | ');
   }
   return str(answer, MAX_TEXT);
+}
+
+/** The correct answer as text, so the teacher can compare at a glance. */
+function expectedText(q) {
+  if (q.type === 'mcq') return (q.choices || [])[q.correctIndex] || '';
+  if (q.type === 'multi') return (q.correctIndexes || []).map((i) => (q.choices || [])[i]).filter(Boolean).join(', ');
+  if (q.type === 'short') return (q.accepted || []).join(' / ');
+  if (q.type === 'table') {
+    return tableBlanks(q).filter((b) => b.answer).map((b) => `${b.label}: ${b.answer}`).join(' | ');
+  }
+  return ''; // written answers have no single right answer
 }
 
 /**
@@ -344,4 +379,6 @@ module.exports = {
   sanitizeQuestion,
   isAssignedTo,
   answerText,
+  expectedText,
+  tableBlanks,
 };

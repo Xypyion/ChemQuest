@@ -80,7 +80,11 @@ Implemented features:
   embeds teacher-authored HTML (or a URL) in a **sandboxed iframe** with its own
   sub-questions underneath. Auto-markable answers are scored on submit; the rest
   land in the challenge's **Responses** list for the teacher to mark, with
-  optional written feedback. Scores can be imported into the gradebook.
+  optional written feedback. The Responses list shows **every student's answer to
+  every question** (not just the score) — including what they picked, their filled
+  table redrawn as a grid, and the correct answer next to anything wrong — and
+  exports the class set to **CSV** (built client-side, UTF-8 BOM for Excel).
+  Scores can be imported into the gradebook.
 - **Peer + teacher rating**: teacher-defined **rating criteria** per level;
   students rate each other's works 1–5 stars per criterion; teacher rates too.
 - **Gradebook**: spreadsheet-style grid (rows = students, columns = grade items)

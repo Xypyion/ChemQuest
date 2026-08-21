@@ -702,6 +702,9 @@ const TChallenges = (() => {
   }
 
   /* ============================= RESPONSES ============================== */
+  /* The teacher reads the whole class set here: every question, every student's
+     actual answer (not just the score), the outcome, and a box to mark whatever
+     the machine could not. The same data exports to CSV. */
 
   async function openResponses(id) {
     try {
@@ -713,6 +716,7 @@ const TChallenges = (() => {
 
   function paintResponses() {
     const d = responses;
+    const toMark = d.responses.filter((r) => r.status !== 'graded').length;
     const cards = d.responses.length ? d.responses.map(responseCard).join('')
       : `<div class="t-card empty">${t('t.chNoResponses')}</div>`;
     const missing = d.missing.length
@@ -723,26 +727,88 @@ const TChallenges = (() => {
       <div class="t-head">
         <div><h1>${t('t.chResponsesTitle', { title: esc(d.challenge.title) })}</h1>
           <div class="sub">${t('t.chResponsesSub')}</div></div>
-        <button class="tbtn ghost" onclick="TC.backToList()">${t('common.back')}</button>
+        <div class="row" style="gap:8px">
+          <button class="tbtn ghost" onclick="TC.backToList()">${t('common.back')}</button>
+          <button class="tbtn blue" onclick="TC.downloadCsv()" ${d.responses.length ? '' : 'disabled'}>${t('t.chCsv')}</button>
+        </div>
+      </div>
+      <div class="t-card resp-summary">
+        <span>${t('t.chHandedIn', { n: d.responses.length, total: d.assignedCount })}</span>
+        <span>${t('t.chToMark', { n: toMark })}</span>
+        <span>${t('t.chOutOf', { n: d.challenge.maxPoints })}</span>
       </div>
       ${cards}
       ${missing}`;
     d.responses.forEach((r) => updateTotal(r.id));
   }
 
-  function responseCard(r) {
-    const items = r.manual.length ? r.manual.map((m, i) => `
-      <div class="grade-item" data-qid="${esc(m.questionId)}" data-max="${m.points}">
-        <div class="grade-q">${i + 1}. ${esc(m.question)} <span class="grade-qpts">(${t('t.outOf', { n: m.points })})</span></div>
-        <div class="grade-ans">${esc(m.answer) || `<span class="grade-blank">${t('t.gradeNoAnswer')}</span>`}</div>
-        ${m.guide ? `<div class="grade-guide">💡 ${esc(m.guide)}</div>` : ''}
+  /** The student's answer to one question, rendered for its type. */
+  function answerBlock(q, a) {
+    if (!a.answered) return `<div class="resp-answer blank">${t('t.chNoAnswer')}</div>`;
+
+    if (q.type === 'table') {
+      const cols = (q.table && q.table.columns) || [];
+      const rows = (q.table && q.table.rows) || [];
+      const given = (a.raw && typeof a.raw === 'object') ? a.raw : {};
+      return `
+        <div class="resp-table-wrap">
+          <table class="resp-table">
+            <thead><tr>${cols.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map((r, ri) => `<tr>${(r.cells || []).map((cell, ci) => {
+              if (!cell.blank) return `<td class="fixed">${esc(cell.text)}</td>`;
+              const val = given[ri + '_' + ci];
+              const key = cell.answer;
+              const state = !key ? '' : !val ? 'bad' : norm(val) === norm(key) ? 'good' : 'bad';
+              return `<td class="filled ${state}">${val ? esc(val) : '—'}${
+                state === 'bad' && key ? `<span class="resp-key">${esc(key)}</span>` : ''}</td>`;
+            }).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+    }
+
+    if (q.type === 'written') return `<div class="resp-answer long">${esc(a.text)}</div>`;
+    return `<div class="resp-answer">${esc(a.text)}</div>`;
+  }
+
+  function norm(s) { return String(s == null ? '' : s).trim().replace(/\s+/g, ' ').toLowerCase(); }
+
+  /** Outcome badge (or a score box when only the teacher can mark it). */
+  function outcomeBlock(q, a, sid) {
+    if (a.needsMark) {
+      return `
         <div class="grade-score">
           <label class="t-label" style="margin:0">${t('t.gradeScoreLabel')}</label>
-          <input type="number" class="grade-score-input" min="0" max="${m.points}" step="1"
-                 value="${m.awarded == null ? 0 : m.awarded}" oninput="TC.updateTotal('${r.id}')">
-          <span class="grade-outof">/ ${m.points}</span>
-        </div>
-      </div>`).join('') : `<div class="sub" style="color:var(--t-soft)">${t('t.chNothingToMark')}</div>`;
+          <input type="number" class="grade-score-input" min="0" max="${q.points}" step="1"
+                 value="${a.awarded == null ? 0 : a.awarded}" oninput="TC.updateTotal('${sid}')">
+          <span class="grade-outof">/ ${q.points}</span>
+        </div>`;
+    }
+    if (!a.auto) return `<span class="resp-tag manual">${t('t.chNotMarked')}</span>`;
+    if (a.correct === true) return `<span class="resp-tag good">${t('t.chCorrect')} · ${a.earned}/${a.max}</span>`;
+    if (a.earned > 0) return `<span class="resp-tag part">${t('t.chPartial')} · ${a.earned}/${a.max}</span>`;
+    return `<span class="resp-tag bad">${t('t.chWrong')} · 0/${a.max}</span>`;
+  }
+
+  function responseCard(r) {
+    const questions = responses.challenge.questions;
+    const items = questions.map((q, i) => {
+      const a = r.answers.find((x) => x.questionId === q.id) || { answered: false, auto: false, max: q.points };
+      const wrong = a.auto && a.correct !== true && q.expected;
+      return `
+        <div class="resp-q ${a.needsMark ? 'grade-item' : ''}" ${a.needsMark ? `data-qid="${esc(q.id)}" data-max="${q.points}"` : ''}>
+          <div class="resp-q-head">
+            <span class="resp-q-n">${t('t.chQn', { n: i + 1 })}</span>
+            <span class="resp-q-type">${TYPE_LABEL[q.type] ? TYPE_LABEL[q.type]() : q.type}</span>
+            ${q.simTitle ? `<span class="resp-q-sim">🧪 ${esc(q.simTitle)}</span>` : ''}
+            <span class="resp-q-pts">${q.points}</span>
+          </div>
+          <div class="resp-q-text">${esc(q.question)}</div>
+          ${answerBlock(q, a)}
+          ${wrong ? `<div class="resp-expected">${t('t.chExpected')}: <b>${esc(q.expected)}</b></div>` : ''}
+          ${a.needsMark && q.guide ? `<div class="grade-guide">💡 ${esc(q.guide)}</div>` : ''}
+          ${outcomeBlock(q, a, r.id)}
+        </div>`;
+    }).join('');
 
     return `
       <div class="t-card grade-card" data-sid="${r.id}" data-auto="${r.autoEarned}" data-max="${r.maxPoints}">
@@ -750,11 +816,12 @@ const TChallenges = (() => {
           <span class="av">${r.userAvatar}</span>
           <div>
             <div class="grade-name">${esc(r.userName)}</div>
-            <div class="sub" style="color:var(--t-soft)">${fmtWhen(r.createdAt)} · ${r.status === 'graded' ? t('t.chGradedTag') : t('t.chPendingTag')}</div>
+            <div class="sub" style="color:var(--t-soft)">${esc(r.userEmail || '')} · ${fmtWhen(r.createdAt)} ·
+              ${r.status === 'graded' ? t('t.chGradedTag') : t('t.chPendingTag')}</div>
           </div>
           <span class="grade-auto">${t('t.chAutoScore', { e: r.autoEarned, m: r.maxPoints })}</span>
         </div>
-        <div class="grade-items">${items}</div>
+        <div class="resp-list">${items}</div>
         <label class="t-label">${t('t.chFeedback')}</label>
         <input type="text" class="t-input grade-feedback" value="${esc(r.feedback)}" placeholder="${esc(t('t.chFeedbackPh'))}">
         <div class="grade-foot">
@@ -803,6 +870,77 @@ const TChallenges = (() => {
 
   function backToList() { responses = null; mode = 'list'; render(); }
 
+  /* ------------------------------ CSV export ----------------------------- */
+
+  /**
+   * One CSV field. Quotes everything (Thai text, commas, newlines all survive)
+   * and defuses anything a spreadsheet would treat as a formula.
+   */
+  function csvCell(v) {
+    let s = v == null ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  /**
+   * Download the class set as a spreadsheet: one row per student, one column
+   * per question (plus its points), and rows for students who never handed in.
+   * Built in the browser so the download carries no token in a URL.
+   */
+  function downloadCsv() {
+    const d = responses;
+    const questions = d.challenge.questions;
+
+    const header = [t('t.csvStudent'), t('t.csvEmail'), t('t.csvSubmitted'), t('t.csvStatus'),
+      t('t.csvScore'), t('t.csvMax')];
+    questions.forEach((q, i) => {
+      header.push(`Q${i + 1}. ${q.question}`);
+      header.push(`Q${i + 1} ${t('t.csvPts')}`);
+    });
+    header.push(t('t.csvFeedback'));
+
+    const rows = d.responses.map((r) => {
+      const row = [
+        r.userName,
+        r.userEmail || '',
+        fmtWhen(r.createdAt),
+        r.status === 'graded' ? t('t.chGradedTag') : t('t.chPendingTag'),
+        r.status === 'graded' ? r.earned : r.autoEarned,
+        r.maxPoints,
+      ];
+      questions.forEach((q) => {
+        const a = r.answers.find((x) => x.questionId === q.id);
+        row.push(a && a.answered ? a.text : '');
+        // A part the teacher has not marked yet has no score to report.
+        row.push(!a ? '' : a.needsMark && a.awarded == null ? '' : a.earned);
+      });
+      row.push(r.feedback || '');
+      return row;
+    });
+
+    // Students who never handed in still get a row, so the sheet covers the class.
+    d.missing.forEach((m) => {
+      const row = [m.name, m.email || '', '', t('t.csvNotHandedIn'), '', d.challenge.maxPoints];
+      questions.forEach(() => { row.push(''); row.push(''); });
+      row.push('');
+      rows.push(row);
+    });
+
+    const csv = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
+    // The BOM makes Excel read it as UTF-8, so Thai answers are not mojibake.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const name = (d.challenge.title || 'challenge').replace(/[^\w฀-๿ .-]+/g, '_').slice(0, 60);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name} - responses.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(t('t.chCsvDone'), 'good');
+  }
+
   /* ------------------------------- exports ------------------------------ */
 
   const api = {
@@ -816,7 +954,7 @@ const TChallenges = (() => {
     setSimMode, toggleSimPreview, removeImage, uploadImage,
     cancelEdit, save,
     // responses
-    openResponses, updateTotal, saveGrade, backToList,
+    openResponses, updateTotal, saveGrade, backToList, downloadCsv,
   };
   window.TC = api;
 

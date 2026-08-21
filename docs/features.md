@@ -95,8 +95,14 @@ finished.
   a fixed label or a blank with an answer key), and **simulation** — paste the HTML
   of an interactive model (or a URL) and add the questions that go underneath it.
   Every question takes an image, its own points, and a private marking guide.
-- **Responses**: auto-marked answers arrive already scored; the teacher awards the
-  written parts, adds optional feedback, and can see who has not handed in.
+- **Responses**: the teacher reads the **whole class set** — every question, every
+  student's actual answer, not just the score. Multiple-choice shows what they picked,
+  a filled table is redrawn as a grid with right/wrong cells, and the correct answer is
+  shown beside anything they got wrong. Auto-marked answers arrive already scored; the
+  teacher awards the written parts, adds optional feedback, and sees who has not handed in.
+- **⬇ Download CSV** — the class set as a spreadsheet: one row per student, one column
+  per question plus its points, and a row for every student who never handed in. Written
+  with a UTF-8 byte-order mark so Excel opens Thai answers correctly.
 - Challenge scores can be imported into the **gradebook** as a column.
 
 ### Student management

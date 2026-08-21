@@ -72,6 +72,9 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   **simulation**), an image on any question, and your own points per question. A simulation
   takes the **HTML of an interactive model** (or a URL) and shows its questions underneath.
   Machine-markable answers arrive already scored; you award the rest and add feedback.
+- 📥 **Read every answer** — the Responses list shows what each student actually answered,
+  question by question, with their filled tables redrawn as a grid and the correct answer
+  beside anything they got wrong. One click exports the whole class set to **CSV**.
 - 📒 **Assignment board** — post the assignment for any level, and see **every student post,
   file, comment, and private question** in one place.
 - 🔑 **Reset a student's password** — set a fresh password for any student from the Students tab.

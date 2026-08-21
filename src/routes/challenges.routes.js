@@ -304,7 +304,49 @@ teacherRouter.post('/categories', (req, res) => {
 
 /* ------------------------- responses & grading -------------------------- */
 
-/** GET /api/teacher/challenges/:id/responses — who answered, and what. */
+/**
+ * The question list a teacher sees next to the responses: prompt, type, points,
+ * the marking guide and the correct answer. Images are left out — they can be
+ * megabytes of data-URI and the teacher wrote the question themselves.
+ */
+function teacherQuestionView(q, simTitle) {
+  const view = {
+    id: q.id,
+    type: q.type,
+    question: q.question,
+    points: q.points || 0,
+    guide: q.explanation || '',
+    expected: ch.expectedText(q),
+    simTitle: simTitle || '',   // the simulation this question sits under, if any
+  };
+  if (q.type === 'mcq' || q.type === 'multi') view.choices = q.choices || [];
+  if (q.type === 'table') {
+    view.table = {
+      columns: (q.table && q.table.columns) || [],
+      rows: ((q.table && q.table.rows) || []).map((r) => ({
+        cells: (r.cells || []).map((c) => ({ text: c.text, blank: !!c.blank, answer: c.answer })),
+      })),
+    };
+  }
+  return view;
+}
+
+/** Every scorable question in order, each tagged with its parent simulation. */
+function teacherQuestionList(c) {
+  const out = [];
+  (c.questions || []).forEach((q) => {
+    if (q.type === 'simulation') (q.sub || []).forEach((sq) => out.push(teacherQuestionView(sq, q.question || 'Simulation')));
+    else out.push(teacherQuestionView(q, ''));
+  });
+  return out;
+}
+
+/**
+ * GET /api/teacher/challenges/:id/responses
+ * Everything the teacher needs to read a whole class set: the question list
+ * once, then every student's answer to every question — not only the ones still
+ * waiting for a mark — plus the per-question outcome and who has not handed in.
+ */
 teacherRouter.get('/:id/responses', (req, res) => {
   const c = db.findById('challenges', req.params.id);
   if (!c) return res.status(404).json({ error: 'Challenge not found.' });
@@ -312,35 +354,57 @@ teacherRouter.get('/:id/responses', (req, res) => {
   const assigned = students.filter((u) => ch.isAssignedTo(c, u));
   const subs = db.filter('challengeSubmissions', (s) => s.challengeId === c.id)
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const flat = ch.flatQuestions(c);
+  const byId = (id) => students.find((u) => u.id === id);
 
   res.json({
-    challenge: { id: c.id, title: c.title, icon: c.icon, maxPoints: ch.maxPoints(c) },
+    challenge: {
+      id: c.id,
+      title: c.title,
+      icon: c.icon,
+      maxPoints: ch.maxPoints(c),
+      questions: teacherQuestionList(c),
+    },
     assignedCount: assigned.length,
     missing: assigned
       .filter((u) => !subs.some((s) => s.userId === u.id))
-      .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar || '🧑‍🎓' })),
-    responses: subs.map((s) => ({
-      id: s.id,
-      userId: s.userId,
-      userName: s.userName,
-      userAvatar: s.userAvatar || '🧑‍🎓',
-      status: s.status,
-      autoEarned: s.autoEarned,
-      earned: s.earned,
-      maxPoints: s.maxPoints,
-      feedback: s.feedback || '',
-      createdAt: s.createdAt,
-      gradedAt: s.gradedAt || null,
-      manual: (s.manual || []).map((m) => ({
-        questionId: m.questionId,
-        question: m.question,
-        type: m.type,
-        points: m.points,
-        guide: m.guide || '',
-        answer: m.answer || '',
-        awarded: m.awarded,
-      })),
-    })),
+      .map((u) => ({ id: u.id, name: u.name, email: u.email, avatar: u.avatar || '🧑‍🎓' })),
+    responses: subs.map((s) => {
+      const user = byId(s.userId);
+      return {
+        id: s.id,
+        userId: s.userId,
+        userName: s.userName,
+        userEmail: user ? user.email : '',
+        userAvatar: s.userAvatar || '🧑‍🎓',
+        status: s.status,
+        autoEarned: s.autoEarned,
+        earned: s.earned,
+        maxPoints: s.maxPoints,
+        feedback: s.feedback || '',
+        createdAt: s.createdAt,
+        gradedAt: s.gradedAt || null,
+        // The student's answer to EVERY question, in the same order as
+        // challenge.questions — raw (for rendering) and as readable text.
+        answers: flat.map((q) => {
+          const raw = (s.answers || {})[q.id];
+          const result = (s.results || []).find((r) => r.questionId === q.id) || {};
+          const manual = (s.manual || []).find((m) => m.questionId === q.id);
+          return {
+            questionId: q.id,
+            raw: raw === undefined ? null : raw,
+            text: ch.answerText(q, raw),
+            answered: raw !== undefined && raw !== null && raw !== '',
+            auto: !!result.auto,
+            correct: result.correct === undefined ? null : result.correct,
+            earned: manual && manual.awarded == null ? null : (result.earned || 0),
+            max: result.max || 0,
+            awarded: manual ? manual.awarded : null,
+            needsMark: !!manual,
+          };
+        }),
+      };
+    }),
   });
 });
 
