@@ -59,10 +59,7 @@
 .path-svg { position: absolute; inset: 0; display: block; width: 100%; }
 .path-nodes { position: absolute; inset: 0; }
 
-/* ---------- ground ---------- */
-/* Progress, not hue, separates the units — so green stays the one dominant
-   colour: ground already walked reads richer, the unit in play is lightest,
-   everything still ahead recedes into the page. */
+/* ---------- the board ---------- */
 /* The board is one painted field. Bands are light and shade in the same
    enamel blue, never different colours — on this map colour means state. */
 .sky  { fill: var(--board); }
@@ -211,7 +208,7 @@
 .prop { opacity: .92; }
 /* on a phone there are no margins, so scenery sits behind the trail column
    and has to give way to it */
-.prop.is-behind { opacity: .38; }
+.prop.is-behind { opacity: .58; }
 
 .bub { animation: bubble-rise 3.4s ease-in-out infinite; }
 .bub.b2 { animation-duration: 4.2s; animation-delay: .7s; }
@@ -287,10 +284,9 @@
   .node-n { font-size: 1.25rem; }
   .node.is-now .node-face { width: 78px; height: 86px; }
   .node.is-now .node-n { font-size: 1.6rem; }
-  .now-ruby, .now-ruby .ruby { width: 84px; }
+  .now-ruby, .now-ruby .ruby { width: 72px; }
   .now-marker.to-left  { margin-left: -38px; }
   .now-marker.to-right { margin-left:  38px; }
-  .now-ruby, .now-ruby .ruby { width: 72px; }
   .trail-under { stroke-width: 22; }
   .trail, .trail-walked { stroke-width: 17; }
   .map-legend { gap: var(--s4); }

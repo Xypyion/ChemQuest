@@ -115,10 +115,13 @@ function pBurner(tint) {
 /* ---- what each place is made of ---- */
 const PLACES = {
   plain: {
-    /* never --gold: gold means "do this next", and scenery is not an action */
+    /* Never --gold: gold means "do this next", and scenery is not an action.
+       But the first place a student sees also cannot go all-cyan, or the
+       board slides back toward the cool clinical register this palette
+       exists to escape. Warm coral is unmistakably not Ruby's red. */
     liquid: '#3fc4d8',
-    tint: '#54cfc0',
-    dark: '#1f8fa3',
+    tint: '#f0906b',
+    dark: '#c05f3f',
     props: [pFlask, pBeaker, pTubes, pBurner, pMolecule],
   },
   mountain: {
@@ -166,7 +169,7 @@ function sceneryFor(terrain, unitIndex, band, w, colLeft, colRight) {
 
   const height = band.bottom - band.top;
   const perMargin = behind
-    ? Math.max(1, Math.round(height / 300))
+    ? Math.max(2, Math.round(height / 210))
     : Math.max(1, Math.min(4, Math.round(height / 155)));
   const out = [];
 

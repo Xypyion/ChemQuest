@@ -334,10 +334,15 @@ textarea { resize: vertical; min-height: 90px; }
 /* Stats are read, not pressed, so in the topbar they drop the outline and the
    lip that every pressable object carries. Four identically-shaped outlined
    pills in a row is why the pills read as navigation. */
+/* No outline and no lip, because these are read rather than pressed — but
+   they are the two numbers that measure the player, so they keep full ink
+   and sit a step above the identity text beside them, never below it. */
 .nav-stats .pill {
   border: none; box-shadow: none;
-  padding: 5px 12px; font-size: var(--t-xs);
+  padding: 5px 12px; font-size: var(--t-s); font-weight: 700;
+  color: var(--ink);
 }
+.nav-stats .pill b { font-variant-numeric: tabular-nums; }
 
 /* The five destinations share one painted plaque, so navigation reads as a
    single control instead of five buttons competing with the stat pills. The
