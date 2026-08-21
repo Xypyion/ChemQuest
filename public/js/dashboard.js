@@ -1,4 +1,4 @@
-/* Student course map — a trail through green ground.
+/* Student course map — a painted trail across the enamel board.
  *
  * Two layers that must stay in step:
  *   1. one <svg> holding the ground, the unit bands and the trail, sized to
@@ -204,8 +204,15 @@ function buildMap() {
   if (window.ResizeObserver) new ResizeObserver(redraw).observe(map);
   window.addEventListener('resize', redraw);
 
+  /* Bring the current level into view only when it is genuinely off screen.
+     An unconditional scrollIntoView pulls the title and progress bar out of
+     the first viewport 300ms after load, which is the opposite of helpful. */
   const now = map.querySelector('.node.is-now');
-  if (now) setTimeout(() => now.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  if (now) setTimeout(() => {
+    const r = now.getBoundingClientRect();
+    const off = r.top < 72 || r.bottom > window.innerHeight - 24;
+    if (off) now.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 300);
 }
 
 /** The nodes themselves — written once, then only repositioned. */
@@ -317,15 +324,14 @@ function layout(groups, currentIdx, lift) {
 }
 
 /**
- * The ground and the trail.
+ * The board and the trail.
  *
- * Each unit is a hill layer with a curved top edge rather than a rounded box —
- * rectangles here read as empty placeholder blocks, a horizon reads as a place.
- * The layers stack downward, so later units sit "behind" earlier ones.
+ * Each unit is a painted band with a curved top edge rather than a rounded
+ * box — a rectangle reads as an empty placeholder, a horizon reads as a
+ * place. The bands stack downward, so later units sit behind earlier ones.
  *
- * Progress, not hue, separates them, which keeps green the one dominant
- * colour: ground already walked reads richer, the unit in play is lightest,
- * everything still ahead recedes.
+ * They are separated by light and shade in the one enamel blue, never by
+ * different colours: on this map colour means state, and nothing else.
  */
 function drawGround(groups, pts, w, h, currentIdx) {
   const svg = document.getElementById('pathSvg');

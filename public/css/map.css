@@ -1,5 +1,5 @@
-/* Course map — a trail winding through green ground.
-   The SVG under .path-nodes draws the ground, the unit bands and the trail;
+/* Course map — a painted trail across the enamel board.
+   The SVG under .path-nodes draws the board, the unit bands and the trail;
    everything pressable is a real button positioned on top of it. */
 
 .map-head { margin: var(--s5) 0 var(--s4); }
@@ -10,7 +10,13 @@
 .map-head h1 { margin: 0; font-size: var(--t-2xl); }
 .map-head .map-sub { color: var(--ink-2); font-size: var(--t-s); margin-top: var(--s1); }
 
+/* Right-aligned only while it actually sits to the right of the title; once
+   the row wraps it shrinks to its own label width and the figure ends up
+   aligned to nothing. */
 .map-progress { flex: none; text-align: right; }
+@media (max-width: 720px) {
+  .map-progress { text-align: left; }
+}
 .map-progress .mp-n {
   font-weight: 700; font-size: var(--t-xl); color: var(--ink);
   font-variant-numeric: tabular-nums; letter-spacing: -.03em; line-height: 1;
@@ -58,10 +64,10 @@
    colour: ground already walked reads richer, the unit in play is lightest,
    everything still ahead recedes into the page. */
 /* The board is one painted field. Bands are light and shade in the same
-   enamel blue, not different colours — colour on this map means state. */
+   enamel blue, never different colours — on this map colour means state. */
 .sky  { fill: var(--board); }
 .hill { fill: var(--board-lit); }
-.hill.is-cleared { fill: #2c5490; }  /* ground already walked, catching light */
+.hill.is-cleared { fill: var(--board-walked); }
 .hill.is-now     { fill: var(--board-lit); }
 .hill.is-ahead   { fill: var(--board-deep); }
 
@@ -71,12 +77,14 @@
   stroke-linecap: round; stroke-linejoin: round;
 }
 .trail {
-  fill: none; stroke: #f0e4c6; stroke-width: 20;
+  fill: none; stroke: var(--trail); stroke-width: 20;
   stroke-linecap: round; stroke-linejoin: round;
 }
-/* the stretch already walked, drawn over the top and clipped by dasharray */
+/* The stretch already walked, drawn over the top and clipped by dasharray.
+   Green, not gold: this path is FINISHED, and gold has to stay reserved for
+   the single next thing to do or it stops meaning anything. */
 .trail-walked {
-  fill: none; stroke: var(--gold); stroke-width: 20;
+  fill: none; stroke: var(--green); stroke-width: 20;
   stroke-linecap: round; stroke-linejoin: round;
   transition: stroke-dasharray .8s cubic-bezier(.2, .8, .3, 1);
 }
@@ -201,6 +209,9 @@
 /* Props sit in the margins either side of the trail. They fill the page but
    must never compete with the thing you press, hence the opacity. */
 .prop { opacity: .92; }
+/* on a phone there are no margins, so scenery sits behind the trail column
+   and has to give way to it */
+.prop.is-behind { opacity: .38; }
 
 .bub { animation: bubble-rise 3.4s ease-in-out infinite; }
 .bub.b2 { animation-duration: 4.2s; animation-delay: .7s; }
@@ -229,8 +240,9 @@
    the neighbouring level or its title. */
 .now-marker.to-left  { transform: translate(-100%, -40%); margin-left: -52px; }
 .now-marker.to-right { transform: translate(0, -40%);      margin-left:  52px; }
-.now-ruby { width: 104px; line-height: 0; }
-.now-ruby .ruby { width: 104px; height: auto; }
+.now-ruby, .now-ruby .ruby { width: 104px; }
+.now-ruby { line-height: 0; }
+.now-ruby .ruby { height: auto; }
 .now-flag {
   background: var(--ruby-strong); color: #fff;
   font-size: var(--t-xs); font-weight: 700; letter-spacing: .02em;
@@ -242,16 +254,21 @@
 .map-legend {
   display: flex; gap: var(--s5); flex-wrap: wrap; justify-content: center;
   margin: 0 var(--s4); padding-top: var(--s4);
-  border-top: 2px solid rgba(255, 246, 228, .25);
+  border-top: 2px solid var(--board-rule);
 }
 .map-legend .leg {
   display: inline-flex; align-items: center; gap: var(--s2);
   font-size: var(--t-xs); font-weight: 600; color: var(--board-ink);
 }
-.map-legend .sw { width: 16px; height: 16px; border-radius: 50%; flex: none; }
-.map-legend .sw.done   { background: var(--green); border: 2px solid var(--outline); }
-.map-legend .sw.now    { background: var(--gold); border: 2px solid var(--outline); }
-.map-legend .sw.locked { background: var(--locked); border: 2px solid var(--outline); }
+/* hexagons, because that is what a level is — a circular key taught the
+   wrong shape */
+.map-legend .sw {
+  width: 16px; height: 18px; flex: none;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.map-legend .sw.done   { background: var(--green); }
+.map-legend .sw.now    { background: var(--gold); }
+.map-legend .sw.locked { background: var(--locked); }
 
 /* ---------- empty state ---------- */
 .map-empty { text-align: center; padding: var(--s7) var(--s4); }

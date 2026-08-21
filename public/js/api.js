@@ -114,6 +114,22 @@ function mountNav() {
       <button class="btn ghost nav-out" onclick="logout()" data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</button>
     </div>`;
 
+  /* On a phone the five destinations scroll sideways. The trailing fade is
+     the only sign that they do, so it has to disappear once there is nothing
+     left to scroll to — a permanent fade would just look like a bug. The
+     current page is also scrolled into view, since arriving somewhere and
+     not being able to see which tab you are on is worse than no marker. */
+  const strip = host.querySelector('.nav-links');
+  if (strip) {
+    const atEnd = () => strip.classList.toggle(
+      'is-end', strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2);
+    strip.addEventListener('scroll', atEnd, { passive: true });
+    window.addEventListener('resize', atEnd);
+    const mark = strip.querySelector('.is-current');
+    if (mark) mark.scrollIntoView({ block: 'nearest', inline: 'center' });
+    atEnd();
+  }
+
   // every hub page shows who is signed in; pages that know better overwrite it
   const user = API.user();
   const badge = document.getElementById('navUser');

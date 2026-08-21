@@ -38,6 +38,9 @@
   --board-deep: #16305a;  /* a band in shade */
   --board-ink: #fff6e4;   /* 10.5:1 on the board */
   --board-ink-2: #a8bcdc; /* secondary, tinted from the hue — 5.8:1 */
+  --board-walked: #2c5490; /* board a student has already crossed */
+  --board-rule: rgba(255, 246, 228, .25);
+  --trail: #f0e4c6;       /* the painted route itself */
 
   /* ---------- text ---------- */
   --ink: #14243f;         /* primary      14.4:1 on cream */
@@ -322,9 +325,19 @@ textarea { resize: vertical; min-height: 90px; }
 .brand .logo svg { display: block; }
 .nav-actions {
   display: flex; align-items: center; flex-wrap: wrap;
-  gap: var(--s2) var(--s4);   /* the wider gap separates the three groups */
+  /* 8px inside a group against 32px between them: at 16px the groups read as
+     one undifferentiated row of pills, which is what "scuffed" meant */
+  gap: var(--s3) var(--s6);
 }
 .nav-stats, .nav-account { display: flex; align-items: center; gap: var(--s2); }
+
+/* Stats are read, not pressed, so in the topbar they drop the outline and the
+   lip that every pressable object carries. Four identically-shaped outlined
+   pills in a row is why the pills read as navigation. */
+.nav-stats .pill {
+  border: none; box-shadow: none;
+  padding: 5px 12px; font-size: var(--t-xs);
+}
 
 /* The five destinations share one painted plaque, so navigation reads as a
    single control instead of five buttons competing with the stat pills. The
@@ -341,6 +354,20 @@ textarea { resize: vertical; min-height: 90px; }
   scrollbar-width: none;
 }
 .nav-links::-webkit-scrollbar { display: none; }
+/* Below the breakpoint the five destinations cannot fit, and a silent
+   overflow just truncates Leaderboard. Fade the trailing edge so the row
+   visibly continues, and let it take the full width of the bar. */
+@media (max-width: 640px) {
+  .nav-actions { gap: var(--s2) var(--s4); width: 100%; }
+  .nav-links {
+    order: 3; width: 100%;
+    -webkit-mask-image: linear-gradient(to right, #000 82%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 82%, transparent 100%);
+  }
+  .nav-links:only-child, .nav-links.is-end {
+    -webkit-mask-image: none; mask-image: none;
+  }
+}
 .nav-link {
   flex: none;
   font-family: var(--font); font-size: var(--t-s); font-weight: 700;
@@ -350,8 +377,12 @@ textarea { resize: vertical; min-height: 90px; }
   transition: background .12s ease, color .12s ease;
 }
 .nav-link:hover { background: var(--gold-soft); color: var(--ink); }
-.nav-link.is-current { background: var(--gold); color: var(--ink); cursor: default; }
-.nav-link.is-current:hover { background: var(--gold); }
+/* Filled navy, NOT gold. Gold on this product means "the next thing to do";
+   the page you are already on is the opposite of that. This also gives the
+   topbar one selected-state language instead of two, since the language
+   switch marks its choice the same way. */
+.nav-link.is-current { background: var(--ink); color: var(--ground); cursor: default; }
+.nav-link.is-current:hover { background: var(--ink); }
 
 /* who you are is information, not a control — it should not look pressable */
 .nav-who {

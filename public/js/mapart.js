@@ -115,9 +115,10 @@ function pBurner(tint) {
 /* ---- what each place is made of ---- */
 const PLACES = {
   plain: {
+    /* never --gold: gold means "do this next", and scenery is not an action */
     liquid: '#3fc4d8',
-    tint: '#f7bf2e',
-    dark: '#c8930f',
+    tint: '#54cfc0',
+    dark: '#1f8fa3',
     props: [pFlask, pBeaker, pTubes, pBurner, pMolecule],
   },
   mountain: {
@@ -156,10 +157,17 @@ function sceneryFor(terrain, unitIndex, band, w, colLeft, colRight) {
     { x0: colRight + 26, x1: w - gutter },
   ].filter((m) => m.x1 - m.x0 > 74);
 
-  if (!margins.length) return '';
+  /* On a phone the trail fills the width and there are no margins at all.
+     Dropping the scenery there leaves a bare navy board on the device most
+     of the class actually uses, so it moves behind the column instead, at
+     a lower opacity and larger spacing so it never fights the trail. */
+  const behind = !margins.length;
+  if (behind) margins.push({ x0: gutter, x1: w - gutter });
 
   const height = band.bottom - band.top;
-  const perMargin = Math.max(1, Math.min(4, Math.round(height / 155)));
+  const perMargin = behind
+    ? Math.max(1, Math.round(height / 300))
+    : Math.max(1, Math.min(4, Math.round(height / 155)));
   const out = [];
 
   margins.forEach((m, mi) => {
@@ -183,7 +191,7 @@ function sceneryFor(terrain, unitIndex, band, w, colLeft, colRight) {
       const tilt = (r3 - 0.5) * 9;
 
       out.push(`
-        <g class="prop" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})
+        <g class="prop${behind ? ' is-behind' : ''}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})
                                    scale(${(size / 100).toFixed(3)})
                                    rotate(${tilt.toFixed(1)} 50 50)">
           ${draw(draw === pCrystal ? place.tint : (draw === pMolecule || draw === pAtom || draw === pBurner ? place.tint : place.liquid), place.dark)}

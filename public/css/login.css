@@ -44,7 +44,7 @@ body.login-page {
 .login-art { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .login-mascot {
   width: min(260px, 70%); height: auto; display: block;
-  filter: drop-shadow(0 14px 20px rgba(19, 32, 29, .18));
+  filter: drop-shadow(0 14px 20px rgba(18, 35, 63, .18));
   animation: login-bob 3.8s ease-in-out infinite;
 }
 @keyframes login-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
