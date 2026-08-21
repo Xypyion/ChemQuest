@@ -63,6 +63,7 @@ function setView(v) {
   view = v; draft = null; boardLessonId = null; preview = null;
   if (window.TChallenges) TChallenges.reset();
   if (window.TQuests) TQuests.reset();
+  if (window.TBattles) TBattles.reset();
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
   document.getElementById('side').classList.remove('open');
   render();
@@ -74,6 +75,7 @@ function render() {
   if (view === 'preview') return renderPreviewPicker();
   if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
+  if (view === 'battles') return TBattles.render(viewEl);
   if (view === 'grading') return renderGrading();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();

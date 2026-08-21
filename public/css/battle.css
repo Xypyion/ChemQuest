@@ -1,0 +1,96 @@
+/* =========================================================================
+   Coin Battles — lobby, the VS header and the win/lose result.
+   Question cards come from challenge.css; the wallet and history cards from
+   quests.css. Only what is unique to a battle lives here.
+   ========================================================================= */
+
+.b-section { margin: 22px 0; }
+.b-section > h3 { margin: 0 0 10px; font-size: 1.05rem; }
+.b-stake-hint { margin: 8px 2px 0; font-size: .88rem; }
+
+/* ---------- difficulty picker ---------- */
+.b-diffs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+.b-diff {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  padding: 14px 16px; border-radius: var(--radius); cursor: pointer;
+  font-family: var(--font); text-align: left; color: var(--ink);
+  background: #fff; border: 3px solid #fff; box-shadow: var(--shadow-soft);
+  transition: transform .12s, border-color .12s;
+}
+.b-diff:hover:not(:disabled) { transform: translateY(-3px); }
+.b-diff.on { border-color: var(--primary); }
+.b-diff.easy.on { border-color: var(--grass); }
+.b-diff.medium.on { border-color: var(--secondary); }
+.b-diff.hard.on { border-color: var(--ruby); }
+.b-diff:disabled, .b-diff.empty { opacity: .55; cursor: not-allowed; box-shadow: none; }
+.b-diff-name { font-weight: 800; font-size: 1.05rem; letter-spacing: .02em; }
+.b-diff-stake { font-weight: 800; color: var(--primary-dark); }
+.b-diff-meta { font-size: .8rem; color: var(--ink-soft); }
+
+/* ---------- opponents ---------- */
+.b-opps { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+
+.b-opp {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-soft);
+  border: 3px solid #fff;
+}
+.b-opp.locked { opacity: .6; background: #f6f4fb; border-color: #f6f4fb; box-shadow: none; }
+.b-opp-face {
+  font-size: 1.7rem; width: 48px; height: 48px; flex: none; border-radius: 50%;
+  display: grid; place-items: center; background: #f2f7ff;
+}
+.b-opp-main { flex: 1; min-width: 0; }
+.b-opp-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-opp-coins { font-size: .86rem; color: var(--ink-soft); font-weight: 700; }
+.b-opp-why { font-size: .76rem; color: var(--ink-soft); margin-top: 2px; }
+.b-go { padding: 8px 16px; font-size: .9rem; }
+.b-locked { font-size: 1.2rem; }
+
+/* ---------- the fight ---------- */
+.b-fight { max-width: 760px; margin: 0 auto; }
+
+.b-vs {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #fff3e6, #ffe9f2);
+  border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-soft);
+}
+.b-vs-side { text-align: center; min-width: 0; }
+.b-vs-face {
+  font-size: 2.1rem; width: 62px; height: 62px; margin: 0 auto 4px; border-radius: 50%;
+  display: grid; place-items: center; background: #fff;
+}
+.b-vs-name { font-weight: 800; font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-vs-mid { text-align: center; }
+.b-vs-word { font-weight: 800; font-size: 1.4rem; color: var(--ruby); letter-spacing: .06em; }
+.b-vs-stake { font-weight: 800; color: var(--primary-dark); }
+.b-timer { font-weight: 800; font-size: .95rem; margin-top: 4px; color: var(--ink-soft); }
+.b-timer.low { color: var(--bad); animation: pulse 1s ease-in-out infinite; }
+.b-fight-sub { text-align: center; margin: 10px 0 16px; }
+
+/* ---------- result ---------- */
+.b-result {
+  max-width: 700px; margin: 0 auto; text-align: center;
+  background: #fff; border-radius: var(--radius); padding: 26px 22px;
+  box-shadow: var(--shadow-soft); border: 4px solid #fff;
+}
+.b-result.win { border-color: var(--grass); }
+.b-result.lose { border-color: #e7dff3; }
+.b-result h2 { margin: 6px 0 4px; }
+.b-result-coins { font-weight: 800; font-size: 1.05rem; margin: 0 0 6px; }
+.b-late { color: var(--bad); font-weight: 700; font-size: .9rem; margin: 0 0 6px; }
+.b-result-wallet {
+  display: inline-block; font-size: 1.15rem; font-weight: 800;
+  background: #fff8e6; border-radius: 999px; padding: 6px 18px; margin-bottom: 14px;
+}
+.b-result .ch-result { text-align: left; margin: 14px 0; }
+.b-result-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* a losing entry in the history list */
+.q-history-list .q-h-coins.down { color: var(--bad); }
+
+@media (max-width: 560px) {
+  .b-vs { grid-template-columns: 1fr; gap: 6px; }
+  .b-vs-word { font-size: 1.1rem; }
+}
