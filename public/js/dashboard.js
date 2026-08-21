@@ -36,6 +36,7 @@ async function init() {
     const data = await API.get('/api/lessons');
     LESSONS = data.lessons;
     document.getElementById('navPoints').textContent = data.points || 0;
+    refreshNavCoins();
     const done = LESSONS.filter((l) => l.completed).length;
     const pct = LESSONS.length ? Math.round((done / LESSONS.length) * 100) : 0;
     document.getElementById('progFill').style.width = pct + '%';

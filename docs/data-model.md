@@ -1,9 +1,57 @@
 # Data Model
 
-All state lives in `data/db.json`. Collections: `users`, `lessons`, `posts`,
-`submissions`, `gradebook`, `challenges`, `challengeCategories`,
-`challengeSubmissions`. Uploaded files live in `data/uploads/` and are referenced
+All state lives in `data/db.json` (or Postgres when `DATABASE_URL` is set).
+Collections: `users`, `lessons`, `posts`, `submissions`, `gradebook`,
+`challenges`, `challengeCategories`, `challengeSubmissions`, `quests`,
+`questSubmissions`. Uploaded files live in `data/uploads/` and are referenced
 by URL.
+
+## Quest
+
+```jsonc
+{
+  "id": "uuid",
+  "title": "Monday Warm-up",
+  "description": "Three quick questions.",
+  "icon": "⚔️",
+  "order": 1,
+  "reward": 30,              // coins for a perfect score
+  "opensAt": null,           // ISO or null = always open
+  "closesAt": null,
+  "timeLimit": 0,
+  "questions": [],           // same shape as challenge questions, but only
+                             // mcq | multi | short | table, each with an answer key
+  "assign": { "mode": "all", "studentIds": [] },
+  "published": false,
+  "createdAt": "iso", "updatedAt": "iso"
+}
+```
+
+## Quest submission
+
+```jsonc
+{
+  "id": "uuid",
+  "questId": "uuid", "questTitle": "…", "questIcon": "⚔️",
+  "userId": "uuid", "userName": "…", "userAvatar": "🧑‍🎓",
+  "answers": {},             // keyed by question id
+  "results": [],             // { questionId, auto, earned, max, correct }
+  "earned": 1, "maxPoints": 2,
+  "coinsAwarded": 15,        // what was actually paid — makes the payout idempotent
+  "createdAt": "iso"
+}
+```
+
+One submission per `(questId, userId)`: a quest is a single attempt, because it
+pays out.
+
+## Coins on the user
+
+`user.coins` (spendable balance) and `user.coinsEarned` (lifetime total) are
+added lazily, like `user.grades`. They are deliberately **outside**
+`game.recalcPoints()`, which rebuilds `points` from quiz scores and would wipe
+anything folded into it. `publicUser()` strips only `passwordHash`, so both
+fields reach the client with no change to `auth.js`.
 
 ## User
 

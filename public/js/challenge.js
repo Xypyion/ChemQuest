@@ -125,47 +125,9 @@ function questionHtml(q, n, sub) {
     </section>`;
 }
 
-function answerHtml(q) {
-  const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  switch (q.type) {
-    case 'mcq':
-      return `<div class="ch-choices">${(q.choices || []).map((c, i) => `
-        <label class="ch-choice">
-          <input type="radio" name="q-${escapeHtml(q.id)}" value="${i}">
-          <span class="ltr">${letters[i]}</span><span>${escapeHtml(c)}</span>
-        </label>`).join('')}</div>`;
-    case 'multi':
-      return `<div class="ch-hint">${t('ch.multiHint')}</div>
-        <div class="ch-choices">${(q.choices || []).map((c, i) => `
-        <label class="ch-choice">
-          <input type="checkbox" name="q-${escapeHtml(q.id)}" value="${i}">
-          <span class="ltr">${letters[i]}</span><span>${escapeHtml(c)}</span>
-        </label>`).join('')}</div>`;
-    case 'short':
-      return `<input class="ch-input" type="text" data-answer placeholder="${escapeHtml(t('ch.shortPh'))}">`;
-    case 'table':
-      return `<div class="ch-hint">${t('ch.tableHint')}</div>${tableHtml(q)}`;
-    case 'written':
-    default:
-      return `<textarea class="ch-area" rows="5" data-answer placeholder="${escapeHtml(t('ch.answerPh'))}"></textarea>`;
-  }
-}
-
-function tableHtml(q) {
-  const cols = (q.table && q.table.columns) || [];
-  const rows = (q.table && q.table.rows) || [];
-  return `
-    <div class="ch-table-wrap">
-      <table class="ch-table">
-        <thead><tr>${cols.map((c) => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
-        <tbody>
-          ${rows.map((r, ri) => `<tr>${(r.cells || []).map((cell, ci) => cell.blank
-            ? `<td><input class="ch-cell" type="text" data-cell="${ri}_${ci}" aria-label="row ${ri + 1} column ${ci + 1}"></td>`
-            : `<td class="fixed">${escapeHtml(cell.text)}</td>`).join('')}</tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
-}
+// Rendering + answer collection are shared with the quest player — see js/qrender.js.
+const answerHtml = (q) => QRender.answerHtml(q);
+const tableHtml = (q) => QRender.tableHtml(q);
 
 /**
  * The teacher's simulation, in a sandboxed frame.
@@ -198,29 +160,7 @@ function simDocument(html) {
 
 /* ------------------------------- answering ------------------------------ */
 
-/** Read every answer out of the DOM, keyed by question id. */
-function collectAnswers() {
-  const out = {};
-  document.querySelectorAll('.ch-q[data-qid]').forEach((el) => {
-    const qid = el.dataset.qid;
-    const type = el.dataset.qtype;
-    if (type === 'mcq') {
-      const picked = el.querySelector('input[type=radio]:checked');
-      if (picked) out[qid] = Number(picked.value);
-    } else if (type === 'multi') {
-      const picked = [...el.querySelectorAll('input[type=checkbox]:checked')].map((i) => Number(i.value));
-      if (picked.length) out[qid] = picked;
-    } else if (type === 'table') {
-      const cells = {};
-      el.querySelectorAll('.ch-cell').forEach((inp) => { if (inp.value.trim()) cells[inp.dataset.cell] = inp.value.trim(); });
-      if (Object.keys(cells).length) out[qid] = cells;
-    } else {
-      const inp = el.querySelector('[data-answer]');
-      if (inp && inp.value.trim()) out[qid] = inp.value;
-    }
-  });
-  return out;
-}
+const collectAnswers = () => QRender.collectAnswers();
 
 async function submit(auto) {
   if (sending) return;
@@ -329,23 +269,8 @@ function resultHtml() {
     </div>`;
 }
 
-/** Flatten simulation sub-questions the same way the server scores them. */
-function flatten(questions) {
-  const out = [];
-  (questions || []).forEach((q) => {
-    if (q.type === 'simulation') (q.sub || []).forEach((s) => out.push(s));
-    else out.push(q);
-  });
-  return out;
-}
-
-function myAnswerText(q, ans) {
-  if (ans == null) return '—';
-  if (q.type === 'mcq') return (q.choices || [])[Number(ans)] || '—';
-  if (q.type === 'multi') return (Array.isArray(ans) ? ans : []).map((i) => (q.choices || [])[i]).filter(Boolean).join(', ') || '—';
-  if (q.type === 'table') return Object.keys(ans).map((k) => ans[k]).join(' · ') || '—';
-  return String(ans);
-}
+const flatten = (questions) => QRender.flatten(questions);
+const myAnswerText = (q, ans) => QRender.myAnswerText(q, ans);
 
 // "Answer again" (only when the teacher allows retakes).
 document.addEventListener('click', (e) => {

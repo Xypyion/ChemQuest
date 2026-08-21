@@ -12,6 +12,7 @@ mountLangSwitch();
     const meData = await API.get('/api/auth/me');
     API.updateUser(meData.user);
     document.getElementById('navPoints').textContent = meData.user.points || 0;
+    setNavCoins(meData.user.coins);
 
     const [{ certificates }, lessonsData] = await Promise.all([
       API.get('/api/lessons/me/certificates'),

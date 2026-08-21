@@ -75,6 +75,9 @@ app.use('/api/lessons', require('./src/routes/lessons.routes'));
 const challengeRoutes = require('./src/routes/challenges.routes');
 app.use('/api/challenges', challengeRoutes.studentRouter);          // students answer challenges
 app.use('/api/teacher/challenges', challengeRoutes.teacherRouter);  // teacher builds & grades them
+const questRoutes = require('./src/routes/quests.routes');
+app.use('/api/quests', questRoutes.studentRouter);                  // students answer daily quests
+app.use('/api/teacher/quests', questRoutes.teacherRouter);          // teacher builds & assigns them
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
 app.use('/api/posts', require('./src/routes/posts.routes'));

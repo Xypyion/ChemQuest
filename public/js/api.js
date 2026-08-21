@@ -135,3 +135,25 @@ function addClouds() {
   host.innerHTML = '<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>';
   document.body.prepend(host);
 }
+
+/* ---------- Daily-quest coin balance in the topbar ---------- */
+
+/** Write a balance into the #navCoins pill, if the page has one. */
+function setNavCoins(n) {
+  const el = document.getElementById('navCoins');
+  if (el) el.textContent = n || 0;
+}
+
+/**
+ * Fetch the balance and show it. Pages that render from the cached
+ * localStorage user must not trust it for a number that changes as the
+ * student plays, so this asks the server.
+ */
+async function refreshNavCoins() {
+  if (!document.getElementById('navCoins')) return;
+  try {
+    const me = await API.get('/api/auth/me');
+    API.updateUser(me.user);
+    setNavCoins(me.user.coins);
+  } catch { /* the pill just stays at 0 — never block a page over it */ }
+}

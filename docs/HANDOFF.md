@@ -101,6 +101,15 @@ Implemented features:
   students rate each other's works 1–5 stars per criterion; teacher rates too.
 - **Gradebook**: spreadsheet-style grid (rows = students, columns = grade items)
   with editable cells, totals, and import of pre/post-test scores.
+- **Daily Quests + coins**: a global `quests.html` page of teacher-assigned
+  side questions that pay an in-game currency. Auto-marked only (mcq /
+  choose-many / short answer / fill-in-the-table, each needing an answer key),
+  so coins land on submit; payout is `round(reward x earned / maxPoints)`. One
+  attempt per quest, and the teacher's opens/closes window is enforced by the
+  server. Coins live in `user.coins` / `user.coinsEarned`, deliberately outside
+  `recalcPoints`. There is no shop yet — the balance and its history are the
+  reward. Teacher console gets a read-only Responses view and a manual coin
+  adjustment (the only debit path).
 - **Leaderboard** (podium + full ranking), **certificate inventory**.
 - **Teacher console**: lesson CRUD + storyboard builder, per-difficulty quiz
   builder (MCQ + written, per-question points), post-test open/close, per-level
@@ -178,6 +187,7 @@ chemquest/
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, authMiddleware, requireRole
 │   ├── game.js               # scoring, pass rule, level-completion, access gate + activity order
 │   ├── challenges.js         # challenge model: normalising, sanitising, auto-marking
+│   ├── quests.js             # daily-quest model on top of challenges.js (auto-mark only)
 │   ├── grading.js            # finalizeAttempt() — applies a graded attempt to progress (MCQ+written points)
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/
@@ -187,6 +197,7 @@ chemquest/
 │       │                          #          students, password reset, writing grading, gradebook
 │       ├── posts.routes.js        # assignment board: posts, files, comments, likes, questions, ratings
 │       ├── challenges.routes.js   # challenges: student router + teacher router (CRUD, assign, mark)
+│       ├── quests.routes.js       # daily quests: student router + teacher router, coin payouts
 │       └── leaderboard.routes.js  # ranked students
 └── public/                   # front-end (served statically; no build)
     ├── index.html            # welcome / login / signup
@@ -204,7 +215,10 @@ chemquest/
         ├── character.js      # Ruby mascot (original inline SVG) + hats/moods
         ├── props.js          # decorative SVG props for the map
         ├── welcome.js, dashboard.js, board.js, lesson.js, inventory.js, leaderboard.js
+        ├── qrender.js        # SHARED question markup + answer collection (challenge + quest)
         ├── challenge.js      # challenge player (all question types + sandboxed simulation)
+        ├── quests.js         # daily quest page: list, player and wallet
+        ├── teacher-quests.js # teacher console: the ⚔️ Daily Quests section
         ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section
         └── teacher.js        # the rest of the teacher console (single file)
 ```
@@ -237,7 +251,8 @@ Browser (HTML/CSS/JS)                Express (server.js)                 data/db
 ## 7. Data model
 
 Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
-`gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`**. Full field-by-field detail is in
+`gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`,
+`quests`, `questSubmissions`**. Full field-by-field detail is in
 [`data-model.md`](data-model.md); the essentials:
 
 - **user**: `{ id, role:'student'|'teacher', name, email(lowercased),
@@ -293,6 +308,17 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   has an answer key**, otherwise the teacher marks it. Paragraphs are always
   teacher-marked. Challenge points are **separate from the leaderboard** — import
   them into the gradebook if you want them to count.
+- **Daily quests**: visible only when `published` **and** assigned. Every
+  question must be auto-markable — `normalizeQuestion` defaults a missing mcq
+  `correctIndex` to 0, so `quests.rawKeyed()` rejects keyless mcqs up front
+  rather than letting choice "A" become a key nobody set. Coins =
+  `round(reward x earned / maxPoints)`, paid once (one submission per
+  quest+student) and recorded in `coinsAwarded`. **The open/close window is
+  enforced on the server**, unlike a challenge's advisory `dueAt`.
+- **Coins are not points.** `game.recalcPoints()` rebuilds `user.points` from
+  quiz scores on every award path, so anything added to `points` is wiped.
+  Coins therefore live in their own fields and never touch that function; the
+  leaderboard stays ranked on `points`.
 - **Post-test: one attempt only.** Once submitted, the server blocks re-open and
   re-submit (`openPostTest` returns `ALREADY_SUBMITTED`); the board shows a
   non-clickable "done"/"awaiting grading" state.
@@ -385,6 +411,11 @@ here.
 ## 13. Gotchas & known issues
 
 - **Port 4000, not 3000** (rule #2). Changing to 3000 will `EADDRINUSE`.
+- **Question markup is shared.** `public/js/qrender.js` renders the answer
+  controls and collects the answers for **both** the challenge and quest
+  players. Its output must keep matching what `challenges.gradeQuestion`
+  expects (index for mcq, index array for multi, `{"row_col": value}` for
+  table) — change it and test both players.
 - **Editing `data/db.json` directly** while the server is running is unsafe — the
   in-memory copy will overwrite your file on the next mutation. Stop the server,
   edit, restart.
