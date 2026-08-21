@@ -35,7 +35,7 @@
 /* ---------- the map surface ---------- */
 .scene {
   position: relative;
-  background: #f1f8e8;
+  background: #eef2f0;
   border: 1px solid var(--line);
   border-radius: var(--r-xl);
   box-shadow: var(--e2);
@@ -58,21 +58,21 @@
    colour: ground already walked reads richer, the unit in play is lightest,
    everything still ahead recedes into the page. */
 /* Every layer has to separate from the page behind the card, or the palest
-   one reads as "the card stopped here". --ground is #eef4e6, so all four of
-   these sit below it. */
-.sky  { fill: #f1f8e8; }
-.hill { fill: #e7f0dc; }
-.hill.is-cleared { fill: #cbe6ae; }
-.hill.is-now     { fill: #ddf2c4; }
-.hill.is-ahead   { fill: #e7f0dc; }
+   one reads as "the card stopped here". --ground is #e7ecea, so these sit
+   either side of it, all in the same grey-green family. */
+.sky  { fill: #eef2f0; }
+.hill { fill: #dfe7e3; }
+.hill.is-cleared { fill: #c9d8d1; }
+.hill.is-now     { fill: #d8e5df; }
+.hill.is-ahead   { fill: #e4eae7; }
 
 /* ---------- the trail ---------- */
 .trail-under {
-  fill: none; stroke: #c3d4b0; stroke-width: 26;
+  fill: none; stroke: #bcc9c4; stroke-width: 26;
   stroke-linecap: round; stroke-linejoin: round;
 }
 .trail {
-  fill: none; stroke: #fdfbf3; stroke-width: 20;
+  fill: none; stroke: #f7faf9; stroke-width: 20;
   stroke-linecap: round; stroke-linejoin: round;
 }
 /* the stretch already walked, drawn over the top and clipped by dasharray */
@@ -109,24 +109,38 @@
   font-family: var(--font); cursor: pointer;
 }
 
-/* The face is the pressable disc. The zero-blur shadow is its edge, so the
-   button physically drops onto it when pressed — the same trick as .btn. */
+/* The face is the pressable node — a hexagon, because this is chemistry and
+   a plain circle is somebody else's app. clip-path clips box-shadow too, so
+   the 3D lip is a second hexagon sitting behind and below the first. */
 .node-face {
   --face: var(--green);
   --edge: var(--green-edge);
   --lift: 7px;
-
-  width: 76px; height: 76px; border-radius: 50%;
-  display: grid; place-items: center;
+  position: relative;
+  width: 78px; height: 86px;
+}
+.hex {
+  position: absolute; inset: 0;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.hex-edge { background: var(--edge); transform: translateY(var(--lift)); }
+.hex-top {
   background: var(--face);
   color: var(--green-ink);
-  box-shadow: 0 var(--lift) 0 var(--edge);
-  transition: transform .07s ease, box-shadow .07s ease, filter .15s ease;
+  display: grid; place-items: center;
+  transition: transform .07s ease, filter .15s ease;
 }
-.node-face .ic { width: 34px; height: 34px; }
+/* a soft top-left glint so the face reads as a solid object, not a swatch */
+.hex-top::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(155deg, rgba(255,255,255,.42), rgba(255,255,255,0) 58%);
+  pointer-events: none;
+}
+.node-face .ic { width: 32px; height: 32px; position: relative; z-index: 1; }
 .node-n {
-  font-size: 1.6rem; font-weight: 700; line-height: 1;
+  font-size: 1.55rem; font-weight: 700; line-height: 1;
   font-variant-numeric: tabular-nums; letter-spacing: -.03em;
+  position: relative; z-index: 1;
 }
 
 .node-title {
@@ -134,55 +148,72 @@
   color: var(--ink); text-align: center;
   max-width: 100%;
   /* the trail passes behind these, so they carry their own ground */
-  background: rgba(255, 255, 255, .82);
+  background: rgba(255, 255, 255, .86);
   border-radius: var(--r-s);
   padding: 2px 7px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.node:hover .node-face { filter: brightness(1.05); }
-.node:active .node-face {
-  transform: translateY(calc(var(--lift) - 2px));
-  box-shadow: 0 2px 0 var(--edge);
-}
+.node:hover .hex-top { filter: brightness(1.05); }
+.node:active .hex-top { transform: translateY(calc(var(--lift) - 2px)); }
 .node:focus-visible { outline: none; }
 .node:focus-visible .node-face {
-  outline: 3px solid var(--green-deep); outline-offset: 4px;
+  outline: 3px solid var(--green-deep); outline-offset: 5px;
+  border-radius: var(--r-s);
 }
 
 /* --- states --- */
-.node.is-done .node-face { --face: var(--green-deep); --edge: var(--green-deep-edge); color: #fff; }
+.node.is-done .node-face { --face: var(--green-deep); --edge: var(--green-deep-edge); }
+.node.is-done .hex-top { color: #fff; }
 .node.is-done .node-title { color: var(--ink-2); }
 
-.node.is-open .node-face {
-  --face: var(--surface); --edge: var(--line);
-  color: var(--green-deep);
-  border: 2px solid var(--green-soft);
-}
+.node.is-open .node-face { --face: var(--surface); --edge: #c8d3cf; }
+.node.is-open .hex-top { color: var(--green-deep); }
 
-.node.is-now .node-face {
-  width: 96px; height: 96px;
-  --lift: 9px;
-  animation: node-beat 2.4s ease-in-out infinite;
-}
-.node.is-now .node-n { font-size: 2rem; }
+.node.is-now .node-face { width: 96px; height: 106px; --lift: 9px; }
+/* The current level has to out-rank the finished ones, which are darker and
+   would otherwise pull the eye first. It gets a rim as well as a lip. */
+.node.is-now .hex-edge { inset: -4px; }
+.node.is-now .hex-top { animation: node-beat 2.6s ease-in-out infinite; }
+.node.is-now .node-n { font-size: 1.95rem; }
 .node.is-now .node-title { color: var(--ink); font-size: var(--t-s); font-weight: 700; }
 
-/* locked is flat on purpose: nothing to press, so nothing to press down */
+/* Locked is flat on purpose: nothing to press, so nothing to press down.
+   Against a muted hill no fill is different enough on its own (1.3:1 at
+   best), so the edge layer is grown into a rim on all six sides instead. */
 .node.is-locked { cursor: not-allowed; }
-.node.is-locked .node-face {
-  --face: var(--lock-fill); --edge: var(--lock-edge); --lift: 0px;
-  color: var(--lock-ink);
-  box-shadow: inset 0 0 0 2px var(--lock-edge);
-}
-.node.is-locked:hover .node-face { filter: none; }
-.node.is-locked:active .node-face { transform: none; }
-.node.is-locked .node-title { color: var(--ink-3); background: rgba(255, 255, 255, .7); }
+.node.is-locked .node-face { --face: var(--lock-fill); --edge: var(--lock-edge); --lift: 0px; }
+.node.is-locked .hex-edge { inset: -3px; transform: none; }
+.node.is-locked .hex-top { color: var(--lock-ink); }
+.node.is-locked .hex-top::after { background: none; }
+.node.is-locked:hover .hex-top { filter: none; }
+.node.is-locked:active .hex-top { transform: none; }
+.node.is-locked .node-title { color: var(--ink-3); background: rgba(255, 255, 255, .72); }
 
 @keyframes node-beat {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.06); }
+  50%      { transform: scale(1.05); }
+}
+
+/* ---------- drawn scenery ---------- */
+/* Props sit in the margins either side of the trail. They fill the page but
+   must never compete with the thing you press, hence the opacity. */
+.prop { opacity: .82; }
+
+.bub { animation: bubble-rise 3.4s ease-in-out infinite; }
+.bub.b2 { animation-duration: 4.2s; animation-delay: .7s; }
+.bub.b3 { animation-duration: 2.9s; animation-delay: 1.4s; }
+@keyframes bubble-rise {
+  0%   { transform: translateY(4px);   opacity: 0; }
+  25%  { opacity: .9; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+.flame { transform-box: fill-box; transform-origin: 50% 100%; animation: flicker 1.6s ease-in-out infinite; }
+@keyframes flicker {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  50%      { transform: scaleY(1.12) scaleX(.94); }
 }
 
 /* ---------- "you are here" ---------- */
@@ -233,10 +264,10 @@
 @media (max-width: 640px) {
   .scene { padding: var(--s2); border-radius: var(--r-l); }
   .node { width: 100px; }
-  .node-face { width: 64px; height: 64px; --lift: 6px; }
-  .node-face .ic { width: 28px; height: 28px; }
-  .node-n { font-size: 1.35rem; }
-  .node.is-now .node-face { width: 80px; height: 80px; }
+  .node-face { width: 62px; height: 68px; --lift: 5px; }
+  .node-face .ic { width: 26px; height: 26px; }
+  .node-n { font-size: 1.25rem; }
+  .node.is-now .node-face { width: 78px; height: 86px; }
   .node.is-now .node-n { font-size: 1.6rem; }
   .now-ruby, .now-ruby .ruby { width: 84px; }
   .now-marker.to-left  { margin-left: -38px; }
@@ -248,6 +279,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .node.is-now .node-face { animation: none; }
+  .node.is-now .hex-top, .bub, .flame { animation: none; }
+  .bub { opacity: .7; }
   .trail-walked { transition: none; }
 }

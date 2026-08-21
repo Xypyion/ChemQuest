@@ -12,18 +12,10 @@
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/pages.css" />
 </head>
-<body>
+<body data-page="certificates">
   <div class="topbar">
     <div class="brand"><span class="logo" aria-hidden="true"><svg class="ic-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.5L4.6 18.2A2 2 0 0 0 6.3 21h11.4a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg></span> ChemQuest</div>
-    <div class="nav-actions">
-      <span class="pill coins"><b id="navCoins">0</b> <span data-i18n="nav.coins">coins</span></span>
-      <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
-      <a class="btn ghost" href="/dashboard.html" data-i18n="nav.map">Map</a>
-      <a class="btn ghost" href="/quests.html" data-i18n="nav.quests">Quests</a>
-      <a class="btn ghost" href="/battle.html" data-i18n="nav.battle">Battle</a>
-      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">Leaderboard</a>
-      <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
-    </div>
+    <div class="nav-actions" id="navActions"></div>
   </div>
 
   <div class="wrap">

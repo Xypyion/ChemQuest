@@ -271,7 +271,10 @@ function nodeHtml(lesson, index, isNow) {
             data-opens-at="${escapeHtml(lesson.opensAt || '')}"
             ${state === 'locked' ? 'aria-disabled="true"' : ''}
             aria-label="${escapeHtml(aria)}">
-      <span class="node-face">${face}</span>
+      <span class="node-face">
+        <span class="hex hex-edge" aria-hidden="true"></span>
+        <span class="hex hex-top">${face}</span>
+      </span>
       <span class="node-title">${escapeHtml(lesson.title || '')}</span>
     </button>`;
 }
@@ -351,13 +354,28 @@ function drawGround(groups, pts, w, h, currentIdx) {
     return `<path class="hill ${cls}" d="${d}"/>`;
   }).join('');
 
+  /* the drawn world, in the margins either side of the trail column */
+  const col = Math.min(w, COL);
+  const colLeft = (w - col) / 2;
+  const scenery = groups.map((grp, gi) => {
+    const firstY = pts[grp.items[0].index].y;
+    const lastY = pts[grp.items[grp.items.length - 1].index].y;
+    const top = gi === 0 ? 8 : firstY - SPACING * 0.5 - UNIT_GAP * 0.5;
+    const bottom = gi === groups.length - 1
+      ? h - 12
+      : pts[groups[gi + 1].items[0].index].y - SPACING * 0.5 - UNIT_GAP * 0.5;
+    return sceneryFor(grp.terrain, gi, { top, bottom: Math.max(bottom, lastY + 40) },
+                      w, colLeft, colLeft + col);
+  }).join('');
+
   const d = trailPath(pts);
   const trail = d ? `
     <path class="trail-under" d="${d}"/>
     <path class="trail" d="${d}"/>
     <path class="trail-walked" id="trailWalked" d="${d}"/>` : '';
 
-  svg.innerHTML = `<rect class="sky" x="0" y="0" width="${r(w)}" height="${r(h)}"/>` + hills + trail;
+  svg.innerHTML = `<rect class="sky" x="0" y="0" width="${r(w)}" height="${r(h)}"/>`
+                  + hills + scenery + trail;
 
   /* clip the walked trail to the node the student has actually reached */
   const walked = document.getElementById('trailWalked');

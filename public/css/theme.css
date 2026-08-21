@@ -12,52 +12,52 @@
 
 :root {
   /* ---------- surfaces ---------- */
-  --ground: #eef4e6;      /* page canvas — a soft green field, not grey */
+  --ground: #e7ecea;      /* page canvas — the original green-grey */
   --surface: #ffffff;     /* cards, bars */
-  --surface-2: #f4f8ef;   /* inset: inputs, quiet rows */
+  --surface-2: #f3f6f5;   /* inset: inputs, quiet rows */
 
   /* ---------- text ---------- */
-  --ink: #16210f;         /* primary       14.9:1 on ground */
-  --ink-2: #5a6b50;       /* secondary      5.1:1 on ground */
-  --ink-3: #626f5a;       /* meta / labels  4.8:1 on ground */
+  --ink: #13201d;         /* primary       14.0:1 on ground */
+  --ink-2: #55645f;       /* secondary      5.2:1 on ground */
+  --ink-3: #5f6a67;       /* meta / labels  4.7:1 on ground */
 
   /* ---------- lines ---------- */
-  --line: #d5e0c8;
-  --line-2: #e6eede;
+  --line: #d2dbd8;
+  --line-2: #e3e9e7;
 
   /* =====================================================================
      Green.
-     Two greens, one rule. The bright Duolingo-style green is only 2.09:1
-     against white, so copying that pairing would fail WCAG outright.
-     Instead:
+     Muted and grey-leaning, not the bright arcade green — this is a school
+     chemistry platform, and the saturated version read as a copy of a
+     certain language app. Still two greens, still one rule:
 
-       --green       bright. Fills, nodes, the trail, big graphic areas.
-                     Anything on top of it takes --green-ink (7.4:1).
-       --green-deep  the darker green. The 3D lip under a bright face, and
-                     the background for any green surface that carries
-                     WHITE text (5.6:1).
+       --green       the mid fill. Nodes, the walked trail, progress.
+                     Anything on top of it takes --green-ink (7.3:1).
+       --green-deep  the dark green. The 3D lip under a mid face, and the
+                     background for any green surface carrying WHITE text
+                     (6.3:1).
 
      Never put white on --green, and never put --green-ink on --green-deep.
      ===================================================================== */
-  --green: #58cc02;
-  --green-edge: #46a302;       /* the hard lip under a bright-green face */
-  --green-deep: #35760f;       /* white sits on this */
-  --green-deep-edge: #26550a;
-  --green-ink: #16290a;        /* dark ink that sits on bright green */
-  --green-soft: #e8f6d9;       /* tint: chips, cleared unit bands */
+  --green: #7bb897;
+  --green-edge: #5f9e7c;       /* the hard lip under a mid-green face */
+  --green-deep: #2f6b4c;       /* white sits on this */
+  --green-deep-edge: #22523a;
+  --green-ink: #13201d;        /* dark ink that sits on mid green */
+  --green-soft: #e2efe8;       /* tint: chips, current-page nav */
 
-  /* the muted green a locked node is drawn in — flat, never pressable */
-  --lock-fill: #dfe6d8;
-  --lock-edge: #c7d2bd;
-  --lock-ink: #4d5a47;
+  /* the muted grey-green a locked node is drawn in — flat, never pressable */
+  --lock-fill: #c8d5d0;
+  --lock-edge: #9aada6;   /* a rim, not a lip — see .node.is-locked in map.css */
+  --lock-ink: #3f4a47;
 
   /* ---------- brand ---------- */
-  --accent: #ca4e1d;      /* 4.55:1 on surface, and white is 4.55:1 on it */
+  --accent: #ca4e1d;      /* points and rewards only */
   --accent-strong: #a83f16;
   --accent-ink: #ffffff;
   --accent-soft: #fbe9e1;
 
-  --ruby: #e03a32;        /* the mascot's own red — Ruby and "you are here" only */
+  --ruby: #e03a32;        /* the mascot's own red — Ruby and "you are here" */
   --ruby-strong: #c62d25;  /* white on this: 5.5:1 */
 
   /* ---------- unit colours (map groups) ---------- */
@@ -66,10 +66,10 @@
   --u3: #8f6510;  --u3-soft: #f7eed8;
 
   /* ---------- semantic state ---------- */
-  --pass: #32774f;      --pass-soft: #e0efe6;
+  --pass: var(--green-deep);   --pass-soft: var(--green-soft);
   --danger: #b3261e;    --danger-soft: #fbe6e4;
   --warn: #8a5a06;      --warn-soft: #fdf0da;
-  --lock: #66735f;
+  --lock: #5f6a67;
 
   /* ---------- spacing scale (4px base) ---------- */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -300,6 +300,21 @@ textarea { resize: vertical; min-height: 90px; }
 .brand .logo svg { display: block; }
 .nav-actions { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; }
 .nav-actions .btn { font-size: var(--t-s); padding: 8px 14px; }
+.nav-actions .pill.user { background: var(--surface-2); color: var(--ink-2); }
+
+/* The section links are one group, always the same five in the same order.
+   The page you are on stays in place and is marked, rather than being
+   dropped from the list and shuffling everything along. */
+.nav-links { display: flex; gap: var(--s1); align-items: center; flex-wrap: wrap; }
+.nav-link { --lift: 0px; box-shadow: none; font-weight: 600; }
+.nav-link.is-current {
+  background: var(--green-soft);
+  border-color: var(--green-deep);
+  color: var(--green-deep);
+  font-weight: 700;
+  cursor: default;
+}
+.nav-link.is-current:hover { background: var(--green-soft); }
 
 /* ---------- icons ---------- */
 /* One drawn set at a single stroke weight. Emoji render differently on every

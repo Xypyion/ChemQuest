@@ -67,6 +67,52 @@ function logout() {
   location.href = '/';
 }
 
+/* ---------- Shared student navigation ----------
+ * One source of truth for the topbar on every hub page. Before this, each
+ * page hand-wrote its own list: the links appeared in a different order,
+ * took different button colours, and the link to the page you were already
+ * on was deleted entirely - so the row visibly reshuffled every time you
+ * moved. The set is now identical everywhere and the current page is
+ * marked rather than removed, which is also what a screen reader needs.
+ *
+ * The lesson flow (level / lesson / challenge) deliberately keeps its own
+ * minimal bar and is not touched by this.
+ */
+const NAV_ITEMS = [
+  { page: 'map',          href: '/dashboard.html',   key: 'nav.map' },
+  { page: 'quests',       href: '/quests.html',      key: 'nav.quests' },
+  { page: 'battle',       href: '/battle.html',      key: 'nav.battle' },
+  { page: 'certificates', href: '/inventory.html',   key: 'nav.certificates' },
+  { page: 'leaderboard',  href: '/leaderboard.html', key: 'nav.leaderboard' },
+];
+
+/** Fill #navActions for the page named by <body data-page="...">. */
+function mountNav() {
+  const host = document.getElementById('navActions');
+  if (!host) return;
+  const here = document.body.dataset.page || '';
+
+  const links = NAV_ITEMS.map((item) => {
+    const current = item.page === here;
+    return `<a class="btn ghost nav-link${current ? ' is-current' : ''}"
+               href="${item.href}"${current ? ' aria-current="page"' : ''}
+               data-i18n="${item.key}">${escapeHtml(t(item.key))}</a>`;
+  }).join('');
+
+  host.innerHTML = `
+    <span class="pill coins"><b id="navCoins">0</b> <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
+    <span class="pill points"><b id="navPoints">0</b> <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>
+    <nav class="nav-links" aria-label="${escapeHtml(t('nav.sections'))}">${links}</nav>
+    <span class="pill user" id="navUser"></span>
+    <span id="langHost"></span>
+    <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</button>`;
+
+  // every hub page shows who is signed in; pages that know better overwrite it
+  const user = API.user();
+  const badge = document.getElementById('navUser');
+  if (badge && user) badge.textContent = user.name;
+}
+
 /* ---------- Toast notifications ---------- */
 function toast(message, kind = '') {
   let host = document.querySelector('.toast-host');
@@ -149,3 +195,8 @@ async function refreshNavCoins() {
     setNavCoins(me.user.coins);
   } catch { /* the pill just stays at 0 — never block a page over it */ }
 }
+
+/* api.js is loaded after the topbar markup on every page, so the nav can be
+   filled immediately. Pages without a #navActions host (the lesson flow, the
+   teacher console, login) are left alone. */
+mountNav();
