@@ -18,6 +18,7 @@ const I18N = {
     'nav.logout': 'Log out',
     'nav.pts': 'pts',
     'common.loading': 'Loading…',
+    'common.close': 'Close',
     'common.cancel': 'Cancel',
     'common.save': '💾 Save',
     'common.delete': 'Delete',
@@ -696,6 +697,21 @@ const I18N = {
     't.qAdjustAmount': 'Amount',
     't.qAdjustSaved': 'Coins updated.',
     't.gbImportChallengePick': 'Challenge',
+
+    /* ---- ai tutor (Ruby, challenge help) ---- */
+    'tutor.ask': 'Ask Ruby',
+    'tutor.title': 'Ruby',
+    'tutor.greeting': "Hi! Tell me what you've tried on this question, or where you're stuck.",
+    'tutor.placeholder': "What's tripping you up?",
+    'tutor.send': 'Send',
+    'tutor.typing': 'Ruby is thinking…',
+    'tutor.freeLeft': '{n} free question{s} left today',
+    'tutor.unlimited': '🧪 Unlimited during testing',
+    'tutor.coinCost': 'Costs {n} coins',
+    'tutor.coinBalance': '{n} coins',
+    'tutor.noCoins': "You're out of free questions for today and don't have {n} coins. Earn more from Daily Quests!",
+    'tutor.blocked': "I can't help with that one — try asking about the chemistry in this question instead.",
+    'tutor.unavailable': 'The AI helper is not set up on this server yet. Ask your teacher!',
   },
 
   th: {
@@ -708,6 +724,7 @@ const I18N = {
     'nav.logout': 'ออกจากระบบ',
     'nav.pts': 'คะแนน',
     'common.loading': 'กำลังโหลด…',
+    'common.close': 'ปิด',
     'common.cancel': 'ยกเลิก',
     'common.save': '💾 บันทึก',
     'common.delete': 'ลบ',
@@ -1386,6 +1403,21 @@ const I18N = {
     't.qAdjustAmount': 'จำนวน',
     't.qAdjustSaved': 'อัปเดตเหรียญแล้ว',
     't.gbImportChallengePick': 'โจทย์',
+
+    /* ---- ai tutor (Ruby, challenge help) ---- */
+    'tutor.ask': 'ถามรูบี้',
+    'tutor.title': 'รูบี้',
+    'tutor.greeting': 'สวัสดี! บอกรูบี้หน่อยว่าลองทำอะไรมาแล้วบ้าง หรือติดตรงไหน',
+    'tutor.placeholder': 'ติดตรงไหนอยู่คะ?',
+    'tutor.send': 'ส่ง',
+    'tutor.typing': 'รูบี้กำลังคิดอยู่…',
+    'tutor.freeLeft': 'เหลือคำถามฟรีวันนี้อีก {n} ข้อ',
+    'tutor.unlimited': '🧪 ไม่จำกัดในช่วงทดสอบ',
+    'tutor.coinCost': 'ใช้ {n} เหรียญ',
+    'tutor.coinBalance': '{n} เหรียญ',
+    'tutor.noCoins': 'คุณใช้คำถามฟรีวันนี้หมดแล้ว และมีเหรียญไม่พอ ({n} เหรียญ) ไปสะสมเหรียญเพิ่มได้จากภารกิจประจำวันนะ!',
+    'tutor.blocked': 'เรื่องนี้รูบี้ช่วยไม่ได้ ลองถามเกี่ยวกับเคมีในโจทย์ข้อนี้แทนนะ',
+    'tutor.unavailable': 'ผู้ช่วย AI ยังไม่ได้ตั้งค่าไว้ในระบบนี้ ลองถามคุณครูดูนะ',
   },
 };
 

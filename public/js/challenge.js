@@ -118,11 +118,32 @@ function questionHtml(q, n, sub) {
     : `<span class="ch-q-n">${t('ch.qLabel', { n })}</span>`;
   return `
     <section class="ch-q" data-qid="${escapeHtml(q.id)}" data-qtype="${q.type}">
-      <div class="ch-q-head">${label}<span class="ch-q-pts">${t('ch.pts', { n: q.points })}</span></div>
+      <div class="ch-q-head">
+        ${label}
+        <span class="ch-q-head-right">
+          <button type="button" class="ch-tutor-btn" onclick="askRuby('${q.id}')">💬 ${t('tutor.ask')}</button>
+          <span class="ch-q-pts">${t('ch.pts', { n: q.points })}</span>
+        </span>
+      </div>
       <div class="ch-q-text">${escapeHtml(q.question)}</div>
       ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
       ${answerHtml(q)}
     </section>`;
+}
+
+/** Open the Ruby help panel for one question, with the student's current draft. */
+function askRuby(qid) {
+  const q = flatten(challenge.questions).find((x) => x.id === qid);
+  if (!q) return;
+  Tutor.open({
+    challengeId: CHALLENGE_ID,
+    questionId: qid,
+    questionLabel: q.question,
+    getDraft: () => {
+      const answers = collectAnswers();
+      return qid in answers ? myAnswerText(q, answers[qid]) : '';
+    },
+  });
 }
 
 // Rendering + answer collection are shared with the quest player — see js/qrender.js.

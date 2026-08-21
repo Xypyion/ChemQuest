@@ -54,4 +54,14 @@ function aiEnabled() {
   return apiKey().length > 0;
 }
 
-module.exports = { load, apiKey, aiEnabled };
+/**
+ * TESTING ONLY. Set `TUTOR_UNLIMITED=1` to skip the daily-free-question and
+ * coin charge entirely, so testers aren't rationed while trying the feature.
+ * Do not set this in a real classroom deployment — it turns the tutor free.
+ */
+function tutorUnlimited() {
+  load();
+  return process.env.TUTOR_UNLIMITED === '1';
+}
+
+module.exports = { load, apiKey, aiEnabled, tutorUnlimited };

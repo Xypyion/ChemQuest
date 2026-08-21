@@ -180,8 +180,15 @@ router.post('/ask', async (req, res) => {
     });
     db.save();
     console.error('[tutor]', (err && err.message) || err);
-    res.status(502).json({
-      error: 'Ruby could not answer just now. Please try again in a moment.',
+
+    // 429 from the model provider means its OWN rate limit was hit — distinct
+    // from our coin/free-question limit, and common on a free API tier under
+    // rapid testing. Say so plainly rather than a generic failure.
+    const rateLimited = err && err.status === 429;
+    res.status(rateLimited ? 429 : 502).json({
+      error: rateLimited
+        ? "Ruby is getting a lot of questions right now — wait about a minute and try again."
+        : 'Ruby could not answer just now. Please try again in a moment.',
       ...credit.statusOf(req.user),
     });
   }

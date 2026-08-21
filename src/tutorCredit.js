@@ -14,7 +14,12 @@
  * the free questions over at 07:00 local time, in the middle of a school
  * morning; this is the only place in the codebase that needs a day key, so the
  * pattern is established here.
+ *
+ * `TUTOR_UNLIMITED=1` (see config.js) skips all of this for testing. It never
+ * touches `user.tutor` / `user.coins`, so turning it off restores whatever the
+ * student's real balance was — nothing here is destructive.
  */
+const config = require('./config');
 
 /** Coins charged per question once the daily free ones are used up. */
 const PRICE = 50;
@@ -44,6 +49,12 @@ function counterOf(user) {
  * costs, and whether they can afford to ask right now.
  */
 function statusOf(user) {
+  if (config.tutorUnlimited()) {
+    return {
+      freeLeft: FREE_PER_DAY, freePerDay: FREE_PER_DAY, coins: user.coins || 0,
+      price: PRICE, canAsk: true, nextIsFree: true, unlimited: true,
+    };
+  }
   const c = counterOf(user);
   const freeLeft = Math.max(0, FREE_PER_DAY - (c.freeUsed || 0));
   const coins = user.coins || 0;
@@ -69,6 +80,8 @@ function statusOf(user) {
  * @throws  {Error} with code 'INSUFFICIENT_COINS' when they cannot pay
  */
 function charge(user) {
+  if (config.tutorUnlimited()) return { kind: 'free', charged: 0, unlimited: true };
+
   const c = counterOf(user);
 
   if ((c.freeUsed || 0) < FREE_PER_DAY) {
@@ -90,7 +103,7 @@ function charge(user) {
 
 /** Undo a charge — used when the model call fails and no answer was given. */
 function refund(user, receipt) {
-  if (!receipt) return;
+  if (!receipt || receipt.unlimited) return; // nothing was actually charged
   const c = counterOf(user);
   if (receipt.kind === 'free') {
     c.freeUsed = Math.max(0, (c.freeUsed || 0) - 1);
