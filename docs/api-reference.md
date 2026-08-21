@@ -202,6 +202,46 @@ built in the browser from this payload, so no token ever appears in a URL.
 `POST /api/teacher/gradebook/import` also accepts `{ challengeId }` to create a
 gradebook column filled with each student's challenge points.
 
+## Daily Quests (student) — `/api/quests`
+
+Teacher-assigned side questions that pay an in-game currency ("coins"). Every
+question is auto-marked, so coins are awarded the moment the student submits.
+
+| Method | Path | Role | Notes |
+|--------|------|------|-------|
+| GET | `/api/quests/wallet` | student | `{ coins, coinsEarned, history[] }`. Declared before `/:id` so the literal path wins. |
+| GET | `/api/quests` | student | Quests published **and** assigned to me, as cards with `windowState` and `status`. |
+| GET | `/api/quests/:id` | student | The quest to answer, answer keys stripped. 403 before it opens, or once closed if unanswered. |
+| POST | `/api/quests/:id/submit` | student | `{ answers }` → grades, pays coins, returns `{ submission, coins }`. |
+
+**Payout:** `round(reward × earned / maxPoints)`.
+
+**One attempt.** A second submit returns `403 { error: 'ALREADY_SUBMITTED' }`,
+the same sentinel the challenge player already handles.
+
+**The window is enforced server-side** — unlike a challenge's advisory `dueAt`,
+submitting outside `opensAt`/`closesAt` is refused and pays nothing.
+
+## Daily Quests (teacher) — `/api/teacher/quests`
+
+Mounted **before** the generic `/api/teacher` router, or these paths are swallowed.
+
+| Method | Path | Role | Notes |
+|--------|------|------|-------|
+| GET | `/api/teacher/quests` | teacher | Every quest with its response count. |
+| GET | `/api/teacher/quests/item/:id` | teacher | Full quest incl. answer keys (`/item/` avoids colliding with `/:id/responses`). |
+| POST | `/api/teacher/quests` | teacher | Create → `201 { quest, dropped }`. |
+| PUT | `/api/teacher/quests/:id` | teacher | Update → `{ quest, dropped }`. |
+| DELETE | `/api/teacher/quests/:id` | teacher | Deletes its submissions too. |
+| POST | `/api/teacher/quests/:id/publish` | teacher | `{ published }`. |
+| POST | `/api/teacher/quests/:id/assign` | teacher | `{ mode:'all'\|'some', studentIds[] }`. |
+| POST | `/api/teacher/quests/:id/move` | teacher | `{ direction:'up'\|'down' }`. |
+| GET | `/api/teacher/quests/:id/responses` | teacher | Read-only: who answered, scores, coins, who is missing, and the answer key. |
+| POST | `/api/teacher/quests/coins` | teacher | `{ studentId, delta }` — adjust a balance by hand. The only debit path. |
+
+`dropped` counts questions the server threw away because they had no usable
+answer key; the console surfaces it as a warning toast.
+
 ## Leaderboard — `/api/leaderboard`
 
 | Method | Path | Role | Notes |

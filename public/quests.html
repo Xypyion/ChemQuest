@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChemQuest — Leaderboard</title>
+  <title>ChemQuest — Daily Quests</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
-  <link rel="stylesheet" href="/css/quests.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/pages.css" />
+  <!-- the quest player reuses the challenge question styles -->
+  <link rel="stylesheet" href="/css/challenge.css" />
+  <link rel="stylesheet" href="/css/quests.css" />
 </head>
 <body>
   <div class="topbar">
@@ -18,24 +20,24 @@
       <span class="pill coins">🪙 <b id="navCoins">0</b> <span data-i18n="nav.coins">coins</span></span>
       <span class="pill points">⭐ <b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
       <a class="btn ghost" href="/dashboard.html" data-i18n="nav.map">🗺️ Map</a>
-      <a class="btn grape" href="/inventory.html" data-i18n="nav.certificates">🎖️ Certificates</a>
-      <a class="btn ghost" href="/quests.html" data-i18n="nav.quests">⚔️ Quests</a>
+      <a class="btn ghost" href="/inventory.html" data-i18n="nav.certificates">🎖️ Certificates</a>
+      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">🏆 Leaderboard</a>
       <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
     </div>
   </div>
 
   <div class="wrap">
     <div class="page-title">
-      <h1 data-i18n="lb.title">🏆 Explorer Leaderboard</h1>
-      <p class="page-sub" data-i18n="lb.sub">Who's climbing highest? Earn points by completing levels!</p>
+      <h1 data-i18n="quest.title">⚔️ Daily Quests</h1>
+      <p class="page-sub" data-i18n="quest.sub">Side questions from your teacher. Answer them to earn coins!</p>
     </div>
-    <div id="podium" class="podium"></div>
-    <div id="list" class="lb-list"><p class="center muted" data-i18n="lb.loading">Loading rankings…</p></div>
+    <div id="content"><p class="center muted" data-i18n="common.loading">Loading…</p></div>
   </div>
 
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
-  <script src="/js/leaderboard.js"></script>
+  <script src="/js/qrender.js"></script>
+  <script src="/js/quests.js"></script>
 </body>
 </html>

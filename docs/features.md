@@ -60,6 +60,17 @@ finished.
 - **Certificates** collected in a personal inventory.
 - **Leaderboard** with a top-3 podium; highlights the highest and lowest scorers.
 
+### ⚔️ Daily Quests
+
+- A page of its own (`quests.html`), reached from the topbar on every student page.
+- Short **side questions the teacher assigns**, each worth a **coin reward**.
+- Marked instantly, so the coins arrive the moment the quest is handed in.
+  Partial credit pays the same share of the reward.
+- **One try per quest**, and the teacher decides when it opens and closes.
+- A **wallet** shows the balance and the recent rewards that built it.
+- There is **no shop yet** — the balance is the reward. Teachers can adjust a
+  balance by hand if they need to.
+
 ## Teacher console
 
 ### Level builder
@@ -123,3 +134,4 @@ finished.
 | Certificate | granted on first pre-test pass of a level |
 | Next level unlock | previous level's post-test passed **and** access gate open |
 | Challenge score | auto-marked points + teacher-awarded points, out of the challenge total (kept out of the leaderboard; import into the gradebook to use it) |
+| Quest coins | `round(reward × earned ÷ quest total)`, paid once on submit (kept out of the leaderboard — coins are meant to be spent) |
