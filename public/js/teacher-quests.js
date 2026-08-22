@@ -84,8 +84,8 @@ const TQuests = (() => {
           <button class="tbtn sm blue" onclick="TQ.openResponses('${esc(q.id)}')">${t('t.qResponses')}${q.responses ? ` <span class="t-badge">${q.responses}</span>` : ''}</button>
           <button class="tbtn sm ghost" onclick="TQ.openAssign('${esc(q.id)}')">${t('t.qAssign')}</button>
           <button class="tbtn sm ${q.published ? 'ghost' : 'green'}" onclick="TQ.togglePublish('${esc(q.id)}', ${!q.published})">${q.published ? t('t.qUnpublish') : t('t.qPublish')}</button>
-          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','up')">↑</button>
-          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','down')">↓</button>
+          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','up')">${ICON.up(14)}</button>
+          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','down')">${ICON.down(14)}</button>
           <button class="tbtn sm indigo" onclick="TQ.edit('${esc(q.id)}')">${t('t.edit')}</button>
           <button class="tbtn sm danger" onclick="TQ.confirmDelete('${esc(q.id)}')">🗑</button>
         </div>
@@ -267,7 +267,7 @@ const TQuests = (() => {
               <input type="${multi ? 'checkbox' : 'radio'}" name="ok-${esc(q._id)}" class="q-ok" data-i="${i}"
                 ${multi ? (q.correctIndexes.includes(i) ? 'checked' : '') : (q.correctIndex === i ? 'checked' : '')}>
               <input class="t-input q-choice-text" data-i="${i}" value="${esc(c)}" placeholder="${esc(t('t.choicePh', { n: i + 1 }))}">
-              <button class="tbtn sm ghost" onclick="TQ.removeChoice('${esc(q._id)}',${i})">✕</button>
+              <button class="tbtn sm ghost" onclick="TQ.removeChoice('${esc(q._id)}',${i})">${ICON.close(13)}</button>
             </div>`).join('')}
         </div>
         <button class="tbtn sm ghost" onclick="TQ.addChoice('${esc(q._id)}')">${t('t.addChoice')}</button>`;
@@ -295,7 +295,7 @@ const TQuests = (() => {
                   <label class="t-check"><input type="checkbox" class="q-cell-blank" data-ri="${ri}" data-ci="${ci}" ${cell.blank ? 'checked' : ''}> ${t('t.chCellBlank')}</label>
                   <input class="t-input q-cell-answer" data-ri="${ri}" data-ci="${ci}" value="${esc(cell.answer || '')}" placeholder="${esc(t('t.chCellAnswerPh'))}" ${cell.blank ? '' : 'disabled'}>
                 </div>`).join('')}
-              <button class="tbtn sm ghost" onclick="TQ.removeRow('${esc(q._id)}',${ri})">✕</button>
+              <button class="tbtn sm ghost" onclick="TQ.removeRow('${esc(q._id)}',${ri})">${ICON.close(13)}</button>
             </div>`).join('')}
         </div>
         <button class="tbtn sm ghost" onclick="TQ.addRow('${esc(q._id)}')">${t('t.chAddRow')}</button>`;

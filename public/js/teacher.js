@@ -45,20 +45,33 @@ async function reload() {
   updateChallengeBadge();
 }
 
-/** Count of challenge responses waiting to be marked, on the Challenges tab. */
-function updateChallengeBadge() {
-  const btn = document.querySelector('.t-nav button[data-view="challenges"]');
-  if (!btn) return;
-  btn.innerHTML = t('t.navChallenges') + (CHALLENGES_PENDING ? ` <span class="t-badge">${CHALLENGES_PENDING}</span>` : '');
+/* Every sidebar button is painted here — icon, label, and a count when work
+   is waiting. It used to be two functions that each rebuilt a button's
+   innerHTML from a label alone, which wiped whatever icon was in the markup
+   the moment a badge appeared. */
+const NAV_BADGE = {
+  challenges: () => CHALLENGES_PENDING,
+  grading: () => SUBMISSIONS.length,
+};
+const NAV_KEY = {
+  lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
+  battles: 't.navBattles', grading: 't.navGrading', gradebook: 't.navGradebook',
+  students: 't.navStudents', preview: 't.playAsStudent',
+};
+function paintNav() {
+  document.querySelectorAll('.t-nav button[data-view]').forEach((btn) => {
+    const v = btn.dataset.view;
+    const n = NAV_BADGE[v] ? NAV_BADGE[v]() : 0;
+    btn.innerHTML = `${ICON[btn.dataset.icon](20)}<span>${esc(t(NAV_KEY[v]))}</span>`
+      + (n ? ` <span class="t-badge">${n}</span>` : '');
+  });
+  const mark = document.getElementById('brandMark');
+  if (mark) mark.innerHTML = ICON.flask(24);
+  const menu = document.getElementById('menuToggle');
+  if (menu) menu.innerHTML = `${ICON.lines(18)} ${esc(t('t.menu'))}`;
 }
-
-/** Show a little count next to the Grading nav button when work is waiting. */
-function updateGradingBadge() {
-  const btn = document.querySelector('.t-nav button[data-view="grading"]');
-  if (!btn) return;
-  const n = SUBMISSIONS.length;
-  btn.innerHTML = '✍️ ' + t('t.navGrading') + (n ? ` <span class="t-badge">${n}</span>` : '');
-}
+function updateChallengeBadge() { paintNav(); }
+function updateGradingBadge() { paintNav(); }
 function setView(v) {
   view = v; draft = null; boardLessonId = null; preview = null;
   if (window.TChallenges) TChallenges.reset();
@@ -82,44 +95,103 @@ function render() {
   return renderLessons();
 }
 
-/* ============================ LESSONS LIST ============================ */
+/* ============================ LESSONS LIST ============================ *
+
+   A level row used to be seven small buttons in one strip — gate, post-test,
+   board, up, down, edit, delete — all the same size in five different
+   colours, above a line of bare emoji and unlabelled numbers
+   ("2 lines · 1 · 14 questions · 6").
+
+   Two changes, both structural:
+     1. STATE lives with the information, not in the action group. The access
+        gate and the post-test are facts about the level that happen to be
+        editable, so they read as chips under the title instead of as two more
+        buttons competing with Edit.
+     2. Every number is labelled and every mark is a drawn icon, so the row can
+        be read rather than decoded.                                          */
+
+function fmtTimer(seconds) {
+  if (!seconds) return t('t.noTimer');
+  const m = Math.floor(seconds / 60), s = seconds % 60;
+  return m ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
+}
+
+function metaBit(icon, text) {
+  return `<i>${ICON[icon](15)}${esc(text)}</i>`;
+}
+
+/* The row used to print the raw terrain key — a Thai teacher was shown the
+   word "plain". */
+function terrainLabel(terrain) {
+  return t({ mountain: 't.terrMountain', snow: 't.terrSnow' }[terrain] || 't.terrPlain');
+}
+
 function renderLessons() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'lessons'));
+
   const rows = LESSONS.length ? LESSONS.map((l, i) => {
     const qCount = DIFFS.reduce((n, d) => n + ((l.quizzes && l.quizzes[d]) || []).length, 0);
     const pt = l.postTest || {};
     const ptCount = DIFFS.reduce((n, d) => n + ((pt.quizzes && pt.quizzes[d]) || []).length, 0);
     const lines = (l.storyboard || []).filter((s) => s.type !== 'video').length;
     const vids = (l.storyboard || []).filter((s) => s.type === 'video').length;
+    const gate = gateMode(l);
+    const gateIcon = gate === 'locked' ? 'lock' : gate === 'scheduled' ? 'calendar' : 'unlock';
+
     return `
     <div class="lesson-row">
-      <div class="ico">${esc(l.icon || '🧪')}</div>
-      <div class="info">
-        <div class="t">${i + 1}. ${esc(l.title)} <span class="terr ${l.terrain}">${l.terrain}</span></div>
-        <div class="d">📖 ${lines} ${t('t.lines')} · 🎬 ${vids} · ❓ ${qCount} ${t('t.questions')} · 🧾 ${ptCount} · ${l.timeLimit ? '⏱ ' + l.timeLimit + 's' : t('t.noTimer')}
-          <span class="flow-tag" title="${esc(l.flow === 'test-first' ? t('t.flowTestFirst') : t('t.flowStoryFirst'))}">${l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory')}</span></div>
+      <div class="lr-num">${i + 1}</div>
+
+      <div class="lr-body">
+        <div class="lr-title">
+          <span class="lr-name">${esc(l.title)}</span>
+          <span class="terr ${l.terrain}">${esc(terrainLabel(l.terrain))}</span>
+          <span class="lr-flow">${esc(l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory'))}</span>
+        </div>
+
+        <div class="lr-meta">
+          ${metaBit('lines', `${lines} ${t('t.lines')}`)}
+          ${metaBit('video', `${vids} ${vids === 1 ? t('t.videos') : t('t.videosPlural')}`)}
+          ${metaBit('question', `${qCount} ${t('t.questions')}`)}
+          ${metaBit('pen', `${ptCount} ${t('t.postQ')}`)}
+          ${metaBit('timer', fmtTimer(l.timeLimit))}
+        </div>
+
+        <div class="lr-state">
+          <button class="chip chip-${gate}" onclick="openGate('${l.id}')">
+            ${ICON[gateIcon](14)}<b>${esc(t('t.access'))}</b> ${esc(gateLabel(l))}
+          </button>
+          <button class="chip ${pt.open ? 'chip-on' : ''}"
+                  onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})"
+                  title="${esc(pt.open ? t('t.closePostTest') : t('t.openPostTest'))}">
+            ${ICON[pt.open ? 'unlock' : 'lock'](14)}<b>${esc(t('t.postTestShort'))}</b> ${esc(pt.open ? t('t.open') : t('t.closed'))}
+          </button>
+        </div>
       </div>
-      <div class="acts">
-        <button class="tbtn ${gateBtnClass(l)} sm" onclick="openGate('${l.id}')" title="${t('t.access')}">${gateLabel(l)}</button>
-        <button class="tbtn ${pt.open ? 'green' : 'ghost'} sm" onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})"
-                title="${pt.open ? t('t.closePostTest') : t('t.openPostTest')}">
-          ${pt.open ? '🔓 ' + t('t.postTestShort') + ': ' + t('t.open') : '🔒 ' + t('t.postTestShort')}
-        </button>
-        <button class="tbtn indigo sm" onclick="openBoard('${l.id}')">${t('t.board')}</button>
-        <button class="tbtn ghost sm" onclick="moveLesson('${l.id}','up')" title="${t('t.moveUp')}">↑</button>
-        <button class="tbtn ghost sm" onclick="moveLesson('${l.id}','down')" title="${t('t.moveDown')}">↓</button>
-        <button class="tbtn blue sm" onclick="editLesson('${l.id}')">${t('t.edit')}</button>
-        <button class="tbtn danger sm" onclick="confirmDeleteLesson('${l.id}')">🗑</button>
+
+      <div class="lr-acts" role="group" aria-label="${esc(t('t.rowActions', { title: l.title }))}">
+        <span class="lr-move">
+          <button class="iconbtn" onclick="moveLesson('${l.id}','up')"
+                  title="${esc(t('t.moveUp'))}" aria-label="${esc(t('t.moveUp'))}"
+                  ${i === 0 ? 'disabled' : ''}>${ICON.up(16)}</button>
+          <button class="iconbtn" onclick="moveLesson('${l.id}','down')"
+                  title="${esc(t('t.moveDown'))}" aria-label="${esc(t('t.moveDown'))}"
+                  ${i === LESSONS.length - 1 ? 'disabled' : ''}>${ICON.down(16)}</button>
+        </span>
+        <button class="tbtn ghost sm" onclick="openBoard('${l.id}')">${esc(t('t.board'))}</button>
+        <button class="tbtn sm" onclick="editLesson('${l.id}')">${ICON.pencil(15)} ${esc(t('t.edit'))}</button>
+        <button class="iconbtn danger" onclick="confirmDeleteLesson('${l.id}')"
+                title="${esc(t('t.deleteLevel'))}" aria-label="${esc(t('t.deleteLevel'))}">${ICON.trash(16)}</button>
       </div>
     </div>`;
-  }).join('') : `<div class="empty">${t('t.noLevels')}</div>`;
+  }).join('') : `<div class="empty">${esc(t('t.noLevels'))}</div>`;
 
   viewEl.innerHTML = `
     <div class="t-head">
-      <div><h1>${t('t.lessonsTitle')}</h1><div class="sub">${t('t.lessonsSub')}</div></div>
-      <button class="tbtn" onclick="newLesson()">${t('t.newLevel')}</button>
+      <div><h1>${esc(t('t.lessonsTitle'))}</h1><div class="sub">${esc(t('t.lessonsSub'))}</div></div>
+      <button class="tbtn" onclick="newLesson()">${ICON.plus(16)} ${esc(t('t.newLevel'))}</button>
     </div>
-    <div class="t-card">${rows}</div>`;
+    <div class="t-card lessons">${rows}</div>`;
 }
 async function moveLesson(id, direction) {
   try { await API.post(`/api/teacher/lessons/${id}/move`, { direction }); await reload(); render(); }
@@ -229,7 +301,7 @@ function renderCriteriaCard() {
   const rows = boardCriteria.length ? boardCriteria.map((c, i) => `
     <div class="crit-row">
       <input class="t-input crit-input" data-i="${i}" value="${esc(c.label)}" placeholder="${esc(t('rate.critPh'))}" maxlength="80">
-      <button class="tbtn danger sm" onclick="removeCriterion(${i})" aria-label="${t('common.delete')}">✕</button>
+      <button class="tbtn danger sm" onclick="removeCriterion(${i})" aria-label="${t('common.delete')}">${ICON.close(13)}</button>
     </div>`).join('') : `<div class="sub" style="color:var(--t-soft)">${t('rate.noneYet')}</div>`;
   document.getElementById('critCard').innerHTML = `
     <div class="t-head" style="margin:0 0 4px"><h3 style="margin:0">${t('rate.editorTitle')}</h3>
@@ -410,9 +482,9 @@ function syncFlowUI() {
 function renderStoryItem(it, i, total, moodOpts) {
   const reorder = `
     <div class="sb-reorder">
-      <button class="tbtn ghost sm" onclick="moveStoryItem(${i},'up')" ${i === 0 ? 'disabled' : ''}>↑</button>
-      <button class="tbtn ghost sm" onclick="moveStoryItem(${i},'down')" ${i === total - 1 ? 'disabled' : ''}>↓</button>
-      <button class="tbtn danger sm" onclick="removeStoryItem(${i})">✕</button>
+      <button class="tbtn ghost sm" onclick="moveStoryItem(${i},'up')" ${i === 0 ? 'disabled' : ''}>${ICON.up(14)}</button>
+      <button class="tbtn ghost sm" onclick="moveStoryItem(${i},'down')" ${i === total - 1 ? 'disabled' : ''}>${ICON.down(14)}</button>
+      <button class="tbtn danger sm" onclick="removeStoryItem(${i})">${ICON.close(13)}</button>
     </div>`;
 
   if (it.type === 'video') {
@@ -470,7 +542,7 @@ function renderQuestionCard(q, i, zone) {
         <input type="radio" class="q-correct" name="correct-${zone}-${q._id}" value="${ci}" ${ci === q.correctIndex ? 'checked' : ''} onchange="markCorrect(this)">
         <input type="text" class="q-choice" value="${esc(c)}" placeholder="${esc(t('t.choicePh', { n: ci + 1 }))}">
         <span class="correct-wrap">${ci === q.correctIndex ? t('t.correct') : ''}</span>
-        ${q.choices.length > 2 ? `<button class="tbtn ghost sm" onclick="removeChoice('${zone}','${q._id}',${ci})">✕</button>` : ''}
+        ${q.choices.length > 2 ? `<button class="tbtn ghost sm" onclick="removeChoice('${zone}','${q._id}',${ci})">${ICON.close(13)}</button>` : ''}
       </div>`).join('');
     bodyHtml = `
       <div class="choices" style="margin-top:6px">${choices}</div>
@@ -491,7 +563,7 @@ function renderQuestionCard(q, i, zone) {
   return `
     <div class="builder-item qcard" data-qid="${q._id}" data-qtype="${isWritten ? 'written' : 'mcq'}">
       <div class="builder-head">${t('t.question', { n: i + 1 })}</div>
-      <button class="tbtn danger sm rm" onclick="removeQuestion('${zone}','${q._id}')">✕</button>
+      <button class="tbtn danger sm rm" onclick="removeQuestion('${zone}','${q._id}')">${ICON.close(13)}</button>
       ${typeTabs}
       <input type="text" class="t-input q-text" value="${esc(q.question)}" placeholder="${esc(t('t.questionPh'))}">
       ${bodyHtml}
@@ -658,7 +730,7 @@ function renderStudents() {
       <td>${s.certificates} 🎖️</td>
       <td><b>${s.points}</b></td>
       <td style="white-space:nowrap">
-        <button class="tbtn blue sm" onclick='editStudent("${s.id}")'>✏️</button>
+        <button class="tbtn blue sm" onclick='editStudent("${s.id}")'>${ICON.pencil(14)}</button>
         <button class="tbtn ghost sm" onclick='resetPassword("${s.id}")' title="${t('t.resetPw')}">🔑</button>
         <button class="tbtn danger sm" onclick='confirmDeleteStudent("${s.id}")'>🗑</button>
       </td>
@@ -997,7 +1069,7 @@ function paintGradebook() {
   const head = `
     <tr>
       <th class="gb-sticky gb-corner">${t('t.gbStudent')}</th>
-      ${cols.map((c) => `<th class="gb-col"><button class="gb-col-edit" onclick="editGbColumn('${c.id}')" title="${esc(t('t.gbEditCol'))}">${esc(c.name)} <span class="gb-max">/${c.max}</span> ✏️</button></th>`).join('')}
+      ${cols.map((c) => `<th class="gb-col"><button class="gb-col-edit" onclick="editGbColumn('${c.id}')" title="${esc(t('t.gbEditCol'))}">${esc(c.name)} <span class="gb-max">/${c.max}</span> ${ICON.pencil(13)}</button></th>`).join('')}
       <th class="gb-total-h">${t('t.gbTotal')}</th>
     </tr>`;
   const body = rows.length ? rows.map((r) => {

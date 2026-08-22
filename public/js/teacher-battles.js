@@ -232,7 +232,7 @@ const TBattles = (() => {
               <input type="${multi ? 'checkbox' : 'radio'}" name="bok-${esc(q._id)}" class="q-ok" data-i="${i}"
                 ${multi ? (q.correctIndexes.includes(i) ? 'checked' : '') : (q.correctIndex === i ? 'checked' : '')}>
               <input class="t-input q-choice-text" data-i="${i}" value="${esc(c)}" placeholder="${esc(t('t.choicePh', { n: i + 1 }))}">
-              <button class="tbtn sm ghost" onclick="TB.removeChoice('${esc(q._id)}',${i})">✕</button>
+              <button class="tbtn sm ghost" onclick="TB.removeChoice('${esc(q._id)}',${i})">${ICON.close(13)}</button>
             </div>`).join('')}
         </div>
         <button class="tbtn sm ghost" onclick="TB.addChoice('${esc(q._id)}')">${t('t.addChoice')}</button>`;
@@ -260,7 +260,7 @@ const TBattles = (() => {
                   <label class="t-check"><input type="checkbox" class="q-cell-blank" data-ri="${ri}" data-ci="${ci}" ${cell.blank ? 'checked' : ''}> ${t('t.chCellBlank')}</label>
                   <input class="t-input q-cell-answer" data-ri="${ri}" data-ci="${ci}" value="${esc(cell.answer || '')}" placeholder="${esc(t('t.chCellAnswerPh'))}" ${cell.blank ? '' : 'disabled'}>
                 </div>`).join('')}
-              <button class="tbtn sm ghost" onclick="TB.removeRow('${esc(q._id)}',${ri})">✕</button>
+              <button class="tbtn sm ghost" onclick="TB.removeRow('${esc(q._id)}',${ri})">${ICON.close(13)}</button>
             </div>`).join('')}
         </div>
         <button class="tbtn sm ghost" onclick="TB.addRow('${esc(q._id)}')">${t('t.chAddRow')}</button>`;

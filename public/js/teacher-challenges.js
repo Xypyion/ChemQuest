@@ -117,8 +117,8 @@ const TChallenges = (() => {
           <button class="tbtn ${c.published ? 'green' : 'ghost'} sm" onclick="TC.togglePublish('${c.id}', ${c.published ? 'false' : 'true'})">
             ${c.published ? t('t.chUnpublish') : t('t.chPublish')}
           </button>
-          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','up')" title="${t('t.moveUp')}">↑</button>
-          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','down')" title="${t('t.moveDown')}">↓</button>
+          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','up')" title="${t('t.moveUp')}">${ICON.up(14)}</button>
+          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','down')" title="${t('t.moveDown')}">${ICON.down(14)}</button>
           <button class="tbtn blue sm" onclick="TC.edit('${c.id}')">${t('t.edit')}</button>
           <button class="tbtn danger sm" onclick="TC.confirmDelete('${c.id}')">🗑</button>
         </div>
@@ -131,7 +131,7 @@ const TChallenges = (() => {
       <div class="crit-row">
         <input class="t-input cat-icon" data-i="${i}" value="${esc(c.icon || '📂')}" maxlength="4" style="max-width:70px">
         <input class="t-input cat-name" data-i="${i}" value="${esc(c.name)}" placeholder="${esc(t('t.chCatNamePh'))}" maxlength="60">
-        <button class="tbtn danger sm" onclick="TC.removeCat(${i})" aria-label="${t('common.delete')}">✕</button>
+        <button class="tbtn danger sm" onclick="TC.removeCat(${i})" aria-label="${t('common.delete')}">${ICON.close(13)}</button>
       </div>`).join('') : `<div class="sub" style="color:var(--t-soft)">${t('t.chNoCats')}</div>`;
     const el = document.getElementById('catCard');
     if (!el) return;
@@ -375,7 +375,7 @@ const TChallenges = (() => {
     return `
       <div class="builder-item qcard ${q.type === 'simulation' ? 'simcard' : ''}" data-qid="${q._id}" data-qtype="${q.type}">
         <div class="builder-head">${parentId ? '↳ ' : ''}${t('t.question', { n: i + 1 })} · ${TYPE_LABEL[q.type]()}</div>
-        <button class="tbtn danger sm rm" onclick="TC.removeQuestion('${q._id}')">✕</button>
+        <button class="tbtn danger sm rm" onclick="TC.removeQuestion('${q._id}')">${ICON.close(13)}</button>
         ${typeTabs}
         <input type="text" class="t-input q-text" value="${esc(q.question)}" placeholder="${esc(t('t.chQuestionPh'))}">
         ${q.type === 'simulation' ? '' : imgRow}
@@ -410,7 +410,7 @@ const TChallenges = (() => {
           <input type="${multi ? 'checkbox' : 'radio'}" class="q-correct" name="correct-${q._id}" value="${ci}" ${on ? 'checked' : ''} onchange="TC.markCorrect(this)">
           <input type="text" class="q-choice" value="${esc(c)}" placeholder="${esc(t('t.choicePh', { n: ci + 1 }))}">
           <span class="correct-wrap">${on ? t('t.correct') : ''}</span>
-          ${q.choices.length > 2 ? `<button class="tbtn ghost sm" onclick="TC.removeChoice('${q._id}',${ci})">✕</button>` : ''}
+          ${q.choices.length > 2 ? `<button class="tbtn ghost sm" onclick="TC.removeChoice('${q._id}',${ci})">${ICON.close(13)}</button>` : ''}
         </div>`;
     }).join('');
     return `
@@ -433,7 +433,7 @@ const TChallenges = (() => {
               ${cell.blank ? 'checked' : ''} onchange="TC.toggleCell('${q._id}',${ri},${ci},this.checked)"><span>${t('t.chCellBlank')}</span></label>
             ${cell.blank ? `<input class="t-input tb-ans" data-r="${ri}" data-c="${ci}" value="${esc(cell.answer)}" placeholder="${esc(t('t.chCellAnswerPh'))}">` : ''}
           </td>`).join('')}
-        <td class="tb-tools"><button class="tbtn danger sm" onclick="TC.removeRow('${q._id}',${ri})">✕</button></td>
+        <td class="tb-tools"><button class="tbtn danger sm" onclick="TC.removeRow('${q._id}',${ri})">${ICON.close(13)}</button></td>
       </tr>`).join('');
     return `
       <div class="sub" style="color:var(--t-soft);margin:8px 0 6px">${t('t.chTableHint')}</div>

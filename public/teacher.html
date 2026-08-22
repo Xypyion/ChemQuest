@@ -13,17 +13,17 @@
 <body class="teacher">
   <div class="t-shell">
     <aside class="t-side" id="side">
-      <div class="t-brand">🧪 ChemQuest</div>
+      <div class="t-brand"><span class="t-mark" id="brandMark"></span> ChemQuest</div>
       <div class="t-role" data-i18n="t.console">Teacher Console</div>
       <nav class="t-nav">
-        <button data-view="lessons" class="active" onclick="setView('lessons')" data-i18n="t.navLessons">📚 Lessons &amp; Levels</button>
-        <button data-view="challenges" onclick="setView('challenges')" data-i18n="t.navChallenges">&#129513; Challenges</button>
-        <button data-view="quests" onclick="setView('quests')" data-i18n="t.navQuests">⚔️ Daily Quests</button>
-        <button data-view="battles" onclick="setView('battles')" data-i18n="t.navBattles">&#129338; Coin Battles</button>
-        <button data-view="grading" onclick="setView('grading')" data-i18n="t.navGrading">✍️ Writing Grading</button>
-        <button data-view="gradebook" onclick="setView('gradebook')" data-i18n="t.navGradebook">📊 Gradebook</button>
-        <button data-view="students" onclick="setView('students')" data-i18n="t.navStudents">👩‍🎓 Students</button>
-        <button data-view="preview" onclick="setView('preview')" data-i18n="t.playAsStudent">🎮 Play as student</button>
+        <button data-view="lessons" data-icon="book" class="active" onclick="setView('lessons')" data-i18n="t.navLessons">Lessons &amp; Levels</button>
+        <button data-view="challenges" data-icon="puzzle" onclick="setView('challenges')" data-i18n="t.navChallenges">Challenges</button>
+        <button data-view="quests" data-icon="quests" onclick="setView('quests')" data-i18n="t.navQuests">Daily Quests</button>
+        <button data-view="battles" data-icon="battle" onclick="setView('battles')" data-i18n="t.navBattles">Coin Battles</button>
+        <button data-view="grading" data-icon="pen" onclick="setView('grading')" data-i18n="t.navGrading">Writing Grading</button>
+        <button data-view="gradebook" data-icon="table" onclick="setView('gradebook')" data-i18n="t.navGradebook">Gradebook</button>
+        <button data-view="students" data-icon="people" onclick="setView('students')" data-i18n="t.navStudents">Students</button>
+        <button data-view="preview" data-icon="play" onclick="setView('preview')" data-i18n="t.playAsStudent">Play as student</button>
       </nav>
       <div id="langHost" style="margin:10px 0"></div>
       <div class="t-foot">
@@ -33,7 +33,7 @@
     </aside>
 
     <main class="t-main">
-      <button class="tbtn ghost sm menu-toggle" onclick="document.getElementById('side').classList.toggle('open')">☰ Menu</button>
+      <button class="tbtn ghost sm menu-toggle" onclick="document.getElementById('side').classList.toggle('open')" id="menuToggle"></button>
       <div id="view"></div>
     </main>
   </div>
@@ -41,6 +41,7 @@
   <div id="modalHost"></div>
 
   <script src="/js/i18n.js"></script>
+  <script src="/js/icons.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
   <script src="/js/feed.js"></script>
