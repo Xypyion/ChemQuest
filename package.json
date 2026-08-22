@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node src/seed.js",
+    "teacher": "node scripts/set-teacher.js",
     "dev": "node --watch server.js",
     "migrate": "node scripts/migrate-to-postgres.js"
   },

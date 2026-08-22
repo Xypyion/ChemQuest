@@ -22,7 +22,7 @@ $env:PORT=8080; npm start   # Windows PowerShell
 ## Default teacher account
 | Email | Password |
 |-------|----------|
-| `Shinozuke67@skn.ac.th` | `12345678` |
+| set by `TEACHER_EMAIL` in `.env` | set by `TEACHER_PASSWORD`, or generated and printed once |
 
 Change the password after first login (Students tab → 🔑 only resets *student* passwords;
 to change the teacher password, edit the seed or add an account flow). Students self-register

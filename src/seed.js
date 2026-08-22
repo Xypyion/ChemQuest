@@ -15,11 +15,32 @@ const db = require('./db');
 const game = require('./game');
 const { hashPassword } = require('./auth');
 
-const TEACHER = {
-  name: 'Kru Shinozuke',
-  email: 'shinozuke67@skn.ac.th',
-  password: '12345678',
-};
+/* The first teacher account.
+ *
+ * Nothing here is a literal any more. TEACHER_NAME / TEACHER_EMAIL /
+ * TEACHER_PASSWORD come from the environment (or the git-ignored `.env`), and a
+ * missing password becomes a strong random one that is printed once — never a
+ * default, because a default in a public repository is a published login.
+ *
+ * To set or change these later, run `npm run teacher`, which asks for them
+ * interactively and never echoes the password. */
+const config = require('./config');
+
+function randomPassword() {
+  // no look-alike characters: someone is going to read this off a screen
+  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from(crypto.randomBytes(20), (b) => alphabet[b % alphabet.length]).join('');
+}
+
+function teacherAccount() {
+  const t = config.teacherSeed();
+  return {
+    name: t.name,
+    email: t.email || 'teacher@' + (process.env.SCHOOL_DOMAIN || 'skn.ac.th'),
+    password: t.password || randomPassword(),
+    generated: !t.password,
+  };
+}
 
 // ---- storyboard helpers ----
 const line = (mood, text, image) => ({ type: 'line', character: 'Kru CJ', mood, text, image: image || '' });
@@ -243,6 +264,7 @@ function seedIfEmpty() {
   if (hasTeacher) return false;
 
   console.log('[seed] First run detected — creating teacher account and sample levels…');
+  const teacher = teacherAccount();
 
   db.insert('users', {
     // Deterministic ids: on a serverless host two cold instances can seed an
@@ -250,9 +272,9 @@ function seedIfEmpty() {
     // same rows instead of creating duplicate teachers and duplicate levels.
     id: SEED_TEACHER_ID,
     role: 'teacher',
-    name: TEACHER.name,
-    email: TEACHER.email,
-    passwordHash: hashPassword(TEACHER.password),
+    name: teacher.name,
+    email: teacher.email,
+    passwordHash: hashPassword(teacher.password),
     createdAt: new Date().toISOString(),
   });
 
@@ -277,7 +299,21 @@ function seedIfEmpty() {
     });
   });
 
-  console.log(`[seed] Done. Teacher: ${TEACHER.email} / ${TEACHER.password}  (${LESSONS.length} levels created)`);
+  /* Print the password ONLY when this run invented it — there is no other way
+     for the operator to learn it. A password they configured themselves is
+     theirs already, and echoing it just puts it in a terminal log. */
+  if (teacher.generated) {
+    console.log('');
+    console.log('[seed] Teacher account created. This password is shown once:');
+    console.log('');
+    console.log(`         email     ${teacher.email}`);
+    console.log(`         password  ${teacher.password}`);
+    console.log('');
+    console.log('[seed] Change it with `npm run teacher`, or set TEACHER_EMAIL and');
+    console.log('[seed] TEACHER_PASSWORD in .env before seeding a fresh database.');
+  } else {
+    console.log(`[seed] Done. Teacher: ${teacher.email}  (${LESSONS.length} levels created)`);
+  }
   return true;
 }
 
@@ -298,4 +334,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { seedIfEmpty, LESSONS, TEACHER };
+module.exports = { seedIfEmpty, LESSONS, teacherAccount };

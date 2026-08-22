@@ -148,8 +148,11 @@ npm start            # serves http://localhost:4000
 
 On first run the app auto-creates the teacher account and 6 sample lessons.
 
-**Default teacher login:** `Shinozuke67@skn.ac.th` / `12345678`
-(email is case-insensitive). Students self-register on the welcome page.
+**Teacher login:** set `TEACHER_EMAIL` and `TEACHER_PASSWORD` in the git-ignored
+`.env` before the first run, or let the seed generate a password and print it once.
+Run `npm run teacher` to set or change it at any time — it asks in the terminal and
+never echoes what you type. Email is case-insensitive. Students self-register on the
+welcome page.
 
 To reset everything: stop the server, delete `data/db.json` (and optionally
 `data/uploads/`), start again → it re-seeds.
@@ -378,8 +381,9 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 
 ## 10. Accounts, config & environment
 
-- **Teacher (seeded):** `Shinozuke67@skn.ac.th` / `12345678`. Change the password
-  for production. (The 🔑 reset in the console resets *student* passwords.)
+- **Teacher (seeded):** from `TEACHER_EMAIL` / `TEACHER_PASSWORD`, or a generated
+  password printed once on first seed. `npm run teacher` sets or changes it.
+  (The reset in the console resets *student* passwords, not the teacher's.)
 - **Env vars:** `PORT` (default 4000), `JWT_SECRET` (set a strong value in
   production — it falls back to a dev default otherwise), `DATABASE_URL`
   (unset = JSON file store; set = Postgres — **required on serverless hosts**),

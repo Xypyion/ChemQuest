@@ -106,7 +106,7 @@ LESSONS.forEach((lesson, i) => db.insert('lessons', { ... }));  // 2. six levels
 On the live site, as teacher:
 
 ```
-POST /api/auth/login  (Shinozuke67@skn.ac.th)  -> 200, token issued  <- teacher EXISTS
+POST /api/auth/login  (<teacher-email>)  -> 200, token issued  <- teacher EXISTS
 GET  /api/teacher/lessons                      -> {"lessons":[]}     <- ZERO levels
 ```
 
@@ -123,7 +123,7 @@ A clean copy of `main` was run locally in an isolated directory:
 
 ```
 [seed] First run detected — creating teacher account and sample levels...
-[seed] Done. Teacher: shinozuke67@skn.ac.th / 12345678  (6 levels created)
+[seed] Done. Teacher: <teacher-email> / <password redacted>  (6 levels created)
 POST /api/auth/signup -> 200, token issued
 data/db.json -> written, 39315 bytes
 ```
