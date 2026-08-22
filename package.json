@@ -1,7 +1,7 @@
 {
-  "name": "chemquest",
+  "name": "stoiventure",
   "version": "1.0.0",
-  "description": "ChemQuest - a colorful chemistry learning adventure game for Suankularb Wittayalai Nonthaburi School",
+  "description": "StoiVenture - a colorful chemistry learning adventure game for Suankularb Wittayalai Nonthaburi School",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

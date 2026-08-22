@@ -1,5 +1,5 @@
 /**
- * ChemQuest — a colorful chemistry learning adventure.
+ * StoiVenture — a colorful chemistry learning adventure.
  * Express server: JSON API + static cartoony front-end.
  *
  * Runs two ways:
@@ -164,7 +164,7 @@ if (require.main === module) {
       if (seedIfEmpty()) await db.flush();
       seedChecked = true;
       app.listen(PORT, () => {
-        console.log('\n  🧪  ChemQuest is live!');
+        console.log('\n  🧪  StoiVenture is live!');
         console.log(`  ➜  Open  http://localhost:${PORT}  in your browser`);
         console.log(`  ➜  Storage: ${db.backend}\n`);
       });

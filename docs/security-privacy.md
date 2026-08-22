@@ -40,9 +40,9 @@ browser. It is isolated on purpose:
 
 - The frame is rendered with `sandbox="allow-scripts allow-popups"` and **deliberately no
   `allow-same-origin`**, so the simulation gets an opaque origin: its scripts cannot read
-  the page around it, the JWT in `localStorage`, or any ChemQuest cookie.
+  the page around it, the JWT in `localStorage`, or any StoiVenture cookie.
 - The HTML is stored as data and re-escaped into the `srcdoc` attribute; it is never
-  injected into the ChemQuest document itself.
+  injected into the StoiVenture document itself.
 - URL-mode simulations point at a third-party site and are loaded with
   `referrerpolicy="no-referrer"`.
 - The snippet is capped at ~400 KB.

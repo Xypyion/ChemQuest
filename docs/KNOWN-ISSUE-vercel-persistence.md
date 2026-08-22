@@ -31,7 +31,7 @@ annoying popup: **the data is not actually being saved at all.**
 
 ## 2. TL;DR root cause
 
-ChemQuest stores all state in a **file** (`data/db.json`) via `src/db.js`.
+StoiVenture stores all state in a **file** (`data/db.json`) via `src/db.js`.
 
 **Vercel serverless functions run on a read-only filesystem** (only `/tmp` is
 writable, and even that is per-instance and temporary). So:

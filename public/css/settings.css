@@ -1,0 +1,133 @@
+/* =========================================================================
+   Settings — the student's own page.
+
+   Deliberately the same furniture as the rest of the student side: white
+   cards on the sky gradient, the 22px radius from --radius, the flat drop
+   shadow, Rubik 700+ headings. Nothing here invents a new card style; a
+   settings page that looks like a different product is how a game stops
+   feeling like one.
+   ========================================================================= */
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.set-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 22px 22px 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- the hero: who you are ---------- */
+
+/* Spans the full width on a two-column layout — it is a summary, not a form,
+   and it reads badly squeezed into half the row next to the name field. */
+.set-hero { grid-column: 1 / -1; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+
+.set-hero-face {
+  width: 92px; height: 92px; flex: none;
+  display: grid; place-items: center;
+  font-size: 3rem; line-height: 1;
+  background: linear-gradient(160deg, #f3ecff, #e3f2ff);
+  border-radius: 26px;
+  box-shadow: inset 0 -4px 0 rgba(107, 63, 196, .12);
+}
+
+.set-hero-body { flex: 1; min-width: 220px; }
+.set-hero-name { margin: 2px 0 2px; font-size: 1.5rem; color: var(--ink); }
+.set-hero-mail { margin: 0 0 12px; color: var(--ink-soft); font-size: .9rem; word-break: break-all; }
+
+.set-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.set-chips .pill .ic { opacity: .8; }
+
+.set-progress { display: flex; align-items: center; gap: 11px; flex-wrap: wrap; }
+.set-progress-bar {
+  flex: 1; min-width: 160px; height: 14px;
+  background: #ece8f7; border-radius: 999px; overflow: hidden;
+}
+.set-progress-bar span {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--grass), var(--secondary));
+  transition: width .5s ease;
+}
+.set-progress-txt { font-size: .85rem; font-weight: 700; color: var(--ink-soft); flex: none; }
+.set-joined { margin: 12px 0 0; font-size: .82rem; color: var(--ink-soft); }
+
+/* ---------- form furniture ---------- */
+
+.set-h {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 6px; font-size: 1.15rem; color: var(--ink);
+}
+.set-h .ic { color: var(--accent); flex: none; }
+.set-note { margin: 0 0 16px; font-size: .87rem; color: var(--ink-soft); line-height: 1.5; }
+.set-hint { margin: 6px 0 0; font-size: .78rem; color: var(--ink-soft); }
+
+.set-label {
+  display: block; margin: 14px 0 6px;
+  font-size: .82rem; font-weight: 700; color: var(--ink-soft);
+}
+
+.set-input {
+  width: 100%; box-sizing: border-box;
+  font-family: var(--font); font-size: 1rem; color: var(--ink);
+  padding: 12px 14px; border: 2px solid #e4dff4; border-radius: 14px;
+  background: #fbfaff; transition: border-color .15s, background .15s;
+}
+.set-input:focus {
+  outline: none; border-color: var(--secondary); background: #fff;
+  box-shadow: 0 0 0 4px rgba(54, 185, 255, .18);
+}
+
+.set-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+.set-rule { border: none; border-top: 2px dashed #ece7f8; margin: 24px 0 20px; }
+
+/* ---------- avatar picker ---------- */
+
+.set-avatars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 8px;
+}
+
+.set-av {
+  aspect-ratio: 1; width: 100%;
+  display: grid; place-items: center;
+  font-size: 1.6rem; line-height: 1; cursor: pointer;
+  background: #f7f5fd; border: 2px solid transparent; border-radius: 16px;
+  transition: transform .12s, background .15s, border-color .15s;
+}
+.set-av:hover { background: #efeaff; transform: translateY(-2px); }
+.set-av:focus-visible { outline: 3px solid var(--secondary); outline-offset: 2px; }
+
+/* The chosen one is stated three ways — fill, border and a lift — because
+   colour alone would not survive a colour-blind reader or a washed-out
+   projector, and this is the only control on the page with no text label. */
+.set-av.picked {
+  background: #e7dcff;
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 0 rgba(126, 69, 214, .3);
+}
+
+/* ---------- read-only difficulty ---------- */
+
+.set-diff-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* The three sit greyed until one is yours. They are not buttons and must not
+   look like buttons — the teacher owns this value, and a control a student
+   can press but not change is worse than no control. */
+.set-diff { opacity: .38; filter: grayscale(.85); }
+.set-diff.on { opacity: 1; filter: none; box-shadow: 0 0 0 3px rgba(107, 63, 196, .16); }
+
+@media (max-width: 560px) {
+  .set-card { padding: 18px 16px 16px; }
+  .set-hero { gap: 14px; }
+  .set-hero-face { width: 68px; height: 68px; font-size: 2.2rem; border-radius: 20px; }
+  .set-hero-name { font-size: 1.25rem; }
+}

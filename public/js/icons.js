@@ -1,6 +1,6 @@
 /* The icon set.
  *
- * ChemQuest used emoji as icons (🗺️ ⚔️ 🏆 🎖️ 🤺 🪙 ⭐ 🔒 🏁). Emoji are drawn
+ * StoiVenture used emoji as icons (🗺️ ⚔️ 🏆 🎖️ 🤺 🪙 ⭐ 🔒 🏁). Emoji are drawn
  * by the OS, so the same button was a different picture on Windows, on an
  * Android phone and on the school's machines — and several of them render as
  * flat monochrome glyphs on Windows, which is where most of this class will
@@ -22,6 +22,19 @@ const ICON = (() => {
           viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${body}</svg>`;
 
   const make = (body) => (size = 24, cls = '') => svg(body, size, cls);
+
+  /* Brand colours for ICON.brand(). Token first so a future retheme has one
+     place to change, literal second so the mark still renders standalone. */
+  const PINK = 'var(--brand-pink, #ec2a6b)';
+  const BLUE = 'var(--brand-blue, #1355d4)';
+  /* With the orbit gone the flask alone occupies about two thirds of the box,
+     which would hang it undersized next to the 24x24 icons it sits beside in
+     the topbar. Grow it back to the same optical weight instead of leaving a
+     ring of empty space where the orbit used to be. */
+  const BRAND_FILL = 'translate(16 16.05) scale(1.146) translate(-16 -16.05)';
+  const BRAND_ORBIT =
+    '<ellipse cx="16" cy="19" rx="14.6" ry="5.6" transform="rotate(-24 16 19)" ' +
+    `fill="none" stroke="${BLUE}" stroke-width="1.9" opacity=".5"/>`;
 
   return {
     /* A folded paper map. The alternating panel heights ARE the icon: with
@@ -145,7 +158,39 @@ const ICON = (() => {
     /* add something */
     plus: make('<path d="M12 2.6a1.5 1.5 0 0 1 1.5 1.5v6.4h6.4a1.5 1.5 0 0 1 0 3h-6.4v6.4a1.5 1.5 0 0 1-3 0v-6.4H4.1a1.5 1.5 0 0 1 0-3h6.4V4.1A1.5 1.5 0 0 1 12 2.6Z"/>'),
 
-    /* the brand mark: a conical flask */
+    /* a conical flask, monochrome — still used wherever a flask is just an
+       icon (a lesson row, an empty state) rather than the logo. */
     flask: make('<path d="M9.3 1.9h5.4a1 1 0 0 1 0 2h-.5v5.4l5.5 9.2a2.4 2.4 0 0 1-2 3.6H6.3a2.4 2.4 0 0 1-2-3.6l5.5-9.2V3.9h-.5a1 1 0 1 1 0-2Zm.9 9.7-1.7 2.9h7l-1.7-2.9V3.9h-3.6v7.7Z"/>'),
+
+    /* The StoiVenture mark: a flask of pink reagent inside an electron orbit.
+       Three deliberate breaks from the house style above.
+
+       It is two-colour and ignores `currentColor`. Every other icon here is
+       tinted by whatever it sits next to; a logo is not allowed to be, and
+       pink-in-blue IS the brand. The colours come from the --brand-* tokens
+       with the hex inlined as a fallback, so the mark survives being dropped
+       into a context that never loaded theme.css (the favicon, an og:image).
+
+       The glass is an outline rather than a solid. A solid flask at topbar
+       size reads as a blue blob with no chemistry in it — the empty neck and
+       the liquid line are the whole silhouette.
+
+       The orbit is dropped below 30px. A 1.9px ellipse crossing the flask
+       that small collapses into grey fringing on the non-retina monitors in
+       the school lab, and what is left is a smudge through the middle of the
+       mark. The flask on its own is still unmistakably the same logo, so the
+       small sizes simply do without. */
+    brand: (size = 26, cls = '') => `<svg class="ic brand-mark${cls ? ' ' + cls : ''}"
+        width="${size}" height="${size}" viewBox="0 0 32 32" fill="none"
+        aria-hidden="true" focusable="false">
+        ${size >= 30 ? BRAND_ORBIT : ''}
+        <g transform="${size >= 30 ? '' : BRAND_FILL}">
+        <path fill="${PINK}" d="M11 19h10l3.3 5.8a1 1 0 0 1-.9 1.5H8.6a1 1 0 0 1-.9-1.5L11 19Z"/>
+        <circle cx="16.9" cy="16.2" r="1.6" fill="${PINK}"/>
+        <circle cx="13.7" cy="17.4" r="1" fill="${PINK}"/>
+        <circle cx="16" cy="10.5" r=".9" fill="${PINK}"/>
+        <path fill="${BLUE}" fill-rule="evenodd" d="M11.7 3.4h8.7a1.5 1.5 0 0 1 0 3h-.9v6.2l6.9 12.2a2.6 2.6 0 0 1-2.3 3.9H8a2.6 2.6 0 0 1-2.3-3.9l6.9-12.2V6.4h-.9a1.5 1.5 0 0 1 0-3Zm2.6 3v6.7l-6.6 11.7a1 1 0 0 0 .9 1.5h14.8a1 1 0 0 0 .9-1.5l-6.6-11.7V6.4h-3.4Z"/>
+        </g>
+      </svg>`,
   };
 })();

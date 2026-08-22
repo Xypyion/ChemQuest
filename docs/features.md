@@ -67,6 +67,25 @@ finished.
 - A battle log records both sides — the raids you made and the ones made on you.
 
 ### Rewards
+
+### ⚙️ Settings (per student)
+
+Reached from the account chip at the right of the topbar (the avatar stays
+visible on narrow screens, so it is reachable on a phone). Four cards, each
+saving independently:
+
+- **Profile summary** — avatar, name, email, difficulty, points, coins,
+  certificates earned, and levels finished out of the total.
+- **How you appear** — edit the display name (≤ 40 chars) and pick an avatar
+  from a 24-emoji set. This is the name and face shown on the leaderboard, in
+  Coin Battles and on every feed post, and before this the avatar was fixed
+  forever at whatever signup derived from the student's name.
+- **Password** — change it with the current password as confirmation. The
+  teacher's reset is still there for a forgotten one.
+- **Difficulty + this device** — difficulty is shown but **read-only**: it
+  selects which question bank a graded quiz draws from, so it stays the
+  teacher's. Log out sits here, with a note to use it on shared machines.
+
 - **Certificates** collected in a personal inventory.
 - **Leaderboard** with a top-3 podium; highlights the highest and lowest scorers.
 

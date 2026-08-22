@@ -1,4 +1,4 @@
-# 🧪 ChemQuest — A Chemistry Learning Adventure
+# 🧪 StoiVenture — A Chemistry Learning Adventure
 
 A colorful, cartoony web game that teaches chemistry through an adventure map.
 Students climb from the grassy **plains** → rocky **mountains** → snowy **summit**,
@@ -51,6 +51,11 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   questions. Win and you take their coins; lose and you pay up. Easy, medium and hard
   each put a different amount on the line.
 - 🎖️ **Certificates** — earn one for every level you pass; collect them in your inventory.
+- ⚙️ **Settings** — your own page, reached from your avatar in the top bar. Change
+  your **display name**, pick a new **avatar** from 24 characters, **change your
+  password**, see your points, coins, certificates and how many levels you have
+  finished — and log out. Your difficulty is shown here too, but only your
+  teacher can change it.
 - 🏆 **Leaderboard** — see who has the highest (and lowest) points, with a podium for the top 3.
 
 ### For Teachers (separate console UI)

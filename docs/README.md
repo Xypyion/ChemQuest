@@ -1,6 +1,6 @@
-# ChemQuest — Documentation / เอกสารประกอบระบบ
+# StoiVenture — Documentation / เอกสารประกอบระบบ
 
-ChemQuest is a colorful, bilingual (ไทย / English) chemistry learning game built for
+StoiVenture is a colorful, bilingual (ไทย / English) chemistry learning game built for
 **Suankularb Wittayalai Nonthaburi School (โรงเรียนสวนกุหลาบวิทยาลัย นนทบุรี)**.
 Students climb an adventure map through three biomes, learn from storyboards narrated by
 the mascot **Ruby**, take pre-tests and teacher-gated post-tests, answer teacher-built
@@ -34,7 +34,7 @@ This folder contains the project's documentation.
 - **Stack:** Node.js + Express, plain HTML/CSS/JS front-end (no build step), JSON file storage.
 - **Port:** `http://localhost:4000`.
 - **Default teacher account:** `Shinozuke67@skn.ac.th` / `12345678`.
-- **Source code:** <https://github.com/Xypyion/ChemQuest>
+- **Source code:** <https://github.com/Xypyion/StoiVenture>
 
 To run it:
 

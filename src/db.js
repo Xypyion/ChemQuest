@@ -1,5 +1,5 @@
 /**
- * ChemQuest document store.
+ * StoiVenture document store.
  *
  * Keeps the whole database in memory (so every read stays synchronous and the
  * route code reads exactly as it always has) and persists it to one of two

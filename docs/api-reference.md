@@ -15,6 +15,9 @@ Roles: **public** (no token), **student**, **teacher**.
 | POST | `/api/auth/signup` | public | `{ name, email, password, difficulty }` | Creates a **student**. `password` ≥ 6 chars; `difficulty` ∈ easy/medium/hard. Returns `{ token, user }`. |
 | POST | `/api/auth/login` | public | `{ email, password }` | Works for students and the teacher. Email is case-insensitive. Returns `{ token, user }`. |
 | GET | `/api/auth/me` | any | — | Returns the current `{ user }`. |
+| GET | `/api/auth/profile` | any | — | The account plus the summary Settings shows: `{ user, avatars, stats }`. `avatars` is the whitelist the picker offers; `stats` is `{ points, coins, certificates, levelsDone, levelsTotal, joinedAt }`. `levelsDone` is counted with `game.levelDone`, so it agrees with the map. |
+| PATCH | `/api/auth/me` | any | `{ name?, avatar? }` | Self-service edit of display name and avatar. `name` is trimmed, must be non-empty and ≤ 40 chars. `avatar` must be one of the strings in `avatars` — it is a whitelist, not a length check, because the value is rendered into the leaderboard, battles and the feed. Any other field in the body is **ignored**: `difficulty`, `points`, `coins` and `role` are not self-settable. |
+| POST | `/api/auth/password` | any | `{ currentPassword, newPassword }` | Change your own password. `currentPassword` must verify even though the token already identifies the caller — 30-day tokens on shared school machines. `newPassword` ≥ 6 chars and must differ from the current one. Returns `{ ok, token }` with a fresh token. **Returns 403, not 401, on a wrong current password**: the browser's fetch wrapper treats every 401 as an expired session and logs the user out, so a typo would end the session. Does not invalidate tokens on other devices. |
 
 ---
 

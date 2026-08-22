@@ -48,7 +48,7 @@ function apiKey() {
 
 /**
  * Whether the AI tutor can run. Every tutor route checks this so the rest of
- * ChemQuest keeps working normally on a machine with no key configured.
+ * StoiVenture keeps working normally on a machine with no key configured.
  */
 function aiEnabled() {
   return apiKey().length > 0;

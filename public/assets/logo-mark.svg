@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="StoiVenture">
+  <!-- The StoiVenture mark, standalone: favicon, og:image, anywhere outside
+       the app. Kept byte-for-byte in step with ICON.brand() in js/icons.js;
+       the colours are literal here because nothing loads theme.css in a
+       browser tab strip. The orbit is included: this file is rendered at
+       every size from 16px up, and the small end is handled by the browser
+       downscaling a full-detail source, which beats shipping a cropped one. -->
+  <ellipse cx="16" cy="19" rx="14.6" ry="5.6" transform="rotate(-24 16 19)" fill="none" stroke="#1355d4" stroke-width="1.9" opacity=".5"/>
+  <path fill="#ec2a6b" d="M11 19h10l3.3 5.8a1 1 0 0 1-.9 1.5H8.6a1 1 0 0 1-.9-1.5L11 19Z"/>
+  <circle cx="16.9" cy="16.2" r="1.6" fill="#ec2a6b"/>
+  <circle cx="13.7" cy="17.4" r="1" fill="#ec2a6b"/>
+  <circle cx="16" cy="10.5" r=".9" fill="#ec2a6b"/>
+  <path fill="#1355d4" fill-rule="evenodd" d="M11.7 3.4h8.7a1.5 1.5 0 0 1 0 3h-.9v6.2l6.9 12.2a2.6 2.6 0 0 1-2.3 3.9H8a2.6 2.6 0 0 1-2.3-3.9l6.9-12.2V6.4h-.9a1.5 1.5 0 0 1 0-3Zm2.6 3v6.7l-6.6 11.7a1 1 0 0 0 .9 1.5h14.8a1 1 0 0 0 .9-1.5l-6.6-11.7V6.4h-3.4Z"/>
+</svg>

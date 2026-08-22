@@ -1,7 +1,7 @@
-# ChemQuest — Developer Handoff
+# StoiVenture — Developer Handoff
 
 > **Read this first.** It is the single entry point for a developer taking over
-> **ChemQuest**, a chemistry learning game built for **Suankularb Wittayalai
+> **StoiVenture**, a chemistry learning game built for **Suankularb Wittayalai
 > Nonthaburi School (โรงเรียนสวนกุหลาบวิทยาลัย นนทบุรี)**. Deeper references live
 > alongside this file in `docs/` — see [§14](#14-where-to-read-more).
 
@@ -24,7 +24,7 @@
 1. **Push to GitHub every time a job is finished.** When a unit of work is done
    **and verified**, commit with a clear message and `git push origin main`.
    Do not leave finished work sitting only on the local machine. Repo:
-   <https://github.com/Xypyion/ChemQuest>.
+   <https://github.com/Xypyion/StoiVenture>.
 2. **The app runs on port 4000, never 3000.** Port 3000 is permanently occupied
    by an unrelated process on the school's machine. The default is already 4000
    in `server.js`; override only with the `PORT` env var.
@@ -40,7 +40,7 @@
 
 ---
 
-## 1. What ChemQuest is
+## 1. What StoiVenture is
 
 A colorful, cartoony, **bilingual (ไทย / English)** web game that teaches
 chemistry. Students climb an adventure map through three biomes, learn from
@@ -393,7 +393,7 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 
 ## 11. Git & collaboration workflow
 
-- **Remote:** <https://github.com/Xypyion/ChemQuest>, branch **`main`**.
+- **Remote:** <https://github.com/Xypyion/StoiVenture>, branch **`main`**.
   Commit identity `user.name = Xypyion`; auth via Git Credential Manager (browser
   popup on first push).
 - **Multiple contributors.** Always `git fetch` first and check for their
@@ -502,5 +502,42 @@ Not committed to, just ideas surfaced during development:
 - Migrate the store to SQLite/Postgres if scaling beyond one classroom.
 
 ---
+
+## Student Settings (`/settings.html`)
+
+Self-service account editing. Server side is three routes in
+`src/routes/auth.routes.js`; front end is `public/settings.html`,
+`public/js/settings.js` and `public/css/settings.css`.
+
+What a student may change: **display name** and **avatar** (`PATCH
+/api/auth/me`), and their **password** (`POST /api/auth/password`). What they
+may not: `difficulty`, `points`, `coins` and `role` are never read off the
+request body, so posting them does nothing. Difficulty is rendered read-only
+on the page because it picks the question bank a graded quiz draws from.
+
+Things worth knowing before changing this code:
+
+- **`AVATARS` in `src/routes/auth.routes.js` is append-only.** The first
+  twelve are the original set that `pickAvatar()` used before Settings
+  existed, and every account created back then stores one of them. The PATCH
+  route validates against this same array, so removing or reordering the first
+  twelve would make existing avatars fail their own picker.
+- **The wrong-current-password response is 403 on purpose.** `API.call()` in
+  `public/js/api.js` treats *every* 401 as a dead session: it clears the token
+  and redirects to `/`. Returning 401 here logged a student out for a typo.
+  Any future re-authentication check has the same trap.
+- **Changing a password does not end sessions on other devices.** Tokens carry
+  only `id` and `role`, so nothing in an old token stops verifying when the
+  hash changes. The route returns a fresh token for the calling tab only.
+  Fixing this properly needs a token version on the user record.
+- **`mountNav()` is guarded on `document.body.dataset.page`.** The account chip
+  that links to Settings is rendered by it. The three in-level pages (level,
+  lesson, challenge) deliberately keep their own topbar and so have no chip —
+  they are reached from the map, which does.
+
+Verified with a 33-check API suite covering the whitelist, the length bounds,
+every password guard rail, and that `difficulty`/`points`/`coins`/`role` cannot
+be set by a student; then driven through the browser in English and Thai, with
+every test account removed afterwards.
 
 *Welcome aboard — and remember rule #1: push to GitHub every time a job is done.* 🚀

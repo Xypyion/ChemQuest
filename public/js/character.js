@@ -1,4 +1,4 @@
-/* The ChemQuest mascot.
+/* The StoiVenture mascot.
  *
  * This file used to draw the character as inline SVG. It now renders Jerry's
  * hand-drawn artwork instead — a Thai student in school uniform, one PNG per

@@ -1,5 +1,5 @@
 /* =========================================================================
-   ChemQuest — shared cartoony theme
+   StoiVenture — shared cartoony theme
    Colorful, rounded, bouncy. Used by every student-facing page.
    ========================================================================= */
 
@@ -29,6 +29,16 @@
   --card: #ffffff;
   --good: #34c759;
   --bad: #ff4d6d;
+
+  /* ---- StoiVenture brand ----
+     Logo colours only. Deliberately NOT wired into --primary/--secondary: the
+     map's biomes and the orange CTAs are tuned to the game world, and pushing
+     brand pink through them would recolour every page. The mark and the
+     wordmark are the only things that use these. */
+  --brand-pink: #ec2a6b;
+  --brand-pink-dark: #c81f57;
+  --brand-blue: #1355d4;
+  --brand-blue-dark: #0f43a8;
 
   --shadow: 0 10px 0 rgba(0, 0, 0, 0.12);
   --shadow-soft: 0 12px 30px rgba(60, 40, 120, 0.18);
@@ -128,6 +138,8 @@ a { color: var(--secondary-dark); }
 .btn.grape:active { box-shadow: 0 1px 0 #7e45d6; }
 .btn.green { background: var(--grass); box-shadow: 0 6px 0 var(--grass-dark); }
 .btn.green:active { box-shadow: 0 1px 0 var(--grass-dark); }
+.btn.danger { background: var(--bad); box-shadow: 0 6px 0 #cc3450; }
+.btn.danger:active { box-shadow: 0 1px 0 #cc3450; }
 .btn.ghost { background: #fff; color: var(--ink); box-shadow: 0 6px 0 #d8d2ec; }
 .btn.ghost:active { box-shadow: 0 1px 0 #d8d2ec; }
 .btn.big { font-size: 1.25rem; padding: 18px 30px; border-radius: 20px; }
@@ -184,6 +196,20 @@ textarea { resize: vertical; min-height: 90px; }
   text-decoration: none; letter-spacing: -.01em;
 }
 .brand .ic { color: var(--grass-dark); }
+/* ...but never the logo. The mark carries its own two colours; letting the
+   green in here would repaint half of it and leave the other half pink. */
+.brand .brand-mark { color: inherit; }
+
+/* The wordmark. Two tones inside one word: "Stoi" (the stoichiometry half) in
+   brand pink, "Venture" in brand blue.
+
+   Live text, not baked into the SVG, on purpose. It renders in Rubik like the
+   rest of the chrome instead of whatever a standalone SVG happens to fall
+   back to, it stays selectable and searchable, and it grows with the reader's
+   font-size setting. It is also never translated — the two Thai dictionaries
+   leave it alone, because a brand name is the same word in both. */
+.wordmark { font-weight: 800; letter-spacing: -.01em; color: var(--brand-pink); }
+.wordmark b { color: var(--brand-blue); font-weight: 800; }
 
 .nav-stats { display: flex; align-items: center; gap: 8px; flex: none; }
 .nav-stats .pill { padding: 7px 13px; font-size: .84rem; }
@@ -224,10 +250,28 @@ textarea { resize: vertical; min-height: 90px; }
 .nav-link.is-current .ic { color: var(--ink); opacity: .8; }
 
 .nav-account { display: flex; align-items: center; gap: 9px; flex: none; }
+/* The account chip is the only way into Settings, so it is a link now, not a
+   label. The avatar and the name are separate elements on purpose: below the
+   breakpoint the NAME hides and the avatar does not, because hiding the whole
+   chip (which is what used to happen) would leave a phone with no route to
+   Settings at all — and phones are half of how this app is used. */
 .nav-who {
+  display: inline-flex; align-items: center; gap: 7px;
   font-weight: 700; font-size: .84rem; color: var(--ink-soft);
-  max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: none; padding: 5px 10px 5px 6px; border-radius: 999px;
+  /* A resting background, not just one on hover. Below the breakpoint the
+     name hides and only the avatar is left, and an unstyled emoji sitting
+     between the nav and the language switch reads as decoration rather than
+     as the control that opens Settings. The chip is what makes it a button. */
+  background: rgba(255, 255, 255, .55);
+  box-shadow: inset 0 0 0 2px rgba(107, 100, 136, .1);
+  transition: background .15s, color .15s, box-shadow .15s;
 }
+.nav-who:hover { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px rgba(107, 100, 136, .22); }
+.nav-who:focus-visible { outline: 3px solid var(--secondary); outline-offset: 2px; }
+.nav-who.is-current { background: #fff; color: var(--ink); }
+.nav-av { font-size: 1.15rem; line-height: 1; flex: none; }
+.nav-name { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-out {
   display: inline-flex; align-items: center; gap: 7px;
   font-family: var(--font); font-size: .88rem; font-weight: 700;
@@ -245,7 +289,7 @@ html { scrollbar-gutter: stable; }
   .topbar { flex-wrap: wrap; padding: 10px 14px; position: static; }
   .nav-links { order: 3; width: 100%; margin-left: 0; }
   .nav-account { margin-left: auto; }
-  .nav-who { display: none; }
+  .nav-name { display: none; }
   .nav-links:not(.is-end) {
     -webkit-mask-image: linear-gradient(to right, #000 86%, transparent 100%);
     mask-image: linear-gradient(to right, #000 86%, transparent 100%);

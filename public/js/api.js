@@ -48,6 +48,7 @@ const API = {
   get(p) { return API.call('GET', p); },
   post(p, b) { return API.call('POST', p, b); },
   put(p, b) { return API.call('PUT', p, b); },
+  patch(p, b) { return API.call('PATCH', p, b); },
   del(p) { return API.call('DELETE', p); },
 };
 
@@ -201,7 +202,8 @@ function mountNav() {
   }).join('');
 
   host.innerHTML = `
-    <a class="brand" href="/dashboard.html">${ICON.flask(26)} ChemQuest</a>
+    <a class="brand" href="/dashboard.html">${ICON.brand(26)}<span
+      class="wordmark">Stoi<b>Venture</b></span></a>
 
     <div class="nav-stats">
       <span class="pill coins">${ICON.coin(16)} <b id="navCoins">0</b>
@@ -213,7 +215,12 @@ function mountNav() {
     <nav class="nav-links" aria-label="${escapeHtml(t('nav.sections'))}">${links}</nav>
 
     <div class="nav-account">
-      <span class="nav-who" id="navUser">${user ? escapeHtml(user.name) : ''}</span>
+      <a class="nav-who${here === 'settings' ? ' is-current' : ''}" href="/settings.html"
+         ${here === 'settings' ? 'aria-current="page"' : ''}
+         title="${escapeHtml(t('nav.settings'))}">
+        <span class="nav-av">${user ? escapeHtml(user.avatar || '🧑‍🎓') : ''}</span>
+        <span class="nav-name" id="navUser">${user ? escapeHtml(user.name) : ''}</span>
+      </a>
       <span id="langHost"></span>
       <button class="nav-out" onclick="logout()">${ICON.logout(18)}<span
         data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</span></button>
@@ -237,4 +244,26 @@ function mountNav() {
   atEnd();
 }
 
-mountNav();
+/* The three in-level pages (level, lesson, challenge) deliberately do NOT use
+   the shared bar: theirs carries the level title, the difficulty and the quiz
+   timer, which page scripts fill by id. Mounting the global nav over them
+   would delete those elements.
+
+   They are told apart by <body data-page>, which only the global-nav pages
+   set. Without this guard mountNav ran on them too and threw "ICON is not
+   defined" — a red error in the console on three of the app's busiest pages,
+   on every visit. It was invisible because mountNav() is the last statement
+   in this file, so the throw took nothing else down with it.
+
+   Note the guard is still required now that those pages DO load icons.js for
+   the brand mark: with ICON defined, mountNav would stop throwing and start
+   succeeding, and succeeding is the worse outcome — it would overwrite their
+   topbar and delete the very pills this comment is about. */
+function mountBrandMarks() {
+  document.querySelectorAll('[data-brand-mark]').forEach((el) => {
+    if (typeof ICON !== 'undefined') el.innerHTML = ICON.brand(Number(el.dataset.brandMark) || 26);
+  });
+}
+
+if (document.body.dataset.page) mountNav();
+mountBrandMarks();

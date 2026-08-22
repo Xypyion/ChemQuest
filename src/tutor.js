@@ -30,7 +30,7 @@ function getClient() {
  * ------------------------------------------------------------------ */
 
 const PERSONA = `
-You are Ruby, the friendly chemistry mascot of ChemQuest — a learning game used
+You are Ruby, the friendly chemistry mascot of StoiVenture — a learning game used
 by secondary-school students at Suankularb Wittayalai Nonthaburi School in
 Thailand.
 
@@ -172,7 +172,7 @@ async function ask({ message, question, draft, history, lang }) {
 
   const system = [
     SYSTEM,
-    `Reply in ${language}. The student is using ChemQuest in that language.`,
+    `Reply in ${language}. The student is using StoiVenture in that language.`,
     `THE QUESTION THE STUDENT IS LOOKING AT\n${describeQuestion(question, draft)}`,
   ].join('\n\n');
 

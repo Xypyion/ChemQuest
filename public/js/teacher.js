@@ -66,7 +66,7 @@ function paintNav() {
       + (n ? ` <span class="t-badge">${n}</span>` : '');
   });
   const mark = document.getElementById('brandMark');
-  if (mark) mark.innerHTML = ICON.flask(24);
+  if (mark) mark.innerHTML = ICON.brand(28);
   const menu = document.getElementById('menuToggle');
   if (menu) menu.innerHTML = `${ICON.lines(18)} ${esc(t('t.menu'))}`;
 }

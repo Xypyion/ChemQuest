@@ -1,5 +1,5 @@
 /* =========================================================================
-   ChemQuest — Login ("Laboratory Entry") page
+   StoiVenture — Login ("Laboratory Entry") page
    Scoped styles for index.html only (body.login-page). Neutral "lab" look
    from the design handoff: warm off-white canvas tiled with lab-pattern.svg,
    the waving mascot beside a clean entry card, green 3D "START ADVENTURE" CTA.
@@ -50,14 +50,10 @@ body.login-page {
   border-bottom: 1px solid var(--lab-border);
 }
 .login-brand { display: flex; align-items: center; gap: 10px; }
-.login-brand .logo-mark {
-  width: 24px; height: 24px; border-radius: 50%;
-  border: 3px solid var(--lab-cta); flex: 0 0 auto;
-}
-.login-brand .logo-text {
-  font-weight: 800; font-size: 1.25rem; letter-spacing: .2px; color: var(--lab-ink);
-}
-.login-brand .logo-text b { color: var(--lab-cta); font-weight: 800; }
+/* Was a bare 24px ring drawn in CSS, standing in for a logo that did not
+   exist yet. It now holds the real mark, injected by mountBrandMarks(). */
+.login-brand .logo-mark { display: inline-flex; flex: 0 0 auto; }
+.login-brand .logo-text { font-size: 1.35rem; letter-spacing: .2px; }
 /* Match the header toggle to the neutral chrome (overrides the floating look). */
 .login-header .lang-switch { background: #f0efeb; box-shadow: none; }
 

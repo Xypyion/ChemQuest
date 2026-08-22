@@ -1,6 +1,6 @@
 # System Overview
 
-ChemQuest is a single-server web application that teaches chemistry through a gamified
+StoiVenture is a single-server web application that teaches chemistry through a gamified
 adventure. It has two faces — a playful **student game** and a clean **teacher console** —
 served from the same Node.js process.
 

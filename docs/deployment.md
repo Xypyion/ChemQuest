@@ -47,7 +47,7 @@ git pull
 npm install      # in case dependencies changed
 npm start
 ```
-Source: <https://github.com/Xypyion/ChemQuest>
+Source: <https://github.com/Xypyion/StoiVenture>
 
 ## Production notes
 - **Set a JWT secret:** the app uses `JWT_SECRET` from the environment, falling back to a
