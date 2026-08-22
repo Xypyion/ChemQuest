@@ -67,19 +67,16 @@ function tutorUnlimited() {
 /**
  * The teacher account the seed creates on a brand-new database.
  *
- * This used to be three literals in src/seed.js — name, email and the password
- * "12345678" — in a repository anyone can read. That is the login for every
- * deployment that ever ran the seed, published. It comes from the environment
- * now, which on this project means the git-ignored `.env` at the repo root.
+ * An override. src/seed.js holds a default login so a fresh clone starts with
+ * nothing to configure; setting these here — in the git-ignored `.env`, or as
+ * real environment variables — replaces it when a database is first seeded.
  *
- * There is deliberately NO fallback password. A missing one is not an error the
- * seed should paper over with a default everybody knows; see src/seed.js, which
- * generates a random one and prints it exactly once instead.
+ * Anything blank falls through to the default in src/seed.js.
  */
 function teacherSeed() {
   load();
   return {
-    name: (process.env.TEACHER_NAME || 'Teacher').trim(),
+    name: (process.env.TEACHER_NAME || '').trim(),
     email: (process.env.TEACHER_EMAIL || '').trim().toLowerCase(),
     password: process.env.TEACHER_PASSWORD || '',
   };

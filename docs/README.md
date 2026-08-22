@@ -33,9 +33,9 @@ This folder contains the project's documentation.
 
 - **Stack:** Node.js + Express, plain HTML/CSS/JS front-end (no build step), JSON file storage.
 - **Port:** `http://localhost:4000`.
-- **Teacher account:** created on first run from `TEACHER_EMAIL` / `TEACHER_PASSWORD`
-  in `.env`. No password configured? The seed generates one and prints it once.
-  Set or change it later with `npm run teacher`.
+- **Default teacher account:** `krucj@skn.ac.th` / `StoiVenture2026` (email is case-insensitive).
+  It is in the source, so it is public — change it before a real class uses the
+  site with `npm run teacher`, or set `TEACHER_EMAIL` / `TEACHER_PASSWORD` in `.env`.
 - **Source code:** <https://github.com/Xypyion/StoiVenture>
 
 To run it:

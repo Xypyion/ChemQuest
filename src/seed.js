@@ -17,28 +17,35 @@ const { hashPassword } = require('./auth');
 
 /* The first teacher account.
  *
- * Nothing here is a literal any more. TEACHER_NAME / TEACHER_EMAIL /
- * TEACHER_PASSWORD come from the environment (or the git-ignored `.env`), and a
- * missing password becomes a strong random one that is printed once — never a
- * default, because a default in a public repository is a published login.
+ * These three values are the default login on a brand-new database. They are
+ * in the source on purpose, so a fresh clone can be started and signed into
+ * with nothing to configure — the school runs this with minimal infrastructure
+ * and "install Node, npm start" is a feature.
  *
- * To set or change these later, run `npm run teacher`, which asks for them
- * interactively and never echoes the password. */
+ * KNOW WHAT THAT MEANS: this repository is public, so this password is public.
+ * It is a convenience for getting started, not a secret. Before a real class
+ * uses the site, change it — either set TEACHER_EMAIL and TEACHER_PASSWORD in
+ * the git-ignored `.env` before the first seed, or run `npm run teacher` at any
+ * time, which asks in the terminal and never echoes what you type.
+ *
+ * The environment always wins over the values below. */
 const config = require('./config');
 
-function randomPassword() {
-  // no look-alike characters: someone is going to read this off a screen
-  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from(crypto.randomBytes(20), (b) => alphabet[b % alphabet.length]).join('');
-}
+const DEFAULT_TEACHER = {
+  name: 'Kru CJ',
+  email: 'krucj@skn.ac.th',
+  password: 'StoiVenture2026',
+};
 
 function teacherAccount() {
   const t = config.teacherSeed();
   return {
-    name: t.name,
-    email: t.email || 'teacher@' + (process.env.SCHOOL_DOMAIN || 'skn.ac.th'),
-    password: t.password || randomPassword(),
-    generated: !t.password,
+    name: t.name || DEFAULT_TEACHER.name,
+    email: t.email || DEFAULT_TEACHER.email,
+    password: t.password || DEFAULT_TEACHER.password,
+    /* true only when this run used the built-in default, so the console can say
+       so once rather than every startup pretending it is a secret */
+    isDefault: !t.password,
   };
 }
 
@@ -299,21 +306,19 @@ function seedIfEmpty() {
     });
   });
 
-  /* Print the password ONLY when this run invented it — there is no other way
-     for the operator to learn it. A password they configured themselves is
-     theirs already, and echoing it just puts it in a terminal log. */
-  if (teacher.generated) {
-    console.log('');
-    console.log('[seed] Teacher account created. This password is shown once:');
-    console.log('');
-    console.log(`         email     ${teacher.email}`);
+  /* Show the login, and say plainly when it is the built-in default. A password
+     the operator configured is theirs already; echoing it only puts it in a
+     terminal log. */
+  console.log('');
+  console.log(`[seed] Teacher account created  (${LESSONS.length} levels)`);
+  console.log(`         email     ${teacher.email}`);
+  if (teacher.isDefault) {
     console.log(`         password  ${teacher.password}`);
     console.log('');
-    console.log('[seed] Change it with `npm run teacher`, or set TEACHER_EMAIL and');
-    console.log('[seed] TEACHER_PASSWORD in .env before seeding a fresh database.');
-  } else {
-    console.log(`[seed] Done. Teacher: ${teacher.email}  (${LESSONS.length} levels created)`);
+    console.log('[seed] That is the built-in default and it is public. Change it before a');
+    console.log('[seed] real class uses the site:  npm run teacher');
   }
+  console.log('');
   return true;
 }
 
