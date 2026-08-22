@@ -8,7 +8,7 @@
    ========================================================================= */
 
 :root {
-  --lab-bg: #f4f3ef;          /* warm off-white canvas */
+  --lab-bg: #fcf9f3;          /* the wallpaper's own cream, so any letterboxing blends */
   --lab-surface: #ffffff;     /* card surface */
   --lab-surface-2: #faf9f6;   /* input fill */
   --lab-ink: #3c3c3c;         /* primary text */
@@ -21,21 +21,29 @@
   --lab-cta-tint: #f2fbe9;
 }
 
-/* ---- page canvas: lab-pattern.svg as the background ---- */
+/* ---- page canvas: the hand-drawn wallpaper ----
+   The artwork frames a deliberately EMPTY centre, and the mascot and card sit
+   in that gap — so this is `cover` and centred, never tiled. The page colour
+   is the wallpaper's own cream, so on an aspect ratio the image cannot fill,
+   the join is invisible.
+
+   Shipped as WebP: 1.47 MB of PNG became 27 KB, which matters on a school
+   network for the first page every student loads. */
 body.login-page {
   margin: 0;
   min-height: 100vh;
   color: var(--lab-ink);
   font-family: var(--font);
-  background-color: var(--lab-bg);
-  background-image:
-    url('/assets/lab-pattern.svg'),
-    radial-gradient(circle, #e2e1db 1.3px, transparent 1.3px);
-  background-size: 560px 560px, 26px 26px;
-  background-repeat: repeat, repeat;
-  background-attachment: fixed;
+  background: var(--lab-bg) url('/assets/login-wallpaper.webp') center / cover no-repeat fixed;
   display: flex;
   flex-direction: column;
+}
+
+/* On a phone the card fills the screen, so `cover` would blow the drawings up
+   to several times their size and slide them behind the card for no gain.
+   Below the breakpoint the cream carries the page on its own. */
+@media (max-width: 760px) {
+  body.login-page { background-image: none; }
 }
 
 /* ---- top header: logo + language toggle ---- */
@@ -90,13 +98,21 @@ body.login-page {
   padding: 30px 30px 26px;
   box-shadow: 0 14px 34px rgba(60, 55, 45, 0.09);
 }
+/* The heading is a sentence now, not two words, so it needs a size that lets
+   it sit on two or three lines without dominating the card, and balanced
+   wrapping so it never leaves one word stranded on the last line. */
 .login-card h1 {
   font-weight: 800;
-  font-size: 1.7rem;
+  font-size: clamp(1.25rem, 2.4vw, 1.45rem);
+  line-height: 1.25;
+  letter-spacing: -.015em;
   text-align: center;
+  text-wrap: balance;
   margin: 0 0 22px;
   color: var(--lab-ink);
 }
+/* Thai needs more leading than Latin or the tone marks collide. */
+html[lang="th"] .login-card h1 { line-height: 1.45; }
 
 /* ---- inputs (neutral lab style, login-only) ---- */
 .login-card label {
