@@ -157,3 +157,84 @@ async function refreshNavCoins() {
     setNavCoins(me.user.coins);
   } catch { /* the pill just stays at 0 — never block a page over it */ }
 }
+
+/* ---------- The top bar ---------- *
+
+   Every student page used to hand-write its own topbar, and every one wrote a
+   DIFFERENT one: a different set of destinations, in a different order, with a
+   different button coloured. The map showed four (no Map), Battle showed three
+   (no Certificates), Leaderboard highlighted Certificates in purple for no
+   reason. So the buttons genuinely moved, changed colour and changed count on
+   every single navigation.
+
+   One renderer, one order, on every page. The page you are on is MARKED, never
+   removed — taking it out is what made the row change length. Which page you
+   are on comes from <body data-page="…">.
+
+   The destinations are pushed to the right edge (see .nav-links in theme.css).
+   That matters: the coins and points pills are different widths on different
+   pages, and anchoring the row to the right means that difference can never
+   push the destinations sideways.
+*/
+
+const NAV_ITEMS = [
+  { page: 'map',          href: '/dashboard.html',   key: 'nav.map',          icon: 'map' },
+  { page: 'quests',       href: '/quests.html',      key: 'nav.quests',       icon: 'quests' },
+  { page: 'battle',       href: '/battle.html',      key: 'nav.battle',       icon: 'battle' },
+  { page: 'certificates', href: '/inventory.html',   key: 'nav.certificates', icon: 'certificates' },
+  { page: 'leaderboard',  href: '/leaderboard.html', key: 'nav.leaderboard',  icon: 'leaderboard' },
+];
+
+function mountNav() {
+  const host = document.querySelector('.topbar');
+  if (!host || host.dataset.mounted) return;
+  host.dataset.mounted = '1';
+
+  const here = document.body.dataset.page || '';
+  const user = API.user();
+
+  const links = NAV_ITEMS.map((item) => {
+    const on = item.page === here;
+    return `<a class="nav-link${on ? ' is-current' : ''}" href="${item.href}"
+               ${on ? 'aria-current="page"' : ''}>${ICON[item.icon](19)}<span
+               data-i18n="${item.key}">${escapeHtml(t(item.key))}</span></a>`;
+  }).join('');
+
+  host.innerHTML = `
+    <a class="brand" href="/dashboard.html">${ICON.flask(26)} ChemQuest</a>
+
+    <div class="nav-stats">
+      <span class="pill coins">${ICON.coin(16)} <b id="navCoins">0</b>
+        <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
+      <span class="pill points">${ICON.star(16)} <b id="navPoints">0</b>
+        <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>
+    </div>
+
+    <nav class="nav-links" aria-label="${escapeHtml(t('nav.sections'))}">${links}</nav>
+
+    <div class="nav-account">
+      <span class="nav-who" id="navUser">${user ? escapeHtml(user.name) : ''}</span>
+      <span id="langHost"></span>
+      <button class="nav-out" onclick="logout()">${ICON.logout(18)}<span
+        data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</span></button>
+    </div>`;
+
+  /* Below the breakpoint the five destinations scroll sideways. Fade the
+     trailing edge so it is visible that the row continues, and drop the fade
+     once there is nothing left to scroll to — a permanent fade reads as a bug. */
+  const strip = host.querySelector('.nav-links');
+  const atEnd = () => strip.classList.toggle(
+    'is-end', strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2);
+  strip.addEventListener('scroll', atEnd, { passive: true });
+  window.addEventListener('resize', atEnd);
+  /* Scroll the strip only, and only when it actually overflows: calling
+     scrollIntoView() unconditionally scrolls the PAGE and throws the header
+     off the first viewport on arrival. */
+  const mark = strip.querySelector('.is-current');
+  if (mark && strip.scrollWidth > strip.clientWidth + 2) {
+    strip.scrollLeft = mark.offsetLeft - (strip.clientWidth - mark.offsetWidth) / 2;
+  }
+  atEnd();
+}
+
+mountNav();

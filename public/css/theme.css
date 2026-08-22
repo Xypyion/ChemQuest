@@ -145,28 +145,112 @@ input:focus, select:focus, textarea:focus {
 }
 textarea { resize: vertical; min-height: 90px; }
 
-/* ---------- Pills / badges ---------- */
+/* ---------- Pills / badges ---------- *
+   Each pill is a mid-tone label on its own pale tint, and every one of them
+   shipped below the bar: 2.86, 3.20, 2.66, 3.69, 2.56 against the tint it
+   actually sits on. Same hues, taken down until they carry. */
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: .85rem;
-  background: #efe9ff; color: var(--accent);
+  background: #efe9ff; color: #6b3fc4;        /* 5.67 */
 }
-.pill.easy { background: #e3f9e5; color: #2c9c3a; }
-.pill.medium { background: #fff3d9; color: #d9821a; }
-.pill.hard { background: #ffe1e6; color: #d83a55; }
-.pill.points { background: #fff6d6; color: #c89200; }
+.pill.easy { background: #e3f9e5; color: #1f7a2b; }    /* 4.89 */
+.pill.medium { background: #fff3d9; color: #9a5600; }  /* 5.15 */
+.pill.hard { background: #ffe1e6; color: #b01f3a; }    /* 5.53 */
+.pill.points { background: #fff6d6; color: #8a6400; }  /* 4.97 */
 
-/* ---------- Top navigation bar ---------- */
+/* ---------- Top navigation bar ---------- *
+
+   Order across the bar: brand, what you have, where you can go, who you are.
+   The destinations sit on the RIGHT and everything after them is fixed-width,
+   so the row is anchored to the right edge of the window.
+
+   That anchoring is the whole trick. The coins and points pills are different
+   widths on different pages (0 pts is narrower than 1,240 pts), and on a bar
+   that flowed from the left, that difference pushed every button after it
+   sideways on every navigation. Anchored right, a wider pill grows into the
+   empty middle and nothing else moves.                                       */
+
 .topbar {
   position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 12px 22px; margin: 0;
-  background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px; margin: 0;
+  background: rgba(255,255,255,.86); backdrop-filter: blur(10px);
   border-bottom: 4px solid #fff;
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.25rem; color: var(--ink); }
-.brand .logo { font-size: 1.6rem; }
-.nav-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.brand {
+  display: flex; align-items: center; gap: 9px; flex: none;
+  font-weight: 800; font-size: 1.2rem; color: var(--ink);
+  text-decoration: none; letter-spacing: -.01em;
+}
+.brand .ic { color: var(--grass-dark); }
+
+.nav-stats { display: flex; align-items: center; gap: 8px; flex: none; }
+.nav-stats .pill { padding: 7px 13px; font-size: .84rem; }
+.nav-stats .pill .ic { opacity: .85; }
+.nav-stats b { font-variant-numeric: tabular-nums; }
+
+/* margin-left:auto is what pins this group, and everything after it, to the
+   right edge. Nothing upstream can move it. */
+.nav-links {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px; flex: none;
+  max-width: 100%; overflow-x: auto; scrollbar-width: none;
+  padding: 2px;
+}
+.nav-links::-webkit-scrollbar { display: none; }
+.nav-link {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font); font-size: .92rem; font-weight: 700;
+  color: var(--ink); text-decoration: none; white-space: nowrap;
+  background: #fff; border-radius: 999px; padding: 8px 15px;
+  box-shadow: 0 4px 0 #d8d2ec;
+  transition: transform .08s ease, box-shadow .08s ease, filter .15s ease;
+}
+.nav-link .ic { color: var(--ink-soft); transition: color .15s ease; }
+.nav-link:hover { filter: brightness(1.03); }
+.nav-link:hover .ic { color: var(--secondary-dark); }
+.nav-link:active { transform: translateY(3px); box-shadow: 0 1px 0 #d8d2ec; }
+/* The page you are on is filled and NOT pressable — but it stays in the row.
+   Removing it is what made the row change length between pages. */
+/* Dark ink, not white. White on this blue measures 2.20:1; the ink the map's
+   level discs use measures 5.33 on the same fill, so the whole product ends up
+   under one rule: bright fill, dark ink. */
+.nav-link.is-current {
+  background: var(--secondary); color: var(--ink); box-shadow: 0 4px 0 var(--secondary-dark);
+  cursor: default; pointer-events: none;
+}
+.nav-link.is-current .ic { color: var(--ink); opacity: .8; }
+
+.nav-account { display: flex; align-items: center; gap: 9px; flex: none; }
+.nav-who {
+  font-weight: 700; font-size: .84rem; color: var(--ink-soft);
+  max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-out {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font); font-size: .88rem; font-weight: 700;
+  color: var(--ink-soft); background: none; border: none; cursor: pointer;
+  padding: 8px 10px; border-radius: 999px;
+}
+.nav-out:hover { background: #fff; color: var(--ink); }
+
+/* The map is a long page and gets a scrollbar; the leaderboard is short and
+   does not. Without a reserved gutter the viewport itself changes width
+   between them, and a right-anchored bar shifts with it. */
+html { scrollbar-gutter: stable; }
+
+@media (max-width: 1160px) {
+  .topbar { flex-wrap: wrap; padding: 10px 14px; position: static; }
+  .nav-links { order: 3; width: 100%; margin-left: 0; }
+  .nav-account { margin-left: auto; }
+  .nav-who { display: none; }
+  .nav-links:not(.is-end) {
+    -webkit-mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+  }
+}
 
 /* ---------- Toast ---------- */
 .toast-host { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 10px; }
@@ -220,4 +304,16 @@ hr.soft { border: none; border-top: 3px dashed #e7e2f5; margin: 22px 0; }
 @media (max-width: 640px) {
   .card { padding: 20px; }
   .wrap { padding: 16px; }
+}
+
+/* Nothing on this page moves for someone who asked the system to stop moving
+   things. The clouds drift forever and half the UI pulses, so this needs to
+   cover everything rather than name individual animations. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

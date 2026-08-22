@@ -10,12 +10,13 @@
 const I18N = {
   en: {
     /* ---- common / nav ---- */
-    'nav.map': '🗺️ Map',
-    'nav.certificates': '🎖️ Certificates',
-    'nav.leaderboard': '🏆 Leaderboard',
-    'nav.quests': '⚔️ Quests',
+    'nav.map': 'Map',
+    'nav.certificates': 'Certificates',
+    'nav.leaderboard': 'Leaderboard',
+    'nav.quests': 'Quests',
     'nav.coins': 'coins',
     'nav.logout': 'Log out',
+    'nav.sections': 'Sections',
     'nav.pts': 'pts',
     'common.loading': 'Loading…',
     'common.close': 'Close',
@@ -60,18 +61,26 @@ const I18N = {
     'welcome.adventureStarts': 'Adventure starts now, {name}! 🎒',
 
     /* ---- dashboard / map ---- */
-    'dash.title': 'Your Chemistry Adventure 🗺️',
+    'dash.title': 'Your Chemistry Adventure',
     'dash.loadingMap': 'Loading your map…',
-    'dash.progressDone': '🎉 Adventure complete! {done}/{total} levels conquered',
+    'dash.progressDone': 'Adventure complete! {done}/{total} levels conquered',
     'dash.progress': '{done} of {total} levels completed — keep exploring!',
-    'dash.tapToPlay': '▶ Tap to play!',
+    'dash.tapToPlay': 'Tap to play',
     'dash.lockedToast': '🔒 Finish the level above to unlock this one!',
     'dash.lockedPost': '🔒 Pass the previous level’s post-test to unlock this one!',
     'dash.lockedTeacher': '🔒 Your teacher hasn’t opened this level yet.',
     'dash.lockedSchedule': '🗓 This level opens {time}.',
-    'dash.start': '🎒 START',
-    'dash.summit': 'THE SUMMIT',
+    'dash.start': 'START',
+    'dash.summit': 'FINISH',
     'dash.lv': 'Lv.{n}',
+    'dash.levelRange': 'Levels {a}–{b}',
+    'dash.levelOne': 'Level {a}',
+    'dash.youAreHere': 'You are here',
+    'dash.state.done': 'completed',
+    'dash.state.open': 'open',
+    'dash.state.locked': 'locked',
+    'dash.emptyTitle': 'No levels yet',
+    'dash.emptyBody': 'Your teacher has not published any levels. Check back soon — your map appears here as soon as they do.',
     'biome.meadow': 'MEADOW',
     'biome.ember': 'EMBER CANYON',
     'biome.sky': 'SKY SUMMIT',
@@ -654,7 +663,7 @@ const I18N = {
     't.qNew': '＋ New Quest',
     't.qNone': 'No quests yet. Create one to get started.',
     /* ---- coin battles (student) ---- */
-    'nav.battle': '🤺 Battle',
+    'nav.battle': 'Battle',
     'battle.title': '🤺 Coin Battles',
     'battle.sub': 'Answer your teacher’s questions to win coins off a classmate — but get it wrong and you pay up!',
     'battle.wallet': 'Your coins',
@@ -811,12 +820,13 @@ const I18N = {
 
   th: {
     /* ---- common / nav ---- */
-    'nav.map': '🗺️ แผนที่',
-    'nav.certificates': '🎖️ เกียรติบัตร',
-    'nav.leaderboard': '🏆 กระดานคะแนน',
-    'nav.quests': '⚔️ ภารกิจ',
+    'nav.map': 'แผนที่',
+    'nav.certificates': 'เกียรติบัตร',
+    'nav.leaderboard': 'กระดานคะแนน',
+    'nav.quests': 'ภารกิจ',
     'nav.coins': 'เหรียญ',
     'nav.logout': 'ออกจากระบบ',
+    'nav.sections': 'ส่วนต่าง ๆ',
     'nav.pts': 'คะแนน',
     'common.loading': 'กำลังโหลด…',
     'common.close': 'ปิด',
@@ -861,18 +871,26 @@ const I18N = {
     'welcome.adventureStarts': 'การผจญภัยเริ่มแล้ว {name}! 🎒',
 
     /* ---- dashboard / map ---- */
-    'dash.title': 'การผจญภัยเคมีของคุณ 🗺️',
+    'dash.title': 'การผจญภัยเคมีของคุณ',
     'dash.loadingMap': 'กำลังโหลดแผนที่…',
-    'dash.progressDone': '🎉 จบการผจญภัย! พิชิตครบ {done}/{total} ด่าน',
+    'dash.progressDone': 'จบการผจญภัย! พิชิตครบ {done}/{total} ด่าน',
     'dash.progress': 'ผ่านแล้ว {done} จาก {total} ด่าน — ลุยต่อเลย!',
-    'dash.tapToPlay': '▶ แตะเพื่อเล่น!',
+    'dash.tapToPlay': 'แตะเพื่อเล่น',
     'dash.lockedToast': '🔒 ผ่านด่านก่อนหน้าก่อน จึงจะปลดล็อกด่านนี้!',
     'dash.lockedPost': '🔒 ต้องผ่านแบบทดสอบหลังเรียนของด่านก่อนหน้า จึงจะปลดล็อกด่านนี้!',
     'dash.lockedTeacher': '🔒 คุณครูยังไม่เปิดด่านนี้',
     'dash.lockedSchedule': '🗓 ด่านนี้จะเปิด {time}',
-    'dash.start': '🎒 จุดเริ่มต้น',
-    'dash.summit': 'ยอดเขา',
+    'dash.start': 'จุดเริ่มต้น',
+    'dash.summit': 'เส้นชัย',
     'dash.lv': 'ด่าน {n}',
+    'dash.levelRange': 'ด่าน {a}–{b}',
+    'dash.levelOne': 'ด่าน {a}',
+    'dash.youAreHere': 'คุณอยู่ตรงนี้',
+    'dash.state.done': 'ผ่านแล้ว',
+    'dash.state.open': 'เปิดให้เล่น',
+    'dash.state.locked': 'ล็อกอยู่',
+    'dash.emptyTitle': 'ยังไม่มีด่าน',
+    'dash.emptyBody': 'ครูของคุณยังไม่ได้เผยแพร่ด่านใด กลับมาดูอีกครั้ง — แผนที่จะขึ้นทันทีที่ครูเผย',
     'biome.meadow': 'ทุ่งหญ้า',
     'biome.ember': 'หุบเขาถ่านไฟ',
     'biome.sky': 'ยอดฟ้า',
@@ -1498,7 +1516,7 @@ const I18N = {
     't.qAdjustAmount': 'จำนวน',
     't.qAdjustSaved': 'อัปเดตเหรียญแล้ว',
     /* ---- coin battles (student) ---- */
-    'nav.battle': '🤺 ประลอง',
+    'nav.battle': 'ประลอง',
     'battle.title': '🤺 ประลองเหรียญ',
     'battle.sub': 'ตอบคำถามของคุณครูเพื่อชิงเหรียญจากเพื่อน — แต่ถ้าตอบผิดต้องจ่ายเหรียญให้เขา!',
     'battle.wallet': 'เหรียญของคุณ',
@@ -1664,7 +1682,9 @@ function mountLangSwitch(host) {
   wrap.querySelectorAll('button').forEach((b) => {
     b.addEventListener('click', () => { if (b.getAttribute('lang') !== lang) setLang(b.getAttribute('lang')); });
   });
-  host = host || document.querySelector('.nav-actions') || document.body;
+  host = host || document.getElementById('langHost')
+      || document.querySelector('.nav-account')
+      || document.querySelector('.nav-actions') || document.body;
   host.appendChild(wrap);
   return wrap;
 }

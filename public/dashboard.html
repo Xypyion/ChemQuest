@@ -11,20 +11,8 @@
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/map.css" />
 </head>
-<body>
-  <div class="topbar">
-    <div class="brand"><span class="logo">🧪</span> ChemQuest</div>
-    <div class="nav-actions">
-      <span class="pill coins">🪙 <b id="navCoins">0</b> <span data-i18n="nav.coins">coins</span></span>
-      <span class="pill points">⭐ <b id="navPoints">0</b> <span data-i18n="nav.pts">pts</span></span>
-      <span class="pill" id="navUser">🧑‍🎓 Explorer</span>
-      <a class="btn ghost" href="/inventory.html" data-i18n="nav.certificates">🎖️ Certificates</a>
-      <a class="btn ghost" href="/quests.html" data-i18n="nav.quests">⚔️ Quests</a>
-      <a class="btn ghost" href="/battle.html" data-i18n="nav.battle">🤺 Battle</a>
-      <a class="btn secondary" href="/leaderboard.html" data-i18n="nav.leaderboard">🏆 Leaderboard</a>
-      <button class="btn ghost" onclick="logout()" data-i18n="nav.logout">Log out</button>
-    </div>
-  </div>
+<body data-page="map">
+  <div class="topbar"></div>
 
   <div class="wrap">
     <div class="map-head">
@@ -39,9 +27,10 @@
   </div>
 
   <script src="/js/i18n.js"></script>
+  <script src="/js/icons.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/character.js"></script>
-  <script src="/js/props.js"></script>
+  <script src="/js/mapart.js"></script>
   <script src="/js/dashboard.js"></script>
 </body>
 </html>

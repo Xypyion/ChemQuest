@@ -1,25 +1,34 @@
-/* Ruby mascot animations */
-.ruby { display: block; overflow: visible; }
-.ruby-bob { animation: float-y 3s ease-in-out infinite; }
+/* The mascot.
+   The artwork is a PNG per mood (see js/character.js); everything here is
+   about how that image sits on the page. */
 
-/* blinking eyes */
-.ruby .blink { transform-box: fill-box; transform-origin: center; animation: ruby-blink 4.5s infinite; }
-@keyframes ruby-blink {
-  0%, 93%, 100% { transform: scaleY(1); }
-  96% { transform: scaleY(0.12); }
+.ruby {
+  display: inline-block;
+  line-height: 0;          /* no descender gap under the image */
+  user-select: none;
+}
+.ruby img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* The art has a thick dark keyline of its own, so it needs no outline —
+     only a soft ground shadow so the character stands on the page instead of
+     floating in front of it. */
+  filter: drop-shadow(0 6px 5px rgba(40, 30, 70, .22));
 }
 
-/* spinning atom antenna */
-.ruby-atom { transform-box: fill-box; transform-origin: center; animation: ruby-spin 6s linear infinite; }
-@keyframes ruby-spin { to { transform: rotate(360deg); } }
-
-/* waving arm */
-.ruby.wave .arm-r { transform-box: fill-box; transform-origin: 50% 10%; animation: ruby-wave 1.1s ease-in-out infinite; }
-@keyframes ruby-wave {
-  0%, 100% { transform: translate(150px, 120px) rotate(55deg); }
-  50% { transform: translate(150px, 120px) rotate(20deg); }
+/* A level you cannot open yet: the same pose, flattened to a shape. Reading
+   "someone is there but not yet" from a silhouette is instant, and it costs
+   no second asset. */
+.ruby.is-locked img {
+  filter: brightness(0) saturate(0) opacity(.28);
 }
+
+/* main's own idle bob, kept — .floaty is defined in theme.css and already
+   respects prefers-reduced-motion there. */
+.ruby.floaty { will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ruby-bob, .ruby .blink, .ruby-atom, .ruby.wave .arm-r { animation: none !important; }
+  .ruby.floaty { animation: none !important; }
 }
