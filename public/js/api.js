@@ -232,7 +232,7 @@ function mountNav() {
       <a class="nav-who${here === 'settings' ? ' is-current' : ''}" href="/settings.html"
          ${here === 'settings' ? 'aria-current="page"' : ''}
          title="${escapeHtml(t('nav.settings'))}">
-        <span class="nav-av">${user ? escapeHtml(user.avatar || '🧑‍🎓') : ''}</span>
+        <span class="nav-av">${user ? avatarHtml(user.avatar, 26) : ''}</span>
         <span class="nav-name" id="navUser">${user ? escapeHtml(user.name) : ''}</span>
       </a>
       <span id="langHost"></span>
@@ -279,8 +279,10 @@ function mountBrandMarks() {
   });
 }
 
-if (document.body.dataset.page) mountNav();
-mountBrandMarks();
+/* Bootstrap runs at the BOTTOM of this file, not here. mountNav() calls
+   avatarHtml(), which reads the STUDENT_AVATARS const further down — running
+   it from the middle of the file hit that const's temporal dead zone, threw,
+   and killed the whole script, so every page came up blank. */
 
 /* ---------- Chemical formulas ---------- *
 
@@ -342,3 +344,58 @@ function subscriptFormulas(escaped) {
 function chem(text) {
   return subscriptFormulas(escapeHtml(text == null ? '' : String(text)));
 }
+
+/* ---------- Avatars ---------- *
+
+   An avatar is either one of the original emoji or the id of a drawn student
+   ("s1".."s8" -> /assets/avatars/s1.png). Both have to keep working: accounts
+   created before the drawn set existed still hold an emoji, and the server's
+   picker still accepts them.
+
+   Every place that shows an avatar goes through here, because the two kinds
+   need different markup and printing the raw value would put the literal text
+   "s3" on the leaderboard. */
+
+const STUDENT_AVATARS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'];
+
+/** Is this avatar one of the drawn students? */
+function isStudentAvatar(value) {
+  return STUDENT_AVATARS.includes(value);
+}
+
+/**
+ * An avatar as markup, at a given pixel size.
+ * @param {string} value  an emoji, or a drawn-student id
+ * @param {number} size   rendered height in px
+ * @param {string} [cls]  extra classes on the wrapper
+ */
+function avatarHtml(value, size = 40, cls = '') {
+  if (isStudentAvatar(value)) {
+    /* A square, cropped to the head. The art is a full-length figure at about
+       1:2, so dropping it whole into a 52px picker cell would be mostly legs —
+       and an avatar has to be a FACE at the sizes it is used. The map uses
+       studentFigure() below for the full body. */
+    return `<img class="avatar-img${cls ? ' ' + cls : ''}" src="/assets/avatars/${value}.png"
+                 width="${size}" height="${size}" alt="" aria-hidden="true" draggable="false">`;
+  }
+  return `<span class="avatar-emoji${cls ? ' ' + cls : ''}"
+                style="font-size:${Math.round(size * 0.8)}px">${escapeHtml(value || '')}</span>`;
+}
+
+/**
+ * The full-length student to stand on the map.
+ * An account still on an emoji has no drawn body to show, so it borrows one —
+ * the map is a place you are standing, and an animal face floating over the
+ * trail is not that.
+ */
+function studentFigure(value, size) {
+  const id = isStudentAvatar(value) ? value : STUDENT_AVATARS[0];
+  return `<img class="student-figure" src="/assets/avatars/${id}.png"
+               height="${size}" alt="" aria-hidden="true" draggable="false">`;
+}
+
+
+/* ---------- bootstrap ---------- */
+/* Last, so everything above it is defined. */
+if (document.body.dataset.page) mountNav();
+mountBrandMarks();

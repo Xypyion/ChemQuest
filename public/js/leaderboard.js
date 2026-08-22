@@ -38,7 +38,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
     podium.innerHTML = top3.map((s) => `
       <div class="col c${s.rank}">
         <div class="crown">${s.rank === 1 ? '👑' : ''}</div>
-        <div class="pav ${s.id === meId ? 'me' : ''}">${s.avatar}</div>
+        <div class="pav ${s.id === meId ? 'me' : ''}">${avatarHtml(s.avatar, 46)}</div>
         <div class="pname">${escapeHtml(s.name)}${s.id === meId ? t('lb.youSuffix') : ''}</div>
         <div class="ppts">${s.points} ${t('nav.pts')}</div>
         <div class="stand"><span class="stand-num">${s.rank}</span></div>
@@ -52,7 +52,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
       return `
       <div class="lb-row ${isMe ? 'me' : ''} ${s.rank <= 3 ? 'top3' : ''} ${isLowest ? 'lowest' : ''}">
         <div class="rank">${MEDALS[s.rank] || '#' + s.rank}</div>
-        <div class="av">${s.avatar}</div>
+        <div class="av">${avatarHtml(s.avatar, 30)}</div>
         <div class="who">
           <div class="n">${escapeHtml(s.name)} ${isMe ? `<span class="you-tag">${t('lb.you')}</span>` : ''}</div>
           <div class="s">

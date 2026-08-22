@@ -346,7 +346,11 @@ function currentIndex() {
   return LESSONS.findIndex((l) => !l.locked && !l.completed);
 }
 
-/** The mascot: once, where you are — or at the finish once it is all done. */
+/* Who stands on the map: THE STUDENT, not Kru CJ.
+   The figure is the avatar they picked in Settings, so the person on the trail
+   is them. Kru CJ is the teacher — he narrates storyboards and answers
+   questions, and standing him on the student's own position said the wrong
+   thing about whose journey this is. */
 function marker(pts, h, w) {
   const i = currentIndex();
   const allDone = LESSONS.length && LESSONS.every((l) => l.completed);
@@ -355,7 +359,7 @@ function marker(pts, h, w) {
     // beside the gate, which now carries the wording itself
     const end = pts[pts.length - 1];
     return `<div class="finish" style="left:${end.x - 210}px;top:${end.y + 118}px">
-              ${renderRuby('cheer', { size: 144, alt: t('dash.summit') })}
+              ${studentFigure(me && me.avatar, 132)}
             </div>`;
   }
   if (i < 0) return '';
@@ -364,7 +368,7 @@ function marker(pts, h, w) {
      the neighbouring level or its title. */
   const side = pts[i].x > w / 2 ? 'left' : 'right';
   return `<div class="you to-${side}" style="left:${pts[i].x}px;top:${pts[i].y}px">
-            ${renderRuby('run', { size: 118, float: true })}
+            ${studentFigure(me && me.avatar, 118)}
             <span class="you-tag">${escapeHtml(t('dash.youAreHere'))}</span>
           </div>`;
 }

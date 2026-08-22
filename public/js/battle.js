@@ -143,7 +143,7 @@ function opponentCard() {
         : !(rules.banks || {})[difficulty] ? t('battle.reason.noQuestions') : '';
     return `
       <div class="b-opp ${canFight ? '' : 'locked'}">
-        <div class="b-opp-face">${escapeHtml(o.avatar || '🧑‍🎓')}</div>
+        <div class="b-opp-face">${avatarHtml(o.avatar, 42)}</div>
         <div class="b-opp-main">
           <div class="b-opp-name">${escapeHtml(o.name)}</div>
           <div class="b-opp-coins">${t('battle.coins', { n: o.coins })}</div>
@@ -225,7 +225,7 @@ function renderFight(timeLimit) {
     <div class="b-fight">
       <div class="b-vs">
         <div class="b-vs-side">
-          <div class="b-vs-face">${escapeHtml((me && me.avatar) || '🧑‍🎓')}</div>
+          <div class="b-vs-face">${avatarHtml(me && me.avatar, 54)}</div>
           <div class="b-vs-name">${escapeHtml((me && me.name) || '')}</div>
         </div>
         <div class="b-vs-mid">

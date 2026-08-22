@@ -726,7 +726,7 @@ function renderStudents() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'students'));
   const rows = STUDENTS.length ? STUDENTS.map((s) => `
     <tr>
-      <td><span class="av">${s.avatar || '🧑‍🎓'}</span></td>
+      <td><span class="av">${avatarHtml(s.avatar, 28)}</span></td>
       <td><b>${esc(s.name)}</b></td>
       <td class="sub" style="color:var(--t-soft)">${esc(s.email)}</td>
       <td><span class="t-pill ${s.difficulty}">${(s.difficulty || '').toUpperCase()}</span></td>
@@ -1085,7 +1085,7 @@ function paintGradebook() {
         data-sid="${r.id}" data-cid="${c.id}" onchange="saveScore('${r.id}','${c.id}',this)"></td>`;
     }).join('');
     return `<tr>
-      <td class="gb-sticky gb-name"><span class="av">${r.avatar}</span> ${esc(r.name)}</td>
+      <td class="gb-sticky gb-name"><span class="av">${avatarHtml(r.avatar, 24)}</span> ${esc(r.name)}</td>
       ${cells}
       <td class="gb-total" data-sid="${r.id}">${cols.length ? total : '—'}</td>
     </tr>`;

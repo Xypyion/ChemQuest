@@ -109,7 +109,7 @@ const Feed = (() => {
 
     const comments = (p.comments || []).map((c) => `
       <div class="comment">
-        <span class="c-av">${escapeHtml(c.author.avatar)}</span>
+        <span class="c-av">${avatarHtml(c.author.avatar, 26)}</span>
         <div class="c-body">
           <div class="c-name">${escapeHtml(c.author.name)}${c.author.role === 'teacher' ? ` <span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}</div>
           <div class="c-text">${escapeHtml(c.text)}</div>
@@ -125,7 +125,7 @@ const Feed = (() => {
       if ((p.questions || []).length) {
         privateBlock = `<div class="private-qs">
           <div class="pq-title">${t('feed.privateQuestions')}</div>
-          ${p.questions.map((qq) => `<div class="pq-item"><span>${escapeHtml(qq.author.avatar)}</span><b>${escapeHtml(qq.author.name)}:</b><span>${escapeHtml(qq.text)}</span></div>`).join('')}
+          ${p.questions.map((qq) => `<div class="pq-item"><span>${avatarHtml(qq.author.avatar, 22)}</span><b>${escapeHtml(qq.author.name)}:</b><span>${escapeHtml(qq.text)}</span></div>`).join('')}
         </div>`;
       }
     } else if (p.isAssignment) {
@@ -145,7 +145,7 @@ const Feed = (() => {
       <div class="post-card ${p.isAssignment ? 'assignment' : ''}">
         ${p.isAssignment ? `<span class="assign-banner">${t('feed.assignment')}</span>` : ''}
         <div class="post-head">
-          <span class="ph-av">${escapeHtml(p.author.avatar)}</span>
+          <span class="ph-av">${avatarHtml(p.author.avatar, 32)}</span>
           <span class="ph-name">${escapeHtml(p.author.name)}</span>
           ${p.author.role === 'teacher' ? `<span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}
           <span class="ph-time">${fmtTime(p.createdAt)}</span>

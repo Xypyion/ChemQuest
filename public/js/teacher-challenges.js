@@ -192,7 +192,7 @@ const TChallenges = (() => {
     const rows = students.length ? students.map((s) => `
       <label class="assign-row">
         <input type="checkbox" class="assign-student" value="${s.id}" ${(a.studentIds || []).includes(s.id) ? 'checked' : ''}>
-        <span class="av">${s.avatar || '🧑‍🎓'}</span> ${esc(s.name)}
+        <span class="av">${avatarHtml(s.avatar, 24)}</span> ${esc(s.name)}
         <span class="sub" style="color:var(--t-soft)">${esc(s.email)}</span>
       </label>`).join('') : `<div class="sub" style="color:var(--t-soft)">${t('t.chAssignNoStudents')}</div>`;
     openModal(`
@@ -721,7 +721,7 @@ const TChallenges = (() => {
       : `<div class="t-card empty">${t('t.chNoResponses')}</div>`;
     const missing = d.missing.length
       ? `<div class="t-card"><h3 style="margin-top:0">${t('t.chMissing', { n: d.missing.length })}</h3>
-          <div class="missing-list">${d.missing.map((m) => `<span class="missing-chip">${m.avatar} ${esc(m.name)}</span>`).join('')}</div></div>`
+          <div class="missing-list">${d.missing.map((m) => `<span class="missing-chip">${avatarHtml(m.avatar, 20)} ${esc(m.name)}</span>`).join('')}</div></div>`
       : '';
     host.innerHTML = `
       <div class="t-head">

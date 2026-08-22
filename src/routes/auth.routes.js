@@ -25,7 +25,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const AVATARS = [
   '🦊', '🐯', '🐲', '🦁', '🐸', '🐼', '🦉', '🐧', '🦄', '🐙', '🦖', '🐢',
   '🐱', '🐶', '🐻', '🐷', '🐵', '🐔', '🐦', '🐝', '🦋', '🐌', '🦀', '🐠',
+  // The drawn students, added on the end per the rule above. An id, not a
+  // character, because these are images: /assets/avatars/<id>.png.
+  's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8',
 ];
+
+/* The drawn set. A student who has one of these is a PERSON on the map rather
+   than an animal emoji, which is the point of them — see STUDENTS in
+   public/js/api.js, which must list the same ids. */
+const STUDENT_AVATARS = AVATARS.filter((a) => /^s\d+$/.test(a));
 const NAME_MAX = 40;
 
 /** POST /api/auth/signup — create a new student account. */
@@ -189,10 +197,13 @@ router.post('/password', authMiddleware, (req, res) => {
   res.json({ ok: true, token: signToken(user) });
 });
 
+/* New accounts start as one of the drawn students, not an animal. The whole
+   AVATARS list stays valid in the picker, so nobody loses the emoji they
+   already have. */
 function pickAvatar(name) {
   let hash = 0;
-  for (const ch of name) hash = (hash + ch.charCodeAt(0)) % AVATARS.length;
-  return AVATARS[hash];
+  for (const ch of name) hash = (hash + ch.charCodeAt(0)) % STUDENT_AVATARS.length;
+  return STUDENT_AVATARS[hash];
 }
 
 module.exports = router;

@@ -386,3 +386,28 @@ sub {
   vertical-align: baseline;
   font-variant-numeric: lining-nums tabular-nums;
 }
+
+/* ---------- avatars ---------- */
+/* An avatar is either a drawn student or one of the original emoji, and both
+   have to sit correctly in the same slot — a leaderboard row, a picker
+   button, the settings hero. The image is sized by its height attribute and
+   keeps its own proportions; the emoji is centred in the same box. */
+.avatar-img {
+  display: block;
+  border-radius: 50%;
+  /* head and shoulders: the figure is drawn full length, and its face sits in
+     the top third */
+  object-fit: cover;
+  object-position: 50% 6%;
+  background: rgba(255, 255, 255, .55);
+  user-select: none;
+}
+.avatar-emoji { display: inline-block; line-height: 1; }
+
+/* the figure standing on the course map */
+.student-figure {
+  display: block;
+  width: auto;
+  filter: drop-shadow(0 6px 5px rgba(40, 30, 70, .24));
+  user-select: none;
+}

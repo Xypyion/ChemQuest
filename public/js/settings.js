@@ -38,7 +38,7 @@ function render() {
     <div class="set-grid">
 
       <section class="set-card set-hero pop-in">
-        <div class="set-hero-face" id="heroFace">${escapeHtml(u.avatar || '')}</div>
+        <div class="set-hero-face" id="heroFace">${avatarHtml(u.avatar, 76)}</div>
         <div class="set-hero-body">
           <h2 class="set-hero-name" id="heroName">${escapeHtml(u.name)}</h2>
           <p class="set-hero-mail">${escapeHtml(u.email)}</p>
@@ -70,7 +70,7 @@ function render() {
             <button type="button" class="set-av${a === pickedAvatar ? ' picked' : ''}"
                     role="radio" aria-checked="${a === pickedAvatar}"
                     data-avatar="${escapeHtml(a)}" tabindex="${a === pickedAvatar ? 0 : -1}"
-                    onclick="pickAvatar(${i})">${escapeHtml(a)}</button>`).join('')}
+                    onclick="pickAvatar(${i})">${avatarHtml(a, 52)}</button>`).join('')}
         </div>
 
         <div class="set-actions">
@@ -140,7 +140,7 @@ function pickAvatar(i) {
   });
   /* Show it on the hero immediately. Nothing is saved until Save is pressed,
      but watching the face change is the entire point of picking one. */
-  document.getElementById('heroFace').textContent = a;
+  document.getElementById('heroFace').innerHTML = avatarHtml(a, 76);
 }
 
 /* ---- saving ---- */
@@ -156,12 +156,14 @@ async function saveLook() {
     profile.user = user;
     API.updateUser(user);
     document.getElementById('heroName').textContent = user.name;
-    document.getElementById('heroFace').textContent = user.avatar;
+    /* innerHTML, not textContent: a drawn avatar is an <img>, and assigning the
+       value as text put the literal string "s3" on the page. */
+    document.getElementById('heroFace').innerHTML = avatarHtml(user.avatar, 76);
     /* The topbar shows the same name and avatar and would otherwise keep the
        old pair until the next navigation. */
     const navAv = document.querySelector('.nav-av');
     const navName = document.getElementById('navUser');
-    if (navAv) navAv.textContent = user.avatar;
+    if (navAv) navAv.innerHTML = avatarHtml(user.avatar, 26);
     if (navName) navName.textContent = user.name;
     toast(t('set.lookSaved'), 'good');
   } catch (e) {
@@ -170,7 +172,7 @@ async function saveLook() {
        never sits there displaying a value that was rejected. */
     document.getElementById('nameInput').value = profile.user.name;
     pickedAvatar = profile.user.avatar;
-    document.getElementById('heroFace').textContent = profile.user.avatar;
+    document.getElementById('heroFace').innerHTML = avatarHtml(profile.user.avatar, 76);
     document.querySelectorAll('.set-av').forEach((b) => {
       const on = b.dataset.avatar === pickedAvatar;
       b.classList.toggle('picked', on);
