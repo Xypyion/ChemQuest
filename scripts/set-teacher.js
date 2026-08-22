@@ -66,6 +66,15 @@ function complain(password) {
 /* ---------- the script ---------- */
 
 async function main() {
+  /* `npm run teacher -- --default` applies the built-in login from src/seed.js
+     to a database that already has a teacher. Seeding cannot do this: it bails
+     out the moment it finds one, which is right — it must never overwrite a
+     real deployment's account. But it leaves anyone who seeded before the
+     default changed stuck on the old credentials with no way forward short of
+     deleting their database. No password is typed, so this path needs no
+     terminal. */
+  if (process.argv.includes('--default')) return applyDefault();
+
   if (!process.stdin.isTTY) {
     console.error('This asks for a password, so it must be run in a terminal.');
     console.error('Set TEACHER_EMAIL and TEACHER_PASSWORD in .env for an unattended setup.');
@@ -137,6 +146,48 @@ async function main() {
     rl.close();
     await db.close();
   }
+}
+
+/** Point the teacher account at the built-in default login. */
+async function applyDefault() {
+  const { teacherAccount } = require('../src/seed');
+  const t = teacherAccount();
+
+  await db.ready();
+  const existing = db.find('users', (u) => u.role === 'teacher');
+  const clash = db.find('users', (u) => u.email.toLowerCase() === t.email
+    && (!existing || u.id !== existing.id));
+  if (clash) {
+    console.error(`Another account already uses ${t.email}. Run without --default to pick a different address.`);
+    await db.close();
+    process.exit(1);
+  }
+
+  if (existing) {
+    console.log(`Updating ${existing.email} -> ${t.email}`);
+    existing.email = t.email;
+    existing.name = t.name;
+    existing.passwordHash = hashPassword(t.password);
+    db.save();
+  } else {
+    db.insert('users', {
+      id: 'u_teacher_' + Date.now().toString(36),
+      role: 'teacher',
+      name: t.name,
+      email: t.email,
+      passwordHash: hashPassword(t.password),
+      createdAt: new Date().toISOString(),
+    });
+    console.log('Created the teacher account.');
+  }
+  await db.flush();
+  await db.close();
+
+  console.log('');
+  console.log(`  email     ${t.email}`);
+  console.log(`  password  ${t.password}`);
+  console.log('');
+  console.log('Levels, students and submissions are untouched.');
 }
 
 main().catch((err) => {
