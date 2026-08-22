@@ -148,7 +148,7 @@ npm start            # serves http://localhost:4000
 
 On first run the app auto-creates the teacher account and 6 sample lessons.
 
-**Default teacher login:** `krucj@skn.ac.th` / `StoiVenture2026` (email is
+**Default teacher login:** `krucj@gmail.com` / `StoiVenture2026` (email is
 case-insensitive). It lives in `src/seed.js`, so it is public — before a real class
 uses the site, change it with `npm run teacher` (asks in the terminal, never echoes),
 or set `TEACHER_EMAIL` / `TEACHER_PASSWORD` in the git-ignored `.env` before the first
@@ -381,7 +381,7 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 
 ## 10. Accounts, config & environment
 
-- **Teacher (seeded):** `krucj@skn.ac.th` / `StoiVenture2026`, overridable with
+- **Teacher (seeded):** `krucj@gmail.com` / `StoiVenture2026`, overridable with
   `TEACHER_EMAIL` / `TEACHER_PASSWORD`. `npm run teacher` changes it on an existing
   database. (The reset in the console resets *student* passwords, not the teacher's.)
 - **Env vars:** `PORT` (default 4000), `JWT_SECRET` (set a strong value in

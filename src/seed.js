@@ -33,7 +33,7 @@ const config = require('./config');
 
 const DEFAULT_TEACHER = {
   name: 'Kru CJ',
-  email: 'krucj@skn.ac.th',
+  email: 'krucj@gmail.com',
   password: 'StoiVenture2026',
 };
 

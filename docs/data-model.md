@@ -328,5 +328,5 @@ Challenge 1───* ChallengeSubmission *───1 User (one per student, unl
 
 - Deleting `data/db.json` resets everything; on next start `src/seed.js` recreates the
   teacher account and 6 sample lessons.
-- Seeded teacher: `krucj@skn.ac.th` / `StoiVenture2026`. `TEACHER_EMAIL` /
+- Seeded teacher: `krucj@gmail.com` / `StoiVenture2026`. `TEACHER_EMAIL` /
   `TEACHER_PASSWORD` in `.env` override it; `npm run teacher` changes it later.
