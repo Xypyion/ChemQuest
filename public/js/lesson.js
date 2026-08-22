@@ -182,7 +182,7 @@ function showStory() {
         <div class="ruby-hero">${renderRuby(step.mood || 'happy', { size: 190, float: true })}</div>
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="storyboard image">` : ''}
         <div class="speech top pop-in">
-          <div class="speaker">${escapeHtml(step.character || 'Ruby')}</div>
+          <div class="speaker">${escapeHtml(speakerName(step.character))}</div>
           <div>${chem(step.text)}</div>
         </div>
         ${dots}${nav}

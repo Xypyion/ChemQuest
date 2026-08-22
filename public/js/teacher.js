@@ -334,7 +334,7 @@ async function saveCriteria() {
 
 /* ============================ LESSON EDITOR ============================ */
 function blankQuestion() { return { _id: uid(), type: 'mcq', question: '', choices: ['', ''], correctIndex: 0, points: 1, explanation: '' }; }
-function blankLine() { return { type: 'line', character: 'Ruby', mood: 'happy', text: '', image: '' }; }
+function blankLine() { return { type: 'line', character: mascotName(), mood: 'happy', text: '', image: '' }; }
 function blankVideo() { return { type: 'video', url: '', title: '' }; }
 
 function newLesson() {
@@ -358,7 +358,7 @@ async function editLesson(id) {
       flow: lesson.flow === 'test-first' ? 'test-first' : 'story-first',
       storyboard: (lesson.storyboard || []).map((it) => it.type === 'video'
         ? { type: 'video', url: it.url || '', title: it.title || '' }
-        : { type: 'line', character: it.character || 'Ruby', mood: it.mood || 'happy', text: it.text || '', image: it.image || '' }),
+        : { type: 'line', character: it.character || mascotName(), mood: it.mood || 'happy', text: it.text || '', image: it.image || '' }),
       quizzes: {
         easy: mapInQ(lesson.quizzes && lesson.quizzes.easy),
         medium: mapInQ(lesson.quizzes && lesson.quizzes.medium),
@@ -898,7 +898,7 @@ function previewStoryHtml(lesson) {
     body = `
       <div class="tp-ruby">${renderRuby(step.mood || 'happy', { size: 150 })}</div>
       ${step.image ? `<img class="tp-img" src="${esc(step.image)}" alt="">` : ''}
-      <div class="tp-speech"><div class="tp-speaker">${esc(step.character || 'Ruby')}</div><div>${esc(step.text || '')}</div></div>`;
+      <div class="tp-speech"><div class="tp-speaker">${esc(speakerName(step.character))}</div><div>${esc(step.text || '')}</div></div>`;
   }
   return `
     <div class="tp-story">${body}

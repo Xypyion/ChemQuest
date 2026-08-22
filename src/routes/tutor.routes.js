@@ -1,5 +1,5 @@
 /**
- * AI tutor routes — Ruby helps with a challenge question without answering it.
+ * AI tutor routes — Kru CJ helps with a challenge question without answering it.
  *
  * Collections used: `tutorLogs` (auto-created by db.all on first use).
  *
@@ -72,7 +72,7 @@ router.get('/status', (req, res) => {
 });
 
 /**
- * POST /api/tutor/ask — ask Ruby about one challenge question.
+ * POST /api/tutor/ask — ask Kru CJ about one challenge question.
  * Body: { challengeId, questionId, message, draft?, history?, lang? }
  */
 router.post('/ask', async (req, res) => {
@@ -187,8 +187,8 @@ router.post('/ask', async (req, res) => {
     const rateLimited = err && err.status === 429;
     res.status(rateLimited ? 429 : 502).json({
       error: rateLimited
-        ? "Ruby is getting a lot of questions right now — wait about a minute and try again."
-        : 'Ruby could not answer just now. Please try again in a moment.',
+        ? "Kru CJ is getting a lot of questions right now — wait about a minute and try again."
+        : 'Kru CJ could not answer just now. Please try again in a moment.',
       ...credit.statusOf(req.user),
     });
   }

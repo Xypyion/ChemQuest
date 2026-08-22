@@ -121,7 +121,7 @@ function questionHtml(q, n, sub) {
       <div class="ch-q-head">
         ${label}
         <span class="ch-q-head-right">
-          <button type="button" class="ch-tutor-btn" onclick="askRuby('${q.id}')">💬 ${t('tutor.ask')}</button>
+          <button type="button" class="ch-tutor-btn" onclick="askRuby('${q.id}')">${ICON.chat(16)} ${escapeHtml(t('tutor.ask'))}</button>
           <span class="ch-q-pts">${t('ch.pts', { n: q.points })}</span>
         </span>
       </div>
@@ -131,7 +131,7 @@ function questionHtml(q, n, sub) {
     </section>`;
 }
 
-/** Open the Ruby help panel for one question, with the student's current draft. */
+/** Open the Kru CJ help panel for one question, with the student's current draft. */
 function askRuby(qid) {
   const q = flatten(challenge.questions).find((x) => x.id === qid);
   if (!q) return;

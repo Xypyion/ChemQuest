@@ -80,3 +80,26 @@ function renderRuby(mood = 'happy', opts = {}) {
 
 /** Swap an already-rendered mascot to another mood in place. */
 function setRubyMood(el, mood, opts) { if (el) el.innerHTML = renderRuby(mood, opts); }
+
+/* ---------- the mascot's name ---------- *
+
+   The character is Kru CJ (ครู CJ). The function above is still called
+   renderRuby because eight files call it and renaming them buys nothing;
+   renderMascot is the name to use in new code.
+
+   A storyboard line stores its speaker as a plain editable string, and every
+   line authored before the rename has "Ruby" saved in it. Rather than rewrite
+   anyone's data, speakerName() maps that one legacy value to the current name
+   at display time. A speaker the teacher actually typed is left alone. */
+
+const renderMascot = renderRuby;
+const setMascotMood = setRubyMood;
+
+/** The mascot's name in the reader's language. */
+function mascotName() { return t('mascot.name'); }
+
+/** The name to show for a storyboard line's speaker. */
+function speakerName(value) {
+  const name = (value == null ? '' : String(value)).trim();
+  return (!name || name === 'Ruby') ? mascotName() : name;
+}

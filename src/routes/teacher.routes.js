@@ -60,7 +60,7 @@ function normalizeStoryboard(arr) {
       if (image.length > MAX_IMAGE_CHARS) image = ''; // drop oversized uploads
       return {
         type: 'line',
-        character: (it.character || 'Ruby').toString().trim() || 'Ruby',
+        character: (it.character || 'Kru CJ').toString().trim() || 'Kru CJ',
         mood: (it.mood || 'happy').toString(),
         text: (it.text || '').toString(),
         image,

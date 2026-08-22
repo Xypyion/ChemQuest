@@ -1,5 +1,5 @@
 /**
- * What it costs a student to ask Ruby for help.
+ * What it costs a student to ask Kru CJ for help.
  *
  * Two ways to pay, checked in this order:
  *   1. a small number of FREE questions each day, and

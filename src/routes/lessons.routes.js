@@ -89,7 +89,7 @@ function buildSteps(lesson) {
   const steps = (lesson.storyboard || []).map((it) =>
     it.type === 'video'
       ? { type: 'video', url: it.url, title: it.title }
-      : { type: 'line', character: it.character || 'Ruby', mood: it.mood || 'happy', text: it.text || '', image: it.image || null }
+      : { type: 'line', character: it.character || 'Kru CJ', mood: it.mood || 'happy', text: it.text || '', image: it.image || null }
   );
   // Legacy lessons kept videos in a separate `media` array — append them at the end.
   if (!steps.some((s) => s.type === 'video') && Array.isArray(lesson.media)) {

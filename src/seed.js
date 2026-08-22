@@ -22,7 +22,7 @@ const TEACHER = {
 };
 
 // ---- storyboard helpers ----
-const line = (mood, text, image) => ({ type: 'line', character: 'Ruby', mood, text, image: image || '' });
+const line = (mood, text, image) => ({ type: 'line', character: 'Kru CJ', mood, text, image: image || '' });
 const video = (url, title) => ({ type: 'video', url, title });
 const q = (question, choices, correctIndex, explanation) => ({ id: crypto.randomUUID(), question, choices, correctIndex, explanation });
 const svgDataUri = (svg) => 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
@@ -49,7 +49,7 @@ const LESSONS = [
     icon: '🌱',
     timeLimit: 90,
     storyboard: [
-      line('wave', "Hi explorer! I'm Ruby, your chemistry buddy! Ready for a colorful adventure?"),
+      line('wave', "Hi explorer! I'm Kru CJ, your chemistry guide! Ready for a colorful adventure?"),
       line('excited', 'Everything around you — your desk, the air, even YOU — is made of MATTER!'),
       line('thinking', 'Matter comes in three main styles: solid, liquid, and gas.'),
       line('happy', 'Ice is a solid 🧊, water is a liquid 💧, and steam is a gas ☁️ — all the same stuff, just dressed differently!', STATES_IMG),
