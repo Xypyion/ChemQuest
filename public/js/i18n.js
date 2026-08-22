@@ -336,7 +336,7 @@ const I18N = {
     't.closePostTest': '🔒 Close post-test',
     't.postTestNowOpen': 'Post-test is now OPEN for all students! 🔓',
     't.postTestNowClosed': 'Post-test is now closed. 🔒',
-    't.studentsTitle': '👩‍🎓 Students',
+    't.studentsTitle': 'Students',
     't.studentsSub': '{n} registered explorer{s}. Manage names, difficulty, ranking and passwords.',
     't.noStudents': 'No students have signed up yet.',
     't.thName': 'Name',
@@ -390,7 +390,7 @@ const I18N = {
 
     /* ---- writing grading queue ---- */
     't.navGrading': 'Writing Grading',
-    't.gradingTitle': '✍️ Writing Grading',
+    't.gradingTitle': 'Writing Grading',
     't.gradingSub': 'Grade students’ written answers on your points scale. Their score and certificate finalise once you grade.',
     't.refresh': '🔄 Refresh',
     't.gradingEmpty': 'Nothing to grade right now. Written answers will appear here. ✅',
@@ -406,7 +406,7 @@ const I18N = {
 
     /* ---- gradebook ---- */
     't.navGradebook': 'Gradebook',
-    't.gradebookTitle': '📊 Gradebook',
+    't.gradebookTitle': 'Gradebook',
     't.gradebookSub': 'A spreadsheet for grading. Add columns for assignments and tests, then type each student’s score.',
     't.gbStudent': 'Student',
     't.gbTotal': 'Total',
@@ -429,7 +429,7 @@ const I18N = {
     't.gbImported': 'Scores imported into a new column.',
 
     /* ---- play-as-student preview ---- */
-    't.previewTitle': '🎮 Play as student',
+    't.previewTitle': 'Play as student',
     't.previewSub': 'A read-only preview — exactly what students see. Nothing is saved.',
     't.previewPickSub': 'Pick a difficulty and a level to preview the student experience.',
     't.previewAsDiff': 'Preview as difficulty',
@@ -529,11 +529,11 @@ const I18N = {
 
     /* ---- challenges (teacher console) ---- */
     't.navChallenges': 'Challenges',
-    't.chTitle': '🧩 Challenges',
+    't.chTitle': 'Challenges',
     't.chSub': 'Post challenge questions to a level board, sort them into categories, and assign them to students.',
     't.chNew': '＋ New challenge',
     't.chNone': 'No challenges yet. Create your first one!',
-    't.chCatsTitle': '📂 Categories',
+    't.chCatsTitle': 'Categories',
     't.chCatsHint': 'Group your challenges (e.g. “Lab work”, “Stoichiometry”, “Simulations”). Students see the same grouping.',
     't.chAddCat': '＋ Add category',
     't.chCatNamePh': 'e.g. Lab simulations',
@@ -617,7 +617,7 @@ const I18N = {
     't.chDeleteMsg': 'Delete <b>{title}</b> and every student response to it? This cannot be undone.',
     't.chDeleted': 'Challenge deleted.',
     't.chResponses': '📥 Responses',
-    't.chResponsesTitle': '📥 Responses — {title}',
+    't.chResponsesTitle': 'Responses — {title}',
     't.chResponsesSub': 'Auto-marked answers are already scored. Award points for the written parts, then save.',
     't.chNoResponses': 'No one has handed this challenge in yet.',
     't.chMissing': 'Not handed in yet ({n})',
@@ -761,7 +761,7 @@ const I18N = {
 
     /* ---- coin battles (teacher console) ---- */
     't.navBattles': 'Coin Battles',
-    't.bTitle': '🤺 Coin Battles',
+    't.bTitle': 'Coin Battles',
     't.bSub': 'Students win coins off each other by answering your questions. Set the stakes, then fill the three question banks.',
     't.bSettings': 'Battle rules',
     't.bEnabled': 'Battles are switched on',
@@ -1183,7 +1183,7 @@ const I18N = {
     't.closePostTest': '🔒 ปิดแบบทดสอบหลังเรียน',
     't.postTestNowOpen': 'เปิดแบบทดสอบหลังเรียนแล้ว — นักเรียนทุกคนทำได้เลย! 🔓',
     't.postTestNowClosed': 'ปิดแบบทดสอบหลังเรียนแล้ว 🔒',
-    't.studentsTitle': '👩‍🎓 นักเรียน',
+    't.studentsTitle': 'นักเรียน',
     't.studentsSub': 'นักสำรวจที่ลงทะเบียน {n} คน · จัดการชื่อ ระดับความยาก คะแนน และรหัสผ่าน',
     't.noStudents': 'ยังไม่มีนักเรียนสมัครเข้ามาเลย',
     't.thName': 'ชื่อ',
@@ -1237,7 +1237,7 @@ const I18N = {
 
     /* ---- writing grading queue ---- */
     't.navGrading': 'ตรวจข้อเขียน',
-    't.gradingTitle': '✍️ ตรวจข้อเขียน',
+    't.gradingTitle': 'ตรวจข้อเขียน',
     't.gradingSub': 'ให้คะแนนคำตอบข้อเขียนของนักเรียนตามคะแนนที่คุณครูตั้งไว้ คะแนนและเกียรติบัตรจะสรุปเมื่อตรวจเสร็จ',
     't.refresh': '🔄 รีเฟรช',
     't.gradingEmpty': 'ยังไม่มีอะไรให้ตรวจตอนนี้ คำตอบข้อเขียนจะมาแสดงที่นี่ ✅',
@@ -1253,7 +1253,7 @@ const I18N = {
 
     /* ---- gradebook ---- */
     't.navGradebook': 'สมุดคะแนน',
-    't.gradebookTitle': '📊 สมุดคะแนน',
+    't.gradebookTitle': 'สมุดคะแนน',
     't.gradebookSub': 'ตารางให้คะแนนแบบสเปรดชีต เพิ่มคอลัมน์สำหรับงานและแบบทดสอบ แล้วพิมพ์คะแนนของนักเรียนแต่ละคน',
     't.gbStudent': 'นักเรียน',
     't.gbTotal': 'รวม',
@@ -1276,7 +1276,7 @@ const I18N = {
     't.gbImported': 'นำเข้าคะแนนลงคอลัมน์ใหม่แล้ว',
 
     /* ---- play-as-student preview ---- */
-    't.previewTitle': '🎮 ดูมุมมองนักเรียน',
+    't.previewTitle': 'ดูมุมมองนักเรียน',
     't.previewSub': 'ตัวอย่างแบบอ่านอย่างเดียว — เห็นเหมือนที่นักเรียนเห็นทุกอย่าง ไม่มีการบันทึก',
     't.previewPickSub': 'เลือกระดับความยากและด่านเพื่อดูตัวอย่างมุมมองของนักเรียน',
     't.previewAsDiff': 'ดูตัวอย่างในระดับ',
@@ -1376,11 +1376,11 @@ const I18N = {
 
     /* ---- challenges (teacher console) ---- */
     't.navChallenges': 'โจทย์',
-    't.chTitle': '🧩 โจทย์ (Challenges)',
+    't.chTitle': 'โจทย์ (Challenges)',
     't.chSub': 'โพสต์โจทย์ลงกระดานด่าน จัดหมวดหมู่ และมอบหมายให้นักเรียน',
     't.chNew': '＋ โจทย์ใหม่',
     't.chNone': 'ยังไม่มีโจทย์ สร้างอันแรกเลย!',
-    't.chCatsTitle': '📂 หมวดหมู่',
+    't.chCatsTitle': 'หมวดหมู่',
     't.chCatsHint': 'จัดกลุ่มโจทย์ (เช่น “ปฏิบัติการ” “ปริมาณสาร” “แบบจำลอง”) นักเรียนจะเห็นการจัดกลุ่มเดียวกัน',
     't.chAddCat': '＋ เพิ่มหมวดหมู่',
     't.chCatNamePh': 'เช่น แบบจำลองในห้องปฏิบัติการ',
@@ -1464,7 +1464,7 @@ const I18N = {
     't.chDeleteMsg': 'ลบ <b>{title}</b> พร้อมคำตอบทั้งหมดใช่ไหม? การกระทำนี้ย้อนกลับไม่ได้',
     't.chDeleted': 'ลบโจทย์แล้ว',
     't.chResponses': '📥 คำตอบ',
-    't.chResponsesTitle': '📥 คำตอบ — {title}',
+    't.chResponsesTitle': 'คำตอบ — {title}',
     't.chResponsesSub': 'ข้อที่ตรวจอัตโนมัติได้ระบบให้คะแนนแล้ว เหลือเฉพาะข้อเขียนที่ต้องให้คะแนนเอง',
     't.chNoResponses': 'ยังไม่มีใครส่งโจทย์นี้',
     't.chMissing': 'ยังไม่ส่ง ({n})',
@@ -1651,7 +1651,7 @@ const I18N = {
 
     /* ---- coin battles (teacher console) ---- */
     't.navBattles': 'ประลองเหรียญ',
-    't.bTitle': '🤺 ประลองเหรียญ',
+    't.bTitle': 'ประลองเหรียญ',
     't.bSub': 'นักเรียนชิงเหรียญกันด้วยการตอบคำถามของคุณครู ตั้งค่าเดิมพันแล้วใส่คำถามทั้งสามระดับ',
     't.bSettings': 'กติกาการประลอง',
     't.bEnabled': 'เปิดให้ประลอง',
