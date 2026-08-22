@@ -337,7 +337,7 @@ function nodes(pts) {
               aria-label="${escapeHtml(t('dash.lv', { n: i + 1 }) + ' — ' + l.title + ' — ' + stateWord)}">
         ${flag}
         <span class="node-disc"><span class="node-face">${face}</span></span>
-        <span class="node-title">${escapeHtml(l.title)}</span>
+        <span class="node-title">${chem(l.title)}</span>
       </button>`;
   }).join('');
 }

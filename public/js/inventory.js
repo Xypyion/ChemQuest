@@ -49,7 +49,7 @@ mountLangSwitch();
     // Badge grid — one tile per level.
     const badges = lessons.map((l, i) => {
       const cert = certByLesson[l.id];
-      const label = `${l.icon || '🧪'} ${escapeHtml(l.title)}`;
+      const label = `${l.icon || '🧪'} ${chem(l.title)}`;
       if (cert) {
         return `<div class="badge earned">
           <div class="badge-medal gold">⭐</div>

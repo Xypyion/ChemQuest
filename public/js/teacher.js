@@ -26,6 +26,10 @@ let preview = null;                          // in-console "play as student" pre
 const viewEl = document.getElementById('view');
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'q' + Math.random().toString(36).slice(2));
 const esc = (s) => escapeHtml(s);
+/* Level titles are chemistry, so their digits belong below the line:
+   "Balancing H2O" reads wrong on a stoichiometry course. Names, emails
+   and form values keep plain esc(). */
+const escChem = (s) => chem(s);
 
 init();
 async function init() {
@@ -144,7 +148,7 @@ function renderLessons() {
 
       <div class="lr-body">
         <div class="lr-title">
-          <span class="lr-name">${esc(l.title)}</span>
+          <span class="lr-name">${escChem(l.title)}</span>
           <span class="terr ${l.terrain}">${esc(terrainLabel(l.terrain))}</span>
           <span class="lr-flow">${esc(l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory'))}</span>
         </div>
@@ -820,7 +824,7 @@ function renderPreviewPicker() {
       <div class="lesson-row">
         <div class="ico">${esc(l.icon || '🧪')}</div>
         <div class="info">
-          <div class="t">${i + 1}. ${esc(l.title)}</div>
+          <div class="t">${i + 1}. ${escChem(l.title)}</div>
           <div class="d">📖 ${(l.storyboard || []).length} · ❓ ${qCount} ${t('t.questions')}</div>
         </div>
         <div class="acts"><button class="tbtn blue sm" onclick="startPreview('${l.id}')">${t('t.previewPlay')}</button></div>

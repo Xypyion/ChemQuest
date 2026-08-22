@@ -23,14 +23,14 @@ const QRender = (() => {
         return `<div class="ch-choices">${(q.choices || []).map((c, i) => `
           <label class="ch-choice">
             <input type="radio" name="q-${escapeHtml(q.id)}" value="${i}">
-            <span class="ltr">${LETTERS[i]}</span><span>${escapeHtml(c)}</span>
+            <span class="ltr">${LETTERS[i]}</span><span>${chem(c)}</span>
           </label>`).join('')}</div>`;
       case 'multi':
         return `<div class="ch-hint">${t('ch.multiHint')}</div>
           <div class="ch-choices">${(q.choices || []).map((c, i) => `
           <label class="ch-choice">
             <input type="checkbox" name="q-${escapeHtml(q.id)}" value="${i}">
-            <span class="ltr">${LETTERS[i]}</span><span>${escapeHtml(c)}</span>
+            <span class="ltr">${LETTERS[i]}</span><span>${chem(c)}</span>
           </label>`).join('')}</div>`;
       case 'short':
         return `<input class="ch-input" type="text" data-answer placeholder="${escapeHtml(t('ch.shortPh'))}">`;
@@ -48,7 +48,7 @@ const QRender = (() => {
     return `
       <div class="ch-table-wrap">
         <table class="ch-table">
-          <thead><tr>${cols.map((c) => `<th>${escapeHtml(c)}</th>`).join('')}</tr></thead>
+          <thead><tr>${cols.map((c) => `<th>${chem(c)}</th>`).join('')}</tr></thead>
           <tbody>
             ${rows.map((r, ri) => `<tr>${(r.cells || []).map((cell, ci) => cell.blank
               ? `<td><input class="ch-cell" type="text" data-cell="${ri}_${ci}" aria-label="row ${ri + 1} column ${ci + 1}"></td>`

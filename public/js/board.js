@@ -147,7 +147,7 @@ function render() {
     <div class="board-hero pop-in">
       <div>${renderRuby(lesson.preDone ? 'cheer' : 'wave', { size: 110, float: true })}</div>
       <div class="bh-info">
-        <h1>${escapeHtml(lesson.icon)} ${escapeHtml(lesson.title)}</h1>
+        <h1>${escapeHtml(lesson.icon)} ${chem(lesson.title)}</h1>
         <div class="bh-desc">${escapeHtml(lesson.description || t('board.welcome'))}</div>
       </div>
     </div>`;

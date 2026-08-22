@@ -194,6 +194,25 @@ function mountNav() {
   const here = document.body.dataset.page || '';
   const user = API.user();
 
+  /* Pages that sit INSIDE a level (the level board, the lesson player, the
+     challenge player) carry context in the stats slot instead of coins and
+     points: which level you are in, and at what difficulty. The slot is the
+     same box either way, so the destinations do not move between the map and
+     a level — which is exactly what they used to do, because those three
+     pages hand-wrote a topbar of their own with no destinations in it at all. */
+  const ctx = document.body.dataset.navContext;
+  const stats = ctx === 'level' ? `
+      <span class="pill" id="lessonTitlePill">…</span>
+      <span class="pill" id="diffPill"></span>`
+    : ctx === 'challenge' ? `
+      <span class="pill" id="chTitlePill">…</span>
+      <span class="pill" id="chTimerPill" hidden></span>`
+    : `
+      <span class="pill coins">${ICON.coin(16)} <b id="navCoins">0</b>
+        <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
+      <span class="pill points">${ICON.star(16)} <b id="navPoints">0</b>
+        <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>`;
+
   const links = NAV_ITEMS.map((item) => {
     const on = item.page === here;
     return `<a class="nav-link${on ? ' is-current' : ''}" href="${item.href}"
@@ -205,12 +224,7 @@ function mountNav() {
     <a class="brand" href="/dashboard.html">${ICON.brand(26)}<span
       class="wordmark">Stoi<b>Venture</b></span></a>
 
-    <div class="nav-stats">
-      <span class="pill coins">${ICON.coin(16)} <b id="navCoins">0</b>
-        <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
-      <span class="pill points">${ICON.star(16)} <b id="navPoints">0</b>
-        <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>
-    </div>
+    <div class="nav-stats">${stats}</div>
 
     <nav class="nav-links" aria-label="${escapeHtml(t('nav.sections'))}">${links}</nav>
 
@@ -267,3 +281,64 @@ function mountBrandMarks() {
 
 if (document.body.dataset.page) mountNav();
 mountBrandMarks();
+
+/* ---------- Chemical formulas ---------- *
+
+   StoiVenture is a stoichiometry course, so formulas are everywhere: in the
+   level titles a teacher writes, in storyboard lines, in quiz questions and in
+   the answer choices. Typed as plain text they read "H2O" and "Fe2(SO4)3",
+   which is wrong on a chemistry site — the digits belong below the line.
+
+   WHY AN ELEMENT TABLE AND NOT A PATTERN
+   A pattern like /([A-Z][a-z]?)(\d+)/ also matches "M4" (the school's year
+   groups), "A4", "B2" and half the ids in the app. So a run of letters and
+   digits is only treated as a formula when EVERY letter group in it is a real
+   element symbol. "H2O" and "CaCO3" convert; "M4", "COVID19" and "Level 2" are
+   left exactly as they are.
+
+   ORDER MATTERS: this runs on text that has ALREADY been escaped, and it only
+   ever inserts <sub> tags. It can never introduce markup from user content. */
+
+const ELEMENTS = new Set(('H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe ' +
+  'Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La ' +
+  'Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra ' +
+  'Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og').split(' '));
+
+/* a candidate token: letters, digits, parentheses and middle dots, e.g.
+   H2O, Fe2(SO4)3, CuSO4·5H2O — no spaces, so "Level 2" is never a candidate */
+const FORMULA_TOKEN = /[A-Za-z0-9()·]*[A-Za-z][A-Za-z0-9()·]*/g;
+
+/** Is this token actually a chemical formula? */
+function isFormula(token) {
+  if (!/\d/.test(token)) return false;              // no digits, nothing to lower
+  if (/^\d/.test(token)) return false;              // "2H2O" — leading coefficient handled below
+  const letters = token.match(/[A-Z][a-z]?/g) || [];
+  if (!letters.length) return false;
+  // every letter group must be an element, and nothing may be left over
+  const consumed = letters.join('').length + (token.match(/[\d()·]/g) || []).length;
+  if (consumed !== token.length) return false;      // stray lowercase, e.g. "Level2"
+  return letters.every((el) => ELEMENTS.has(el));
+}
+
+/**
+ * Lower the digits in any chemical formula found in ALREADY-ESCAPED text.
+ * @param {string} escaped text that has been through escapeHtml()
+ * @returns {string} the same text with <sub> around formula digits
+ */
+function subscriptFormulas(escaped) {
+  return escaped.replace(FORMULA_TOKEN, (token) => {
+    // a leading coefficient stays full size: 2H2O -> 2H₂O
+    const m = token.match(/^(\d*)(.*)$/);
+    const lead = m[1], body = m[2];
+    if (!isFormula(body)) return token;
+    return lead + body.replace(/\d+/g, (d) => `<sub>${d}</sub>`);
+  });
+}
+
+/**
+ * Escape text and lower its formula digits. Use anywhere teacher-authored
+ * chemistry is displayed, in place of escapeHtml().
+ */
+function chem(text) {
+  return subscriptFormulas(escapeHtml(text == null ? '' : String(text)));
+}

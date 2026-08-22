@@ -217,9 +217,16 @@ textarea { resize: vertical; min-height: 90px; }
 .nav-stats b { font-variant-numeric: tabular-nums; }
 
 /* margin-left:auto is what pins this group, and everything after it, to the
-   right edge. Nothing upstream can move it. */
+   right edge — but ONLY while the bar has free space to give it. The moment
+   the row overflows, the auto margin collapses to zero and the destinations
+   fall back to flowing straight after the stats pills, which are a different
+   width on every page. That is the original "the tabs move" bug, and it comes
+   back at any width where the single row no longer fits. min-width:0 lets this
+   group scroll inside itself rather than shove the account off the end; the
+   breakpoint below is what actually guarantees the fit. */
 .nav-links {
   margin-left: auto;
+  min-width: 0;
   display: flex; align-items: center; gap: 6px; flex: none;
   max-width: 100%; overflow-x: auto; scrollbar-width: none;
   padding: 2px;
@@ -285,7 +292,11 @@ textarea { resize: vertical; min-height: 90px; }
    between them, and a right-anchored bar shifts with it. */
 html { scrollbar-gutter: stable; }
 
-@media (max-width: 1160px) {
+/* One row needs about 1460px: brand 175 + stats 229 + five destinations 617 +
+   account 371, plus gaps and padding. Below that it wraps, and the
+   destinations take a full-width row of their own — which is identical on
+   every page, so they still cannot move. Measured, not guessed. */
+@media (max-width: 1460px) {
   .topbar { flex-wrap: wrap; padding: 10px 14px; position: static; }
   .nav-links { order: 3; width: 100%; margin-left: 0; }
   .nav-account { margin-left: auto; }
@@ -360,4 +371,18 @@ hr.soft { border: none; border-top: 3px dashed #e7e2f5; margin: 22px 0; }
     transition-duration: .001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---------- chemical formulas ---------- */
+/* The browser default for <sub> is `vertical-align: sub`, which grows the line
+   box and pushes the rest of the line around — visible in a quiz choice or a
+   map label where every line has to sit level. Positioning it instead keeps
+   the line height exactly where it was. */
+sub {
+  font-size: .72em;
+  line-height: 0;
+  position: relative;
+  bottom: -.28em;
+  vertical-align: baseline;
+  font-variant-numeric: lining-nums tabular-nums;
 }

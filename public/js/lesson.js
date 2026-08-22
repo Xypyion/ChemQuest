@@ -183,7 +183,7 @@ function showStory() {
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="storyboard image">` : ''}
         <div class="speech top pop-in">
           <div class="speaker">${escapeHtml(step.character || 'Ruby')}</div>
-          <div>${escapeHtml(step.text)}</div>
+          <div>${chem(step.text)}</div>
         </div>
         ${dots}${nav}
       </div>`;
@@ -254,7 +254,7 @@ function showQuiz() {
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
-    <div class="q-text">${escapeHtml(q.question)}</div>
+    <div class="q-text">${chem(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
     <div class="choices" id="choices">
       ${q.choices.map((c, i) => `
@@ -281,7 +281,7 @@ function showWrittenQuestion(q, total, last) {
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
-    <div class="q-text">${escapeHtml(q.question)}</div>
+    <div class="q-text">${chem(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
     <textarea class="written-input" id="writtenInput" rows="5" placeholder="${escapeHtml(t('lesson.writtenPlaceholder'))}">${escapeHtml(prev)}</textarea>
     <div class="written-note">✍️ ${t('lesson.writtenNote')}</div>
@@ -319,7 +319,7 @@ async function answerQuestion(btn, q) {
 
   const explain = document.getElementById('explain');
   explain.className = 'explain show ' + (res.correct ? 'right' : 'wrong');
-  explain.innerHTML = (res.correct ? t('lesson.correct') : t('lesson.notQuite')) + escapeHtml(res.explanation || '');
+  explain.innerHTML = (res.correct ? t('lesson.correct') : t('lesson.notQuite')) + chem(res.explanation || '');
   ensureQuizRuby(res.correct ? 'cheer' : 'sad');
   if (res.correct) { try { miniPop(btn); } catch {} }
 

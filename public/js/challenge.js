@@ -105,7 +105,7 @@ function questionHtml(q, n, sub) {
     const inner = (q.sub || []).map((sq, i) => questionHtml(sq, i + 1, true)).join('');
     return `
       <section class="ch-q sim">
-        ${q.question ? `<div class="ch-q-text">${escapeHtml(q.question)}</div>` : ''}
+        ${q.question ? `<div class="ch-q-text">${chem(q.question)}</div>` : ''}
         <div class="ch-sim-hint">🧪 ${t('ch.simHint')}</div>
         ${simFrameHtml(q.sim)}
         ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
@@ -125,7 +125,7 @@ function questionHtml(q, n, sub) {
           <span class="ch-q-pts">${t('ch.pts', { n: q.points })}</span>
         </span>
       </div>
-      <div class="ch-q-text">${escapeHtml(q.question)}</div>
+      <div class="ch-q-text">${chem(q.question)}</div>
       ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
       ${answerHtml(q)}
     </section>`;
@@ -260,7 +260,7 @@ function resultHtml() {
     else tag = `<span class="ch-res bad">${t('ch.wrong')} · 0/${res.max}</span>`;
     return `
       <div class="ch-res-row">
-        <div class="ch-res-q"><b>${t('ch.qLabel', { n: i + 1 })}.</b> ${escapeHtml(q.question || '')}</div>
+        <div class="ch-res-q"><b>${t('ch.qLabel', { n: i + 1 })}.</b> ${chem(q.question || '')}</div>
         <div class="ch-res-a">${escapeHtml(myAnswerText(q, (r.answers || {})[q.id]))}</div>
         ${tag}
       </div>`;
