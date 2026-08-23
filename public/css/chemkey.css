@@ -1,0 +1,124 @@
+/* =========================================================================
+   Chemistry keys — the bar that lets a student type H₂O.
+   Positioned by js/chemkey.js: docked above the on-screen keyboard on a
+   phone, anchored under the field on a computer.
+   ========================================================================= */
+
+.chemkey {
+  position: fixed;
+  z-index: 90;                /* over the page, under toasts and modals */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: #fff;
+  border: 2px solid var(--line, #e6e4f0);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(40, 30, 90, .18);
+  max-width: calc(100vw - 16px);
+}
+.chemkey[hidden] { display: none; }
+
+/* Docked above the phone keyboard: full width, square off the bottom so it
+   reads as part of the keyboard rather than a floating card. */
+.chemkey.docked {
+  border-radius: 14px 14px 0 0;
+  border-width: 2px 0 0;
+  max-width: none;
+  box-shadow: 0 -6px 24px rgba(40, 30, 90, .16);
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+/* The keys scroll inside the bar rather than wrapping, so the bar keeps one
+   height and the Auto and close buttons never move. */
+.chemkey-scroll {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-width: 0;
+}
+
+.chemkey-key {
+  flex: none;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--line, #e6e4f0);
+  border-radius: 10px;
+  background: #f8f7fd;
+  font-family: var(--font);
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--ink, #3a3357);
+  cursor: pointer;
+  /* the pad exists to insert characters, so never let the browser select them */
+  user-select: none;
+}
+.chemkey-key:hover { background: #eef2ff; border-color: var(--secondary, #36b9ff); }
+.chemkey-key:active { transform: translateY(1px); }
+
+/* The subscript digits are the point of the bar, so they get the accent. */
+.chemkey-sub {
+  font-size: 1.15rem;
+  color: var(--secondary-dark, #1d97da);
+  font-weight: 700;
+  background: #eaf6ff;
+  border-color: #cbe8fb;
+}
+
+.chemkey-sep {
+  flex: none;
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: var(--line, #e6e4f0);
+}
+
+.chemkey-auto,
+.chemkey-close {
+  flex: none;
+  height: 38px;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+.chemkey-auto {
+  padding: 0 14px;
+  background: var(--primary, #ff8a3d);
+  color: #fff;
+  font-size: .95rem;
+  white-space: nowrap;
+}
+.chemkey-auto:hover { filter: brightness(1.06); }
+.chemkey-close {
+  width: 34px;
+  background: transparent;
+  color: var(--ink-soft, #6b6488);
+  font-size: 1rem;
+}
+.chemkey-close:hover { background: #f2f0f8; }
+
+.chemkey-key:focus-visible,
+.chemkey-auto:focus-visible,
+.chemkey-close:focus-visible {
+  outline: 3px solid var(--accent, #a86bff);
+  outline-offset: 2px;
+}
+
+/* Teacher console: the shell is a different palette, so borrow its tokens. */
+body.teacher .chemkey { border-color: var(--t-line); }
+body.teacher .chemkey-key { background: #f6f5fc; border-color: var(--t-line); color: var(--t-ink); }
+body.teacher .chemkey-sub { background: #eef0fb; border-color: #dcdcf3; color: var(--t-indigo); }
+body.teacher .chemkey-auto { background: var(--t-accent); }
+
+@media (max-width: 420px) {
+  .chemkey-key { min-width: 34px; height: 36px; }
+  .chemkey-auto { padding: 0 10px; font-size: .88rem; }
+}

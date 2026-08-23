@@ -308,7 +308,7 @@ const TChallenges = (() => {
         <h3 style="margin-top:0">${t('t.basics')}</h3>
         <div class="field-row">
           <div><label class="t-label">${t('t.chTitleLabel')}</label>
-            <input id="c-title" class="t-input" value="${esc(draft.title)}" placeholder="${esc(t('t.chTitlePh'))}"></div>
+            <input id="c-title" data-chem class="t-input" value="${esc(draft.title)}" placeholder="${esc(t('t.chTitlePh'))}"></div>
           <div><label class="t-label">${t('t.chIcon')}</label>
             <input id="c-icon" class="t-input" value="${esc(draft.icon)}" maxlength="4"></div>
         </div>
@@ -317,7 +317,7 @@ const TChallenges = (() => {
           <div><label class="t-label">${t('t.chCategory')}</label><select id="c-cat" class="t-select">${catOpts}</select></div>
         </div>
         <label class="t-label">${t('t.chDesc')}</label>
-        <textarea id="c-desc" class="t-area" placeholder="${esc(t('t.chDescPh'))}">${esc(draft.description)}</textarea>
+        <textarea id="c-desc" data-chem class="t-area" placeholder="${esc(t('t.chDescPh'))}">${esc(draft.description)}</textarea>
         <div class="field-row">
           <div><label class="t-label">${t('t.chTimeLimit')}</label>
             <input id="c-time" class="t-input" type="number" min="0" max="7200" value="${draft.timeLimit || 0}"></div>

@@ -15,6 +15,14 @@ const I18N = {
     'nav.leaderboard': 'Leaderboard',
     'nav.quests': 'Quests',
     'nav.coins': 'coins',
+    /* ---- chemistry keys (typing H₂O) ---- */
+    'chem.keys': 'Chemistry keys',
+    'chem.subAria': 'Subscript {n}',
+    'chem.auto': 'H₂O',
+    'chem.autoTitle': 'Lower the numbers in the formulas here — H2O becomes H₂O',
+    'chem.autoNothing': 'No formula to lower here.',
+    'chem.hide': 'Hide the chemistry keys',
+
     'nav.logout': 'Log out',
     'nav.sections': 'Sections',
     'nav.settings': 'Settings',
@@ -863,6 +871,14 @@ const I18N = {
     'nav.leaderboard': 'กระดานคะแนน',
     'nav.quests': 'ภารกิจ',
     'nav.coins': 'เหรียญ',
+    /* ---- chemistry keys (typing H₂O) ---- */
+    'chem.keys': 'แป้นเคมี',
+    'chem.subAria': 'ตัวห้อย {n}',
+    'chem.auto': 'H₂O',
+    'chem.autoTitle': 'ลดตัวเลขในสูตรเคมีลงเป็นตัวห้อย — H2O จะกลายเป็น H₂O',
+    'chem.autoNothing': 'ไม่มีสูตรเคมีให้แปลงในช่องนี้',
+    'chem.hide': 'ซ่อนแป้นเคมี',
+
     'nav.logout': 'ออกจากระบบ',
     'nav.sections': 'ส่วนต่าง ๆ',
     'nav.settings': 'ตั้งค่า',

@@ -187,7 +187,7 @@ const TQuests = (() => {
         <div class="t-grid-2">
           <div>
             <label class="t-label">${t('t.qTitleField')}</label>
-            <input class="t-input" id="q-title" value="${esc(draft.title)}">
+            <input class="t-input" data-chem id="q-title" value="${esc(draft.title)}">
           </div>
           <div>
             <label class="t-label">${t('t.qIcon')}</label>
@@ -195,7 +195,7 @@ const TQuests = (() => {
           </div>
         </div>
         <label class="t-label">${t('t.qDesc')}</label>
-        <textarea class="t-area" id="q-desc" rows="2">${esc(draft.description)}</textarea>
+        <textarea class="t-area" data-chem id="q-desc" rows="2">${esc(draft.description)}</textarea>
         <div class="t-grid-2">
           <div>
             <label class="t-label">${t('t.qReward')}</label>

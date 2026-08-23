@@ -376,6 +376,23 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   (lessons / editor / board / grading / gradebook / students / preview).
 - **Mascot** "Ruby" is an **original inline SVG** in `js/character.js` — not based
   on any existing IP. Keep it that way.
+- **Chemical formulas** have two halves, and they are easy to confuse:
+  - `chem(text)` in `js/api.js` is for **display**. It escapes, then wraps
+    formula digits in `<sub>`, so "H2O" *reads* as H₂O. Use it in place of
+    `escapeHtml()` anywhere teacher-authored chemistry is shown.
+  - `toSubscript(text)` is for **input values**, where markup is impossible.
+    It rewrites the string with real ₂ characters. `unsubscript()` reverses it.
+  - Both share one element table: a run only counts as a formula when every
+    letter group is a real element symbol, so "M4", "Level 2" and "COVID19" are
+    left alone. A digit after `·` is a hydrate coefficient and stays full size.
+- **Chemistry keys** (`js/chemkey.js` + `css/chemkey.css`) let a student
+  actually type ₂ — no phone or school keyboard has that character. The bar
+  attaches itself to any field in its `FIELDS` selector list (one place to
+  read and to extend; `[data-chem]` opts in anything else), docks above the
+  on-screen keyboard on a phone and anchors under the field on a computer.
+  It inserts real characters and fires an `input` event, so the teacher
+  editors' `syncDraft` and the players' `collectAnswers` keep working
+  untouched. Load it after `api.js`.
 
 ---
 

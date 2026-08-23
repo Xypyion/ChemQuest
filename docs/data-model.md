@@ -280,6 +280,12 @@ The simulation frame is sandboxed with `allow-scripts allow-popups` and **no**
 
 Table answers are keyed `"<rowIndex>_<columnIndex>"`, matching the blank cells.
 
+**Formulas are stored as typed.** A student may write `H2O` or, using the
+chemistry keys, `H₂O`; a teacher's answer key may hold either. Nothing is
+rewritten on the way in — `norm()` in `src/challenges.js` folds ₂ → 2, ² → 2 and
+⁻ → - when **comparing**, so all spellings of one answer mark the same. Keep any
+new comparison going through `norm()` rather than comparing raw strings.
+
 ### Storyboard step types
 - **line** — Ruby dialogue: `character`, `mood` (happy/excited/thinking/wave/cheer/sad),
   `text`, optional `image`.

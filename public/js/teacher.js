@@ -437,12 +437,12 @@ function renderEditor() {
     <div class="t-card">
       <h3 style="margin-top:0">${t('t.basics')}</h3>
       <div class="field-row">
-        <div><label class="t-label">${t('t.title')}</label><input id="f-title" class="t-input" value="${esc(d.title)}" placeholder="${esc(t('t.titlePh'))}"></div>
+        <div><label class="t-label">${t('t.title')}</label><input id="f-title" data-chem class="t-input" value="${esc(d.title)}" placeholder="${esc(t('t.titlePh'))}"></div>
         <div><label class="t-label">${t('t.icon')}</label><input id="f-icon" class="t-input" value="${esc(d.icon)}" maxlength="4"></div>
         <div><label class="t-label">${t('t.terrain')}</label><select id="f-terrain" class="t-select">${terrainOpts}</select></div>
       </div>
       <label class="t-label">${t('t.shortDesc')}</label>
-      <input id="f-desc" class="t-input" value="${esc(d.description)}" placeholder="${esc(t('t.shortDescPh'))}">
+      <input id="f-desc" data-chem class="t-input" value="${esc(d.description)}" placeholder="${esc(t('t.shortDescPh'))}">
 
       <label class="t-label" style="margin-top:14px">${t('t.flow')}</label>
       <div class="sub" style="color:var(--t-soft);margin-bottom:8px">${t('t.flowHint')}</div>

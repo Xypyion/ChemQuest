@@ -333,8 +333,18 @@ function subscriptFormulas(escaped) {
     const m = token.match(/^(\d*)(.*)$/);
     const lead = m[1], body = m[2];
     if (!isFormula(body)) return token;
-    return lead + body.replace(/\d+/g, (d) => `<sub>${d}</sub>`);
+    return lead + body.replace(/\d+/g, (d, i) => (isCoefficient(body, i) ? d : `<sub>${d}</sub>`));
   });
+}
+
+/**
+ * Is the digit run at `i` a coefficient rather than a subscript?
+ * Only one case inside a token: the water count in a hydrate, which follows the
+ * middle dot — CuSO4·5H2O is "…sulfate, five waters", so the 5 is full size
+ * while the 4 and the 2 are not.
+ */
+function isCoefficient(body, i) {
+  return i > 0 && body[i - 1] === '·';
 }
 
 /**
@@ -343,6 +353,36 @@ function subscriptFormulas(escaped) {
  */
 function chem(text) {
   return subscriptFormulas(escapeHtml(text == null ? '' : String(text)));
+}
+
+/* chem() is for DISPLAY: it produces <sub> markup. The two below are for INPUT
+   VALUES, where markup is impossible and the character itself has to be real —
+   what a student types into an answer box, and what gets stored and graded. */
+
+const SUB_DIGITS = '₀₁₂₃₄₅₆₇₈₉';
+
+/** Turn ₂ back into 2, so the element table (which reads ASCII) can see it. */
+function unsubscript(text) {
+  return String(text == null ? '' : text).replace(/[₀-₉]/g, (c) => String(SUB_DIGITS.indexOf(c)));
+}
+
+/**
+ * Rewrite the formulas in a plain string using real subscript characters:
+ * "H2O" -> "H₂O". The same element-table test as chem(), so "M4" and "Level 2"
+ * are left alone.
+ *
+ * Folds any existing subscripts back to ASCII first, which makes it idempotent
+ * — running it twice, or on half-converted text like "H₂O2", gives one answer.
+ */
+function toSubscript(text) {
+  return unsubscript(text).replace(FORMULA_TOKEN, (token) => {
+    const m = token.match(/^(\d*)(.*)$/);
+    const lead = m[1], body = m[2];
+    if (!isFormula(body)) return token;
+    return lead + body.replace(/\d+/g, (d, i) => (isCoefficient(body, i)
+      ? d
+      : d.replace(/\d/g, (c) => SUB_DIGITS[Number(c)])));
+  });
 }
 
 /* ---------- Avatars ---------- *

@@ -189,8 +189,32 @@ function maxPoints(challenge) {
   return flatQuestions(challenge).reduce((sum, q) => sum + (q.points || 0), 0);
 }
 
+/* Unicode digit forms, in value order, so index === the digit. */
+const SUB_DIGITS = '₀₁₂₃₄₅₆₇₈₉';
+const SUPER_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
+/**
+ * Fold ₂ and ² down to a plain 2.
+ *
+ * Students can now type real subscripts (see public/js/chemkey.js), and the
+ * seeded content already contains them — "The chemical formula H₂O means…". So
+ * the same answer arrives written three ways: H2O from the keyboard, H₂O from
+ * the chemistry keys, and H₂O from a teacher who pasted it. Comparing the raw
+ * characters would mark two of those three wrong.
+ */
+function foldDigitForms(s) {
+  return String(s == null ? '' : s)
+    .replace(/[₀-₉]/g, (c) => String(SUB_DIGITS.indexOf(c)))
+    .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => String(SUPER_DIGITS.indexOf(c)))
+    // Ion charges, for the same reason: the keys offer ⁺ and ⁻, so SO₄²⁻ and
+    // "SO4 2-" are the same answer typed by two students. U+2212 is the proper
+    // minus some keyboards produce for a plain hyphen.
+    .replace(/[⁺]/g, '+')
+    .replace(/[⁻−]/g, '-');
+}
+
 function norm(s, caseSensitive) {
-  const v = String(s == null ? '' : s).trim().replace(/\s+/g, ' ');
+  const v = foldDigitForms(s).trim().replace(/\s+/g, ' ');
   return caseSensitive ? v : v.toLowerCase();
 }
 

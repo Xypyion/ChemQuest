@@ -66,6 +66,16 @@ finished.
 - Nobody can be pushed below zero: the win is capped at what the loser holds.
 - A battle log records both sides — the raids you made and the ones made on you.
 
+### Typing chemical formulas
+- A chemistry key bar appears whenever an answer box or question field is
+  focused: the subscript digits ₀–₉, the symbols a stoichiometry course needs
+  (→ ⇌ · ⁺ ⁻), and an **H₂O** button that lowers every formula in the field at
+  once — one press turns "Fe2(SO4)3" into "Fe₂(SO₄)₃".
+- On a phone it sits just above the on-screen keyboard; on a computer it appears
+  under the field being typed into.
+- Using it is optional. A student who just types "H2O" is still marked correct —
+  marking treats H2O, H₂O and h₂o as the same answer.
+
 ### Rewards
 
 ### ⚙️ Settings (per student)
