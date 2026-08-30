@@ -224,7 +224,10 @@ const TQuests = (() => {
       <div class="t-card">
         <div class="sub" style="margin-bottom:10px">${t('t.qAutoOnly')}</div>
         <div id="qqList">${draft.questions.map((q, i) => questionCard(q, i)).join('')}</div>
-        <button class="tbtn ghost" onclick="TQ.addQuestion()">${t('t.qAddQ')}</button>
+        <div class="editor-actions" style="margin-top:4px">
+          <button class="tbtn ghost" onclick="TQ.addQuestion()">${t('t.qAddQ')}</button>
+          <button class="tbtn ghost" onclick="TQ.aiGenerate()">${t('t.aiButton')}</button>
+        </div>
       </div>
 
       <div class="editor-actions">
@@ -550,8 +553,30 @@ const TQuests = (() => {
     render();
   }
 
+  /**
+   * ✨ Have Kru CJ write stoichiometry questions for this quest.
+   *
+   * They are appended to the draft, not saved: the teacher reads them and
+   * presses Save, which is still the only path that reaches students.
+   *
+   * A quest carries no difficulty of its own — it is not a level quiz — so the
+   * dialog asks for one, purely to pitch how hard the questions should be.
+   */
+  function aiGenerate() {
+    syncDraft();
+    TAI.open({
+      target: 'quest',
+      difficulty: 'easy',
+      types: TYPES,
+      onInsert: (questions) => {
+        questions.forEach((q) => draft.questions.push(mapInQuestion(q)));
+        render();
+      },
+    });
+  }
+
   const api = {
-    newQuest, edit, save, backToList,
+    newQuest, edit, save, backToList, aiGenerate,
     addQuestion, removeQuestion, setType, addChoice, removeChoice, addCol, addRow, removeRow,
     togglePublish, move, confirmDelete, doDelete,
     openAssign, syncAssignUI, saveAssign,

@@ -10,10 +10,18 @@
 ## Student experience
 
 ### Adventure map (dashboard)
-- A vertical journey through three biomes — **Meadow → Ember Canyon → Sky Summit** — with
-  rivers, bridges, props, and a 3D-style Ruby model standing on every level.
-- Each node shows its state: **available** (Ruby waving "Tap to play"), **done** (✓ + best
-  score), or **locked** (silhouette + 🔒). Scheduled levels show their open time.
+- A vertical run of the teacher's levels, in order, on a clean board. The map
+  shows **the levels and nothing else** — the terrain bands, hills, rivers,
+  bridges, scenery props, trail and finish gate it used to paint were all
+  removed, so the only thing carrying meaning on the board is the level itself.
+- Each level shows its number, the teacher's own title, and its state:
+  **available** (gold), **done** (✓ green) or **locked** (grey + 🔒). Scheduled
+  levels show their open time.
+- The student's own avatar stands beside the level they are on, tagged
+  "You are here".
+- Lessons still carry a `terrain` field in the database and the API; nothing
+  reads it any more, and the teacher's picker for it was removed with the
+  landscape it used to choose.
 
 ### Level board (hub)
 Tapping a level opens a game-themed board with tabs **🏠 Board · 📒 Assignments ·
@@ -29,7 +37,7 @@ chose for the level; whichever comes second stays locked (🔒) until the first 
 finished.
 
 ### Lessons & quizzes
-- **Storyboard** narrated by Ruby with moods/expressions, optional images, and a YouTube
+- **Storyboard** narrated by Kru CJ with moods/expressions, optional images, and a YouTube
   video the teacher can place anywhere in the sequence.
 - **Pre-test:** instant per-question feedback with explanations; questions match the
   student's chosen difficulty. Passing (≥60%) earns a **certificate**.
@@ -65,6 +73,27 @@ finished.
   cooldown with, anyone with an empty purse, and anything you cannot afford.
 - Nobody can be pushed below zero: the win is capped at what the loser holds.
 - A battle log records both sides — the raids you made and the ones made on you.
+
+### Duels ✍️ — questions students write themselves
+- On the battles page a student can **write their own stoichiometry question**,
+  pick one / pick several / type the answer, and set its answer key.
+- **Kru CJ checks it before anyone sees it.** He judges four things separately —
+  is it stoichiometry, can a classmate solve it from what was written, is the
+  answer key actually right, and is it fit for a classroom — and approves only
+  when all four hold. A rejection says which one failed and what to change, and
+  the student writes it again. An approved question is frozen; editing it sends
+  it back for another check.
+- Approved, it goes to a classmate, who is the one who **answers** it. They get
+  it right and they take the author's stake; they get it wrong, or run the
+  timer down, and the author takes theirs.
+- **Declining costs nothing.** A student who cannot refuse a duel has been handed
+  a way to bully a classmate out of their coins.
+- Raids and duels share one daily allowance and one per-opponent cooldown, so a
+  duel is not a way around either. At most three unanswered duels out at a time,
+  and one per classmate. Unanswered duels expire after 48 hours with no coins
+  moved.
+- The teacher sees every duel — the question, its key and Kru CJ's verdict — and
+  can take one down.
 
 ### Rewards
 
@@ -103,7 +132,7 @@ saving independently:
 ## Teacher console
 
 ### Level builder
-- Title, emoji icon, terrain/biome, description.
+- Title, emoji icon, description.
 - **Order of activities:** choose whether students meet the **storyboard first**
   (then the pre-test) or the **pre-test first** (then the storyboard) — useful for
   measuring what the class already knows before teaching it. The second activity
@@ -155,6 +184,26 @@ saving independently:
   anything without an answer key is refused, and the teacher is told how many.
 - **Battle log**: who fought whom, at what difficulty, who won, and how many
   coins changed hands.
+- **Duel log**: every question a student wrote for a classmate, its answer key,
+  and what Kru CJ said about it — with a way to take one down.
+
+### ✨ AI question writing
+In both the **Daily Quests** editor and each **Coin Battles** bank, a
+"✨ Write with AI" button asks Kru CJ for a batch of stoichiometry questions.
+
+- Choose how many, how hard, and which types; add a free-text steer
+  ("limiting reagent only", "use everyday substances") if you want one.
+- He writes the question, the choices, the answer key **and the worked
+  solution**, so the arithmetic can be checked at a glance before it is kept.
+- The questions the bank already holds are sent along as "do not write these
+  again", so a second batch is not the first one reworded.
+- **Nothing is saved.** Untick what you do not want, add the rest to the editor
+  you are already in, and press your normal Save. No question reaches a student
+  without a teacher having read it.
+- Everything the model writes is put through the same checks as a hand-typed
+  question; anything unkeyed or malformed is dropped, and you are told how many.
+- Stoichiometry only — that is the whole scope of the battle arena, and quests
+  draw on the same skills.
 
 ### Student management
 - View roster with difficulty, levels completed, certificates, and points.

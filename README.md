@@ -2,7 +2,7 @@
 
 A colorful, cartoony web game that teaches chemistry through an adventure map.
 Students climb from the grassy **plains** → rocky **mountains** → snowy **summit**,
-guided by **Ruby**, a friendly red mascot who tells a story, shows a video, and
+guided by **Kru CJ**, a friendly mascot who tells a story, shows a video, and
 quizzes them at every level. Pass a level to earn a **certificate** and climb the
 **leaderboard**. Teachers get a completely separate console to build levels and
 manage students.
@@ -28,7 +28,7 @@ Built for **Suankularb Wittayalai Nonthaburi School**.
   the **Storyboard**, the **Pre-test**, the **Assignments** feed, your **Challenges**,
   and the **Post-test** (locked until the teacher opens it). Your teacher decides whether
   the storyboard or the pre-test comes first — the other one waits its turn.
-- 🔴 **Ruby the guide** — an animated mascot who narrates each storyboard, reacts to
+- 🔴 **Kru CJ the guide** — an animated mascot who narrates each storyboard, reacts to
   your answers, and cheers you on. Storyboards can include **pictures/diagrams** and a
   **video dropped in wherever the teacher placed it**.
 - 🎬 **Embedded videos** — watch a short YouTube clip right inside the story.
@@ -164,7 +164,7 @@ chemquest/
     ├── leaderboard.html
     ├── teacher.html       # teacher console
     ├── css/               # theme, map, lesson, teacher, feed styles
-    └── js/                # page logic, i18n (en/th), Ruby mascot (SVG), feed
+    └── js/                # page logic, i18n (en/th), Kru CJ mascot (SVG), feed
 ```
 
 ## 🛠️ Tech
@@ -178,7 +178,7 @@ chemquest/
   re-seeds on the next start.
 - **Sample videos** are real kid-friendly YouTube clips (TED-Ed, Crash Course Kids,
   AsapSCIENCE, etc.). Swap any of them from the Teacher Console.
-- The mascot "Ruby" is an **original character** designed for this project.
+- The mascot "Kru CJ" is an **original character** designed for this project.
 
 ---
 Made with ❤️ for curious young chemists.

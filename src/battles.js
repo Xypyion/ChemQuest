@@ -31,10 +31,25 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'];
 /** Question types a battle may use — everything here can be marked by machine. */
 const BATTLE_TYPES = qs.QUEST_TYPES;
 
+/**
+ * Question types a STUDENT may write for a duel.
+ *
+ * A subset of the battle types: no `table`. Not a safety rule — building a grid
+ * on a school phone is simply miserable, and a half-built one is exactly the
+ * kind of question the reviewer would reject anyway.
+ */
+const DUEL_TYPES = ['mcq', 'multi', 'short'];
+
 const SETTINGS_ID = 'settings';
 const MAX_BANK = 200;          // questions per difficulty
 const MAX_STAKE = 10000;
 const MAX_PER_BATTLE = 5;      // questions drawn into one battle
+
+/** Pending duels one student may have out at once, so nobody spams the class. */
+const MAX_OPEN_DUELS = 3;
+
+/** A duel nobody answered stops mattering; the coins were never locked anyway. */
+const DUEL_EXPIRY_HOURS = 48;
 
 const DEFAULTS = {
   enabled: true,
@@ -174,6 +189,90 @@ function canAttack(attacker, defender, ctx) {
   return { ok: true, stake };
 }
 
+/* --------------------------------- duels --------------------------------- */
+
+/**
+ * A DUEL is the other way round from a raid.
+ *
+ * In a raid the attacker answers the teacher's question and the defender is
+ * passive. In a duel the challenger WRITES a question — checked by Kru CJ
+ * first, see src/aiQuestions.js — and the person they send it to is the one who
+ * has to answer:
+ *
+ *   the defender answers correctly  ->  the defender takes the stake off the challenger
+ *   the defender gets it wrong      ->  the challenger takes the stake off the defender
+ *   the defender declines or lets it expire  ->  nothing moves
+ *
+ * Declining costs nothing on purpose. A student who cannot get out of a duel
+ * has been handed a way to bully a classmate out of their coins, and no amount
+ * of question review fixes that.
+ *
+ * Everything else — the daily limit, the per-opponent cooldown, "you cannot
+ * stake what you do not hold", "they have nothing to take" — is the same rule
+ * as a raid, checked in the same shape, because a duel that dodged them would
+ * simply be the loophole everyone used instead.
+ */
+
+/**
+ * Normalise a student-written duel question, or null when it is unusable.
+ *
+ * `isAutoMarkable` is the load-bearing check, exactly as it is for the teacher's
+ * bank: coins move the moment the answer arrives, so a question no machine can
+ * mark would leave the duel hanging with the stake in limbo.
+ *
+ * Being usable is NOT being allowed — that decision belongs to Kru CJ's review
+ * in the route. This only guarantees the shape.
+ */
+function normalizeDuelQuestion(raw) {
+  if (!raw || !DUEL_TYPES.includes(raw.type)) return null;
+  if (!qs.rawKeyed(raw)) return null;               // an mcq with no key chosen
+  const q = ch.normalizeQuestion(raw, false);       // false = no nested simulations
+  if (!ch.isUsableQuestion(q) || !qs.isAutoMarkable(q)) return null;
+  // A duel is one question worth one point: it is won or lost outright, and a
+  // points value on it would only be a second, disagreeing score.
+  q.points = 1;
+  return q;
+}
+
+/** Has this duel sat unanswered past its expiry? */
+function duelExpired(duel, now) {
+  if (!duel || !duel.expiresAt) return false;
+  return (now == null ? Date.now() : now) > Date.parse(duel.expiresAt);
+}
+
+/**
+ * May `challenger` send `defender` a duel right now?
+ * Same `reason` contract as `canAttack` — a stable code the client localises.
+ *
+ *   ctx = { settings, difficulty, actionsToday, lastAgainst (iso|null),
+ *           openSent, pendingAgainst }
+ */
+function canDuel(challenger, defender, ctx) {
+  const s = ctx.settings;
+  if (!s.enabled) return { ok: false, reason: 'disabled' };
+  if (!defender || defender.role !== 'student') return { ok: false, reason: 'notAStudent' };
+  if (defender.id === challenger.id) return { ok: false, reason: 'self' };
+
+  if (ctx.openSent >= MAX_OPEN_DUELS) return { ok: false, reason: 'tooManyDuels' };
+  if (ctx.pendingAgainst) return { ok: false, reason: 'duelPending' };
+
+  // Raids and duels share the daily allowance and the cooldown. Counting them
+  // separately would make a duel the way to attack the same classmate twice.
+  if (s.dailyLimit > 0 && ctx.actionsToday >= s.dailyLimit) {
+    return { ok: false, reason: 'dailyLimit' };
+  }
+  if (s.cooldownMinutes > 0 && ctx.lastAgainst) {
+    const readyAt = Date.parse(ctx.lastAgainst) + s.cooldownMinutes * 60_000;
+    if (Date.now() < readyAt) return { ok: false, reason: 'cooldown', readyAt: new Date(readyAt).toISOString() };
+  }
+
+  const stake = stakeFor(s, ctx.difficulty);
+  // Both sides must be good for it: whoever loses pays, and it could be either.
+  if ((challenger.coins || 0) < stake) return { ok: false, reason: 'poor', stake };
+  if ((defender.coins || 0) <= 0) return { ok: false, reason: 'targetBroke' };
+  return { ok: true, stake };
+}
+
 /**
  * Move coins from loser to winner, capped at what the loser actually holds so
  * no balance can go negative. Mutates both users; the caller persists.
@@ -192,9 +291,12 @@ function transferCoins(winner, loser, stake) {
 module.exports = {
   DIFFICULTIES,
   BATTLE_TYPES,
+  DUEL_TYPES,
   SETTINGS_ID,
   MAX_BANK,
   MAX_PER_BATTLE,
+  MAX_OPEN_DUELS,
+  DUEL_EXPIRY_HOURS,
   DEFAULTS,
   uuid,
   normalizeSettings,
@@ -202,9 +304,12 @@ module.exports = {
   stakeFor,
   timeLimitFor,
   normalizeBankQuestion,
+  normalizeDuelQuestion,
+  duelExpired,
   drawQuestions,
   isWin,
   dayKey,
   canAttack,
+  canDuel,
   transferCoins,
 };

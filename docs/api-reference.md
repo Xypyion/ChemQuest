@@ -84,7 +84,7 @@ the two level activities the student must do first.
   "icon": "🌱",
   "timeLimit": 90,                // pre-test seconds, 0 = none
   "storyboard": [
-    { "type": "line", "character": "Ruby", "mood": "happy", "text": "…", "image": "" },
+    { "type": "line", "character": "Kru CJ", "mood": "happy", "text": "…", "image": "" },
     { "type": "video", "url": "https://youtu.be/…", "title": "…" }
   ],
   "quizzes": {                    // pre-test, per difficulty
@@ -265,6 +265,43 @@ Answer shapes are the challenge/quest shapes — see
 sentence: `disabled`, `battleInProgress`, `self`, `notAStudent`, `dailyLimit`,
 `cooldown` (with `readyAt`), `poor`, `targetBroke`, `noQuestions`.
 
+## Duels (student) — `/api/battles/duels`
+
+All require a **student** token. A duel is the mirror image of a raid: the
+challenger **writes** the question and the classmate they send it to is the one
+who answers.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| POST | `/api/battles/duels/check` | `{ question, lang? }` | Kru CJ reads a question the student wrote. On approval the question is **parked as that student's single draft** and `draftId` comes back; on rejection nothing is stored. Costs one `review` call from the daily AI allowance. |
+| GET | `/api/battles/duels` | — | My duels both directions (40 newest), my parked draft, `openSent` / `maxOpen`, `aiEnabled`, and what is left of today's allowance. Also sweeps duels past their expiry into `expired`. |
+| POST | `/api/battles/duels` | `{ draftId, opponentId, difficulty }` | Sends it. The question comes **from the parked draft, never from this body** — otherwise a client could send one Kru CJ never saw. |
+| POST | `/api/battles/duels/:id/open` | — | Defender only. Returns the question with **answer keys stripped** and starts the clock. Idempotent: re-opening returns the same deadline, so refreshing does not buy another minute. |
+| POST | `/api/battles/duels/:id/answer` | `{ answers }` | Defender only. Grades, moves the coins, returns the outcome and the correct answer. |
+| POST | `/api/battles/duels/:id/decline` | — | Defender only. **Costs nothing** — see the note below. |
+| POST | `/api/battles/duels/:id/cancel` | — | Challenger only, while it is still pending. |
+
+**Who wins what.** The defender answers correctly → the defender takes the stake
+off the challenger. The defender gets it wrong, or runs the clock down → the
+challenger takes the stake off the defender. Declined, cancelled or expired →
+nothing moves. `transferCoins` caps every move at what the loser actually holds,
+so no balance can go negative.
+
+**Declining is free on purpose.** A student who cannot get out of a duel has
+been handed a way to bully a classmate out of their coins, and no amount of
+question review fixes that.
+
+**Shared limits.** The daily limit and the per-opponent cooldown count raids and
+duels *together*. Counting them separately would make "send a duel" the way to
+keep attacking once the raid allowance is spent. On top of that a student may
+have at most `MAX_OPEN_DUELS` (3) unanswered duels out at once, and only one
+pending against any given classmate.
+
+Reason codes on `POST /duels` are the raid codes plus `tooManyDuels` and
+`duelPending`. Other error codes: `DUEL_NOT_CHECKED`, `DUEL_INCOMPLETE`,
+`DUEL_EXPIRED`, `DUEL_NOT_OPENED`, `ALREADY_RESOLVED`, `AI_DISABLED`,
+`AI_DAILY_LIMIT`, `AI_BUSY`, `AI_FAILED`.
+
 ## Coin Battles (teacher) — `/api/teacher/battles`
 
 All require a **teacher** token.
@@ -276,6 +313,53 @@ All require a **teacher** token.
 | POST | `/api/teacher/battles/bank/:difficulty` | `{ questions }` | Replaces the bank. Question ids are preserved by the editor, so re-saving is a small diff. Returns `dropped` = how many were thrown away for having no answer key. |
 | POST | `/api/teacher/battles/settings` | settings | Stakes, time limits, questions per battle, cooldown, daily limit, on/off. Any field left out keeps its current value. |
 | GET | `/api/teacher/battles/log` | — | Every battle, newest first, both names, outcome and coins moved. |
+| GET | `/api/teacher/battles/duels` | — | Every duel, **with the question, its answer key and Kru CJ's verdict**. Duels are the only place in StoiVenture where one student's writing is put in front of another, and an AI reviewer is a filter rather than a guardian — the teacher has to be able to read what the class is actually sending. |
+| DELETE | `/api/teacher/battles/duels/:id` | — | Take a duel down. A pending one is simply gone; a resolved one keeps the coins where they landed, because unwinding a transfer days later is a worse surprise than the question was. |
+
+## AI question writing (teacher) — `/api/teacher/ai`
+
+All require a **teacher** token. Disabled with `503 AI_DISABLED` when no
+`GEMINI_API_KEY` is configured.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/teacher/ai/status` | — | `{ enabled, model, maxBatch, types[] }` plus what is left of today's `generate` allowance. |
+| POST | `/api/teacher/ai/questions` | `{ target:'battle'\|'quest', difficulty, count, types[], notes?, lang? }` | Writes stoichiometry questions with their answer keys. Returns `{ questions[], dropped }`. |
+
+**It saves nothing.** The questions come back as drafts for the teacher to read
+and then save through the ordinary quest or battle-bank endpoints. That keeps
+one save path per feature and, more to the point, means no question reaches a
+student without the teacher having looked at it.
+
+Everything the model returns is put through the same normalising and
+auto-markable checks as a hand-typed question (`challenges.normalizeQuestion` +
+`quests.isAutoMarkable`), so anything malformed or unkeyed is dropped here
+rather than surfacing later as a quest that cannot pay out. `dropped` says how
+many went.
+
+Error codes: `AI_DISABLED`, `AI_DAILY_LIMIT` (our own per-teacher daily cap),
+`AI_BUSY` (the model provider's rate limit — routine on a free tier),
+`AI_FAILED`, `AI_NOTHING_USABLE`.
+
+## AI tutor (student) — `/api/tutor`
+
+All require a **student** token.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/tutor/status` | — | `{ enabled, freeLeft, freePerDay, coins, price, canAsk, nextIsFree }`. |
+| POST | `/api/tutor/ask` | `{ challengeId, questionId, message, draft?, history?, lang? }` | Kru CJ helps with one challenge question. Returns `{ reply, refused }` plus the refreshed quota. |
+
+The model is given the question **after `sanitizeQuestion`**, exactly the
+projection the student's own browser receives — so it is never told the answer
+and cannot leak a key it was never given. This is the opposite of the AI
+question routes above, which are given answer keys because producing or
+checking one is their whole job.
+
+Paid for out of the Daily Quest coin wallet: 3 free questions a day, then 50
+coins each (`src/tutorCredit.js`). A failed or refused reply is refunded.
+`402 INSUFFICIENT_COINS` when they cannot pay; `429` when the model provider
+rate-limits.
 
 ## Leaderboard — `/api/leaderboard`
 

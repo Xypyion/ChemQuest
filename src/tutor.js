@@ -13,7 +13,6 @@
 const { GoogleGenAI } = require('@google/genai');
 const config = require('./config');
 
-const MODEL = 'gemini-3.7-flash';
 const MAX_TOKENS = 1000;      // a tutor reply is a few sentences, not an essay
 const MAX_HISTORY = 12;       // turns kept per conversation, bounds cost
 const MAX_MESSAGE_CHARS = 2000;
@@ -182,7 +181,7 @@ async function ask({ message, question, draft, history, lang }) {
   ];
 
   const interaction = await getClient().interactions.create({
-    model: MODEL,
+    model: config.aiModel(),
     system_instruction: system,
     input,
     // Do not let Google retain the interaction server-side. These are school
@@ -204,4 +203,4 @@ async function ask({ message, question, draft, history, lang }) {
   return { text, refused: false };
 }
 
-module.exports = { ask, MODEL, MAX_MESSAGE_CHARS, SYSTEM, describeQuestion };
+module.exports = { ask, MAX_MESSAGE_CHARS, SYSTEM, describeQuestion };

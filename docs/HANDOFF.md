@@ -24,7 +24,7 @@
 1. **Push to GitHub every time a job is finished.** When a unit of work is done
    **and verified**, commit with a clear message and `git push origin main`.
    Do not leave finished work sitting only on the local machine. Repo:
-   <https://github.com/Xypyion/StoiVenture>.
+   <https://github.com/Xypyion/ChemQuest>.
 2. **The app runs on port 4000, never 3000.** Port 3000 is permanently occupied
    by an unrelated process on the school's machine. The default is already 4000
    in `server.js`; override only with the `PORT` env var.
@@ -44,7 +44,7 @@
 
 A colorful, cartoony, **bilingual (ไทย / English)** web game that teaches
 chemistry. Students climb an adventure map through three biomes, learn from
-storyboards narrated by the mascot **Ruby**, take pre-tests and teacher-gated
+storyboards narrated by the mascot **Kru CJ**, take pre-tests and teacher-gated
 post-tests, submit work on a class feed, rate each other's work, and earn
 certificates and leaderboard points. Teachers get a separate console to build
 levels, control access, grade written answers, keep a gradebook, and manage
@@ -63,7 +63,19 @@ verified end-to-end.
 
 Implemented features:
 - Sign up / log in (JWT), difficulty choice (easy/medium/hard).
-- Adventure map with 3 biomes, 3D-style Ruby models, props, rivers/bridges.
+- Adventure map: the teacher's levels, in order, on a clean board. It used to
+  paint terrain bands, hills, rivers with bridges, scenery props, a trail and a
+  finish gate; all of that was removed so the board shows the levels only.
+- **AI tutor "Kru CJ"** on the challenge player: Socratic hints, 3 free
+  questions a day then 50 coins each. Given the question only **after**
+  `sanitizeQuestion`, so it is never told the answer.
+- **✨ AI question writing** in the teacher console: Kru CJ drafts stoichiometry
+  questions with answer keys and worked solutions for a Daily Quest or a Coin
+  Battles bank. Nothing saves until the teacher reads them and presses Save.
+- **Duels** on the battles page: a student writes their own stoichiometry
+  question, Kru CJ checks it is on topic, solvable, correctly keyed and
+  classroom-appropriate, and only then can it be sent to a classmate — who is
+  the one who answers it.
 - **Level board hub** (`level.html`): tabs 🏠 Board · 📒 Assignments · 🧩 Challenges;
   the board menu lists Storyboard · Pre-test · Assignments · Challenges · Post-test.
 - **Storyboards**: dialogue lines (moods, optional images) + inline YouTube video
@@ -169,11 +181,12 @@ To reset everything: stop the server, delete `data/db.json` (and optionally
 | Storage | Custom document store → `data/db.json` (atomic writes), **or Postgres when `DATABASE_URL` is set** |
 | Uploads | Files written to `data/uploads/`, served at `/uploads` |
 | Front-end | Plain HTML + CSS + vanilla JS — **no framework, no bundler** |
-| Fonts | Google Fonts (Fredoka + **Mali** for Thai glyphs) |
+| Fonts | Google Fonts (**Rubik** + **Mitr** for Thai glyphs) |
 
-Four runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`, `pg`). Keep it
-that way unless there's a strong reason — the "just `npm install` and run" story
-is a feature for a school with minimal infrastructure.
+Five runtime dependencies (`express`, `jsonwebtoken`, `bcryptjs`, `pg`,
+`@google/genai`). Keep it that way unless there's a strong reason — the "just
+`npm install` and run" story is a feature for a school with minimal
+infrastructure.
 
 ---
 
@@ -212,27 +225,42 @@ chemquest/
 │       └── leaderboard.routes.js  # ranked students
 └── public/                   # front-end (served statically; no build)
     ├── index.html            # welcome / login / signup
-    ├── challenge.html        # challenge player (student)
+    ├── challenge.html        # challenge player + the AI tutor panel
     ├── dashboard.html        # adventure map
     ├── level.html            # level board hub (start / assignments / post-test)
-    ├── lesson.html           # storyboard + quiz player (mode=pre | mode=post)
+    ├── lesson.html           # storyboard + quiz player (mode=story | pre | post)
+    ├── quests.html           # daily quests + coin wallet
+    ├── battle.html           # coin battles arena + duels
     ├── inventory.html        # certificate collection
     ├── leaderboard.html
+    ├── settings.html         # name, avatar, password
     ├── teacher.html          # teacher console shell
-    ├── css/                  # theme, map, lesson, teacher, feed, pages, character
+    ├── css/                  # theme, map, lesson, teacher, feed, pages, character,
+    │                         #   challenge, quests, battle, tutor, login, settings
     └── js/
         ├── i18n.js           # en/th dictionaries, t(), tDiff(), fmtWhen(), mountLangSwitch()  [load FIRST]
-        ├── api.js            # fetch wrapper (API.get/post/put/del), session guard, toast, confetti, helpers
-        ├── character.js      # Ruby mascot (original inline SVG) + hats/moods
-        ├── props.js          # decorative SVG props for the map
-        ├── welcome.js, dashboard.js, board.js, lesson.js, inventory.js, leaderboard.js
-        ├── qrender.js        # SHARED question markup + answer collection (challenge + quest)
+        ├── icons.js          # the inline SVG icon set  [load before i18n's consumers]
+        ├── api.js            # fetch wrapper (API.get/post/put/del), session guard, toast,
+        │                     #   confetti, chem()/toSubscript(), mountNav(), avatars
+        ├── character.js      # Kru CJ mascot (original inline SVG) + moods, student avatars
+        ├── welcome.js, dashboard.js, board.js, lesson.js, inventory.js, leaderboard.js, settings.js
+        ├── feed.js           # the assignment board, shared by student and teacher
+        ├── qrender.js        # SHARED question markup + answer collection
+        │                     #   (challenge + quest + battle + duel players)
         ├── challenge.js      # challenge player (all question types + sandboxed simulation)
         ├── quests.js         # daily quest page: list, player and wallet
+        ├── battle.js         # coin battles: lobby, raid, result
+        ├── duel.js           # duels: write a question, get it checked, send it, answer one
+        ├── tutor.js          # the Kru CJ help panel on the challenge player
+        ├── teacher-ai.js     # teacher console: the ✨ AI question-writing dialog
         ├── teacher-quests.js # teacher console: the ⚔️ Daily Quests section
+        ├── teacher-battles.js# teacher console: the 🤺 Coin Battles section
         ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section
         └── teacher.js        # the rest of the teacher console (single file)
 ```
+
+`js/mapart.js` used to hold the map's scenery props. The map no longer paints a
+landscape, so the file was deleted.
 
 ---
 
@@ -374,7 +402,7 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   board and the teacher console (`Feed.mount(el, lessonId, {teacher})`).
 - **Teacher console** is one big file (`js/teacher.js`) with a `view` switch
   (lessons / editor / board / grading / gradebook / students / preview).
-- **Mascot** "Ruby" is an **original inline SVG** in `js/character.js` — not based
+- **Mascot** "Kru CJ" is an **original inline SVG** in `js/character.js` — not based
   on any existing IP. Keep it that way.
 
 ---
@@ -387,9 +415,22 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 - **Env vars:** `PORT` (default 4000), `JWT_SECRET` (set a strong value in
   production — it falls back to a dev default otherwise), `DATABASE_URL`
   (unset = JSON file store; set = Postgres — **required on serverless hosts**),
-  `JSON_LIMIT` (default `16mb`).
-- **Real student accounts currently in the DB:** Jerry, Jenny, Google,
-  `sorry@skn.ac.th` (do not delete during testing).
+  `JSON_LIMIT` (default `16mb`), `GEMINI_API_KEY` (all three AI features),
+  `GEMINI_MODEL` (which model they use; blank = the built-in default),
+  `AI_GENERATE_LIMIT` / `AI_REVIEW_LIMIT` (daily AI calls per person, 0 =
+  unlimited), `TUTOR_UNLIMITED=1` (testing only — makes tutor hints free).
+  `.env.example` documents all of them; copy it to `.env`, which is git-ignored.
+- **Real student accounts:** this list kept going stale, so it is no longer
+  kept here. Read the database instead — the accounts on the school machine at
+  the time of writing were the teacher `shinozuke67@skn.ac.th` plus students
+  **Google** and **test**:
+
+  ```bash
+  node -e "console.log(require('./data/db.json').users.map(u=>u.role+' '+u.name+' <'+u.email+'>').join('\n'))"
+  ```
+
+  Anything that is not an `@test.local` address is somebody's real work. Do not
+  delete it.
 - **Preview launch config** for the in-editor browser lives at the workspace root:
   `../.claude/launch.json` (runs `node chemquest/server.js`).
 
@@ -397,7 +438,8 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 
 ## 11. Git & collaboration workflow
 
-- **Remote:** <https://github.com/Xypyion/StoiVenture>, branch **`main`**.
+- **Remote:** <https://github.com/Xypyion/ChemQuest>, branch **`main`**.
+  (The project was renamed to StoiVenture; the GitHub repo is still ChemQuest.)
   Commit identity `user.name = Xypyion`; auth via Git Credential Manager (browser
   popup on first push).
 - **Multiple contributors.** Always `git fetch` first and check for their
@@ -421,9 +463,11 @@ There is **no committed automated test suite**. The working pattern is:
    rendered DOM and the console for errors.
 3. **Test accounts use `@test.local` emails.** Always clean them up afterward: a
    small `cleanup-test-data.js` (written, run, then self-deleted) removes
-   `@test.local` users plus their posts, ratings, submissions, and (if touched)
-   resets gates / closes post-tests / clears test gradebook columns. Verify the
-   real students (Jerry/Jenny/Google/sorry) remain.
+   `@test.local` users plus their posts, ratings, submissions, quest
+   submissions, battles, duels and duel drafts, and (if touched) resets gates /
+   closes post-tests / clears test gradebook columns. Then re-read the user list
+   and check that every real account survived — don't check against a list of
+   names written down here, which is how this instruction went stale last time.
 
 If you add a permanent test suite, wire it into `package.json` and document it
 here.

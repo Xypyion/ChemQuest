@@ -102,15 +102,98 @@ A single document, `id: "settings"`, in `battleSettings`:
 }
 ```
 
+## Duel
+
+`duels`. The mirror image of a battle: the **challenger writes the question** and
+the **defender answers it**. Written by `POST /api/battles/duels` once Kru CJ has
+approved the question, and finished by `.../answer`, `.../decline`, `.../cancel`
+or by expiring.
+
+```jsonc
+{
+  "id": "uuid",
+  "challengerId": "uuid", "challengerName": "Ploy", "challengerAvatar": "🦊",
+  "defenderId": "uuid",   "defenderName": "Nat",    "defenderAvatar": "🐼",
+  "difficulty": "easy",          // only sets the stake — a duel brings its own question
+  "stake": 5,                    // coins at risk on BOTH sides
+  "question": { /* a full challenge question, ANSWER KEY INCLUDED */ },
+  "review": {                    // what Kru CJ said, kept for the teacher
+    "ok": true, "onTopic": true, "solvable": true,
+    "keyCorrect": true, "appropriate": true,
+    "feedback": "…", "subtopic": "mole ratio"
+  },
+  "status": "pending",           // pending | answered | declined | cancelled | expired
+  "defenderWon": null,           // true = the defender answered it correctly
+  "late": false,                 // they ran the clock down, which counts as wrong
+  "coinsMoved": 0,               // what actually moved, after the balance cap
+  "answer": { "<questionId>": 0 },
+  "results": [ /* as challenges.gradeSubmission */ ],
+  "createdAt": "ISO",
+  "expiresAt": "ISO",            // 48 hours; unanswered after that, nothing moves
+  "openedAt": null,              // when the defender first read it — starts the clock
+  "answerBy": null,              // openedAt + the difficulty's time limit
+  "resolvedAt": null
+}
+```
+
+The question lives **on the duel**, key and all, for the same reason a battle
+stores its drawn questions: grading must use what was actually sent, not
+whatever the author has since edited. It is stripped by
+`challenges.sanitizeQuestion()` on the way to the defender.
+
+`status` is not the outcome. Who won is `defenderWon`: true and the defender
+takes the stake off the challenger, false and the challenger takes it off the
+defender. `declined`, `cancelled` and `expired` move nothing at all.
+
+## Duel draft
+
+`duelDrafts`. One row per student, at most — a question Kru CJ has approved that
+has not been sent yet.
+
+```jsonc
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "question": { /* normalised, answer key included */ },
+  "review":   { /* as above */ },
+  "createdAt": "ISO"
+}
+```
+
+It exists so that checking a question and then sending it does not pay the model
+twice for the same review — `POST /duels` takes its question from here and
+never from the request body, which is also what stops a client sending a
+question Kru CJ never saw. A new check replaces the student's previous draft and
+sending deletes it, so the collection can never grow past one row per person.
+
 ## Coins on the user
 
 `user.coins` (spendable balance) and `user.coinsEarned` (lifetime total) are
-added lazily, like `user.grades`. Quests and battles both credit them; a battle
-loss is the only path that debits `coins` without a teacher doing it by hand,
-and it never takes a balance below zero (`battles.transferCoins`). They are deliberately **outside**
+added lazily, like `user.grades`. Quests, battles and duels all credit them.
+Losing a battle or a duel, and paying for a tutor hint, are the paths that debit
+`coins` without a teacher doing it by hand; a transfer never takes a balance
+below zero (`battles.transferCoins` caps it at what the loser holds). They are deliberately **outside**
 `game.recalcPoints()`, which rebuilds `points` from quiz scores and would wipe
 anything folded into it. `publicUser()` strips only `passwordHash`, so both
 fields reach the client with no change to `auth.js`.
+
+## AI usage on the user
+
+`user.aiUsage` is added lazily, like `user.tutor`:
+
+```jsonc
+{ "day": "2026-08-28", "generate": 4, "review": 2 }   // Bangkok day key
+```
+
+A per-person daily counter for AI calls, reset when the school day rolls over
+(`src/aiLimit.js`). `generate` counts teacher question batches, `review` counts
+students having a duel question checked.
+
+This is **not** a game currency. `user.tutor` / `src/tutorCredit.js` prices a
+tutor hint in free questions and then coins, because asking for a hint is a move
+inside the game. Generating a bank and getting a question checked are tools, and
+the thing being rationed is the API bill on a free Gemini tier — so they are a
+plain counter with no coins involved.
 
 ## User
 
@@ -164,7 +247,7 @@ fields reach the client with no change to `auth.js`.
                                      // stays locked until it is finished
 
   "storyboard": [                    // ordered steps
-    { "type": "line", "character": "Ruby", "mood": "happy",
+    { "type": "line", "character": "Kru CJ", "mood": "happy",
       "text": "…", "image": "" },    // image: URL or inline data-URI ("" = none)
     { "type": "video", "url": "https://youtu.be/…", "title": "…" }
   ],
@@ -281,7 +364,9 @@ The simulation frame is sandboxed with `allow-scripts allow-popups` and **no**
 Table answers are keyed `"<rowIndex>_<columnIndex>"`, matching the blank cells.
 
 ### Storyboard step types
-- **line** — Ruby dialogue: `character`, `mood` (happy/excited/thinking/wave/cheer/sad),
+- **line** — Kru CJ dialogue: `character`, `mood` (happy/excited/thinking/wave/cheer/sad),
+  Steps authored before the mascot was renamed still hold `"Ruby"`; `character.js`
+  maps that to the current name at render time rather than rewriting the database.
   `text`, optional `image`.
 - **video** — `url` (any YouTube link/ID) and `title`.
 

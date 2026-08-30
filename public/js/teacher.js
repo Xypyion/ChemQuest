@@ -7,7 +7,6 @@ if (me) document.getElementById('teacherName').textContent = me.name;
 mountLangSwitch(document.getElementById('langHost'));
 
 const MOODS = ['happy', 'excited', 'thinking', 'wave', 'cheer', 'sad'];
-const TERRAINS = ['plain', 'mountain', 'snow'];
 const DIFFS = ['easy', 'medium', 'hard'];
 const MAX_IMG_BYTES = 800 * 1024;
 
@@ -124,12 +123,6 @@ function metaBit(icon, text) {
   return `<i>${ICON[icon](15)}${esc(text)}</i>`;
 }
 
-/* The row used to print the raw terrain key — a Thai teacher was shown the
-   word "plain". */
-function terrainLabel(terrain) {
-  return t({ mountain: 't.terrMountain', snow: 't.terrSnow' }[terrain] || 't.terrPlain');
-}
-
 function renderLessons() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'lessons'));
 
@@ -149,7 +142,6 @@ function renderLessons() {
       <div class="lr-body">
         <div class="lr-title">
           <span class="lr-name">${escChem(l.title)}</span>
-          <span class="terr ${l.terrain}">${esc(terrainLabel(l.terrain))}</span>
           <span class="lr-flow">${esc(l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory'))}</span>
         </div>
 
@@ -339,6 +331,9 @@ function blankVideo() { return { type: 'video', url: '', title: '' }; }
 
 function newLesson() {
   draft = {
+    /* `terrain` no longer has a picker: the map stopped painting ground, so it
+       controlled nothing. It is still carried draft -> save so editing a level
+       never blanks the value already stored against it. */
     id: null, title: '', description: '', terrain: 'plain', icon: '🧪', timeLimit: 0, flow: 'story-first',
     storyboard: [{ type: 'line', character: 'Ruby', mood: 'wave', text: '', image: '' }],
     quizzes: { easy: [blankQuestion()], medium: [], hard: [] },
@@ -424,7 +419,6 @@ function renderQuizSection(zone) {
 function renderEditor() {
   const d = draft;
   const moodOpts = (sel) => MOODS.map((m) => `<option value="${m}" ${m === sel ? 'selected' : ''}>${m}</option>`).join('');
-  const terrainOpts = TERRAINS.map((tr) => `<option value="${tr}" ${tr === d.terrain ? 'selected' : ''}>${tr}</option>`).join('');
 
   const story = d.storyboard.map((it, i) => renderStoryItem(it, i, d.storyboard.length, moodOpts)).join('');
 
@@ -439,7 +433,6 @@ function renderEditor() {
       <div class="field-row">
         <div><label class="t-label">${t('t.title')}</label><input id="f-title" class="t-input" value="${esc(d.title)}" placeholder="${esc(t('t.titlePh'))}"></div>
         <div><label class="t-label">${t('t.icon')}</label><input id="f-icon" class="t-input" value="${esc(d.icon)}" maxlength="4"></div>
-        <div><label class="t-label">${t('t.terrain')}</label><select id="f-terrain" class="t-select">${terrainOpts}</select></div>
       </div>
       <label class="t-label">${t('t.shortDesc')}</label>
       <input id="f-desc" class="t-input" value="${esc(d.description)}" placeholder="${esc(t('t.shortDescPh'))}">
@@ -612,7 +605,7 @@ function syncDraft() {
   if (!draft) return;
   const g = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
   if (document.getElementById('f-title')) {
-    draft.title = g('f-title'); draft.icon = g('f-icon'); draft.terrain = g('f-terrain'); draft.description = g('f-desc');
+    draft.title = g('f-title'); draft.icon = g('f-icon'); draft.description = g('f-desc');
     const flowPick = document.querySelector('input[name=lesson-flow]:checked');
     if (flowPick) draft.flow = flowPick.value;
     let tl = parseInt(g('f-timelimit-pre'), 10); draft.timeLimit = Number.isFinite(tl) && tl > 0 ? Math.min(tl, 3600) : 0;
@@ -1221,7 +1214,8 @@ async function doImportGbScores() {
 }
 
 /* ============================ MODAL ============================ */
-function openModal(html) {
-  document.getElementById('modalHost').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+/** `cls` widens the box for panes that need it ('wide'); omit it for the rest. */
+function openModal(html, cls) {
+  document.getElementById('modalHost').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal${cls ? ' ' + cls : ''}">${html}</div></div>`;
 }
 function closeModal() { document.getElementById('modalHost').innerHTML = ''; }

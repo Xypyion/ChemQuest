@@ -1,12 +1,16 @@
 /* The course map.
-   The ground, water and trail are painted by one SVG (js/dashboard.js); every
-   level is a real <button> sitting on top of it. Everything below is about
-   those buttons and the few labels that go with them.
+   Every level is a real <button>, positioned in the board by js/dashboard.js.
+   Nothing is painted behind them: the terrain bands, hills, rivers, scenery,
+   trail and finish gate were all removed, so what is left below is the buttons
+   and the student figure standing beside one of them.
 
    ONE COLOUR RULE, because it is what makes the map readable at a glance:
    every level disc carries DARK INK on a bright fill. White on this world's
    green measures 1.9:1 and on its orange 2.4:1 - both fail outright - while
-   the same ink on gold and grass clears 8:1. Bright fill, dark ink. */
+   the same ink on gold and grass clears 8:1. Bright fill, dark ink.
+
+   With the landscape gone that rule matters MORE, not less: the disc colour is
+   now the only thing on the board saying done / open / locked. */
 
 .map-head { text-align: center; margin: 20px 0 8px; }
 .map-head h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); letter-spacing: -.02em; }
@@ -33,28 +37,16 @@
   overflow: hidden;
   border: 7px solid #fff;
   box-shadow: var(--shadow-soft);
-  background: #bfe7ff;
+  /* A quiet surface, not a picture. It used to be sky blue because a painted
+     landscape sat on top of it; on its own that read as an empty swimming
+     pool. This is the same off-white the rest of the game's cards sit on, so
+     the discs are the only colour on the board. */
+  background: #fbfaff;
 }
-/* The two layers are the same box: the SVG paints, the div holds the buttons.
-   Neither may scroll - a scroll container here clips the mascot, who stands
-   deliberately taller than the level he is next to. */
-.map-svg { position: absolute; inset: 0; display: block; width: 100%; }
+/* One layer, holding the buttons. It may not scroll - a scroll container here
+   clips the student figure, who stands deliberately taller than the level he
+   is next to. */
 .map-layer { position: absolute; inset: 0; }
-
-/* ---------- which levels this stretch of ground holds ---------- */
-.stretch-plate {
-  position: absolute; left: 16px;
-  display: inline-flex; align-items: center; gap: 10px;
-  background: #fff; border-radius: 999px; padding: 6px 8px 6px 16px;
-  box-shadow: 0 5px 0 rgba(0,0,0,.13);
-  white-space: nowrap; z-index: 5;
-}
-.sp-name { font-weight: 800; font-size: .84rem; color: var(--ink); letter-spacing: -.01em; }
-.sp-count {
-  font-weight: 800; font-size: .74rem; color: #6d5a00;
-  background: var(--sun); border-radius: 999px; padding: 3px 9px;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ---------- a level ---------- */
 .node {
@@ -150,17 +142,10 @@
   white-space: nowrap;
 }
 
-.finish {
-  position: absolute;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  pointer-events: none; z-index: 7;
-}
-.finish-tag {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--sun); color: #6d5a00; font-weight: 800; font-size: .82rem;
-  letter-spacing: .06em; padding: 7px 18px; border-radius: 999px;
-  box-shadow: 0 5px 0 #dfa900;
-}
+/* Course finished: the same figure, with the finish wording instead of
+   "you are here". There is no gate at the bottom for him to stand beside any
+   more, so he stands by the last level. */
+.you.done .you-tag { background: var(--sun); color: #6d5a00; box-shadow: 0 4px 0 #dfa900; }
 
 /* ---------- no levels yet ---------- */
 .map-empty { text-align: center; padding: 54px 26px 60px; }

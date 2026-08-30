@@ -81,10 +81,11 @@ app.use('/api/teacher/quests', questRoutes.teacherRouter);          // teacher b
 const battleRoutes = require('./src/routes/battles.routes');
 app.use('/api/battles', battleRoutes.studentRouter);                // students raid each other for coins
 app.use('/api/teacher/battles', battleRoutes.teacherRouter);        // teacher sets stakes & question banks
+app.use('/api/teacher/ai', require('./src/routes/ai.routes'));       // AI writes questions
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
 app.use('/api/posts', require('./src/routes/posts.routes'));
-app.use('/api/tutor', require('./src/routes/tutor.routes'));        // Ruby, the AI challenge tutor
+app.use('/api/tutor', require('./src/routes/tutor.routes'));        // Kru CJ, the AI challenge tutor
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route.' }));
 

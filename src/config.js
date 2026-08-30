@@ -47,11 +47,45 @@ function apiKey() {
 }
 
 /**
- * Whether the AI tutor can run. Every tutor route checks this so the rest of
+ * Whether the AI features can run. Every AI route checks this so the rest of
  * StoiVenture keeps working normally on a machine with no key configured.
  */
 function aiEnabled() {
   return apiKey().length > 0;
+}
+
+/**
+ * The Gemini model every AI feature uses — the tutor, question generation and
+ * the duel-question reviewer.
+ *
+ * One name in one place, overridable with `GEMINI_MODEL`, so moving off the
+ * free tier (or onto whatever Google ships next) is an .env edit rather than a
+ * hunt through three source files.
+ */
+function aiModel() {
+  load();
+  return (process.env.GEMINI_MODEL || '').trim() || 'gemini-3.7-flash';
+}
+
+/**
+ * How many AI calls one person gets per day, per purpose.
+ *
+ * A guard rail for a free API tier, not a game rule: the point is that one
+ * enthusiastic student cannot burn the whole school's quota before lunch. See
+ * src/aiLimit.js. Zero means unlimited.
+ */
+function aiLimits() {
+  load();
+  const num = (v, fallback) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  return {
+    // one teacher, generating a bank: generous
+    generate: num(process.env.AI_GENERATE_LIMIT, 60),
+    // every student, checking their own duel question: tighter
+    review: num(process.env.AI_REVIEW_LIMIT, 20),
+  };
 }
 
 /**
@@ -82,4 +116,4 @@ function teacherSeed() {
   };
 }
 
-module.exports = { load, apiKey, aiEnabled, tutorUnlimited, teacherSeed };
+module.exports = { load, apiKey, aiEnabled, aiModel, aiLimits, tutorUnlimited, teacherSeed };

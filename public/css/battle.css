@@ -94,3 +94,82 @@
   .b-vs { grid-template-columns: 1fr; gap: 6px; }
   .b-vs-word { font-size: 1.1rem; }
 }
+
+/* =========================================================================
+   Duels — write your own question and send it to a classmate (js/duel.js).
+   Reuses the fight header, the result card and challenge.css's question
+   styles; only the writing desk and the duel cards are new.
+   ========================================================================= */
+
+.d-section > h4 { margin: 18px 0 8px; font-size: .95rem; color: var(--ink-soft); }
+.d-blurb { margin: 0 0 12px; }
+
+/* ---------- a duel waiting for someone ---------- */
+.d-card {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 10px;
+  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-soft);
+  border: 3px solid var(--secondary);
+}
+/* One I sent is waiting on THEM, so it must not shout for my attention the way
+   one addressed to me does. */
+.d-card.sent { border-color: #fff; opacity: .85; }
+.d-face {
+  font-size: 1.5rem; width: 46px; height: 46px; flex: none; border-radius: 50%;
+  display: grid; place-items: center; background: #fff4e8;
+}
+.d-main { flex: 1; min-width: 0; }
+.d-name { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-meta { font-size: .84rem; color: var(--ink-soft); font-weight: 600; }
+.d-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.d-write { margin-top: 12px; }
+.d-history { margin-top: 16px; }
+.q-history-list .q-h-coins.zero { color: var(--ink-soft); }
+
+/* ---------- the writing desk ---------- */
+.d-compose { max-width: 720px; margin: 0 auto; }
+.d-compose-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.d-compose-head h2 { margin: 0; font-size: 1.25rem; }
+
+/* The one rule a student has to know before they start typing, said once,
+   where they cannot miss it — Kru CJ rejects anything else. */
+.d-topic {
+  background: #eef7ff; border-left: 5px solid var(--primary);
+  border-radius: 10px; padding: 10px 14px; margin: 12px 0 18px;
+  font-size: .92rem; font-weight: 600; line-height: 1.5;
+}
+
+.d-field { margin-bottom: 16px; }
+.d-label { display: block; font-weight: 800; font-size: .9rem; margin-bottom: 6px; }
+.d-hint { font-size: .82rem; color: var(--ink-soft); margin: 6px 0 0; line-height: 1.5; }
+.d-types { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.d-choices { display: grid; gap: 8px; }
+.d-choice { display: flex; align-items: center; gap: 10px; }
+.d-choice input[type=radio], .d-choice input[type=checkbox] { width: 20px; height: 20px; flex: none; }
+.d-choice .ltr {
+  font-weight: 800; width: 26px; flex: none; text-align: center; color: var(--ink-soft);
+}
+.d-choice .ch-input { flex: 1; min-width: 0; }
+
+/* ---------- Kru CJ's verdict ---------- */
+.d-review {
+  display: flex; gap: 14px; align-items: flex-start;
+  border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;
+  border: 3px solid #fff; background: #fff; box-shadow: var(--shadow-soft);
+}
+.d-review.ok { border-color: var(--grass); background: #f3fdf5; }
+.d-review.no { border-color: var(--secondary); background: #fffaf0; }
+.d-review.thinking { border-color: #e7dff3; }
+.d-review-text { flex: 1; min-width: 0; line-height: 1.6; }
+.d-review-text p { margin: 4px 0 0; }
+.d-flags { margin: 8px 0 0; padding-left: 20px; font-size: .88rem; color: var(--ink-soft); }
+.d-flags li { margin-bottom: 3px; }
+
+.d-submit { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.d-send { border-top: 2px dashed #e7dff3; padding-top: 16px; margin-top: 8px; }
+
+@media (max-width: 560px) {
+  .d-card { flex-wrap: wrap; }
+  .d-actions { width: 100%; }
+  .d-actions .btn { flex: 1; }
+}

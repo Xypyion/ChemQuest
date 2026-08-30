@@ -52,10 +52,14 @@ async function loadLobby() {
     API.get('/api/battles/settings'),
     API.get('/api/battles/opponents'),
     API.get('/api/battles/history'),
+    // A duel needs no question bank, so it must not fail the whole lobby when
+    // the AI is switched off — the raid half of the page still works.
+    Duel.load().catch(() => null),
   ]);
   rules = s;
   opponents = o.opponents || [];
   history = h.battles || [];
+  Duel.init({ content: contentEl, back: backToLobby, rules, opponents });
   setNavCoins(s.coins || 0);
   // Land on a difficulty the teacher has actually filled.
   if (!(rules.banks || {})[difficulty]) {
@@ -81,7 +85,18 @@ function renderLobby() {
     return;
   }
 
-  contentEl.innerHTML = walletCard() + difficultyCard() + opponentCard() + historyCard();
+  contentEl.innerHTML =
+    walletCard() + difficultyCard() + opponentCard() + Duel.sectionHtml() + historyCard();
+}
+
+/** Reload and repaint the lobby — what the Duel module calls on its way out. */
+async function backToLobby() {
+  try {
+    await loadLobby();
+  } catch (e) {
+    toast(e.message, 'bad');
+  }
+  renderLobby();
 }
 
 function walletCard() {

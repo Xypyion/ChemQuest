@@ -132,8 +132,10 @@ const TBattles = (() => {
         <div id="bqList">${draft.map((q, i) => questionCard(q, i)).join('')}</div>
         <div class="editor-actions" style="margin-top:12px">
           <button class="tbtn ghost" onclick="TB.addQuestion()">${t('t.bAddQ')}</button>
+          <button class="tbtn ghost" onclick="TB.aiGenerate()">${t('t.aiButton')}</button>
           <button class="tbtn indigo" onclick="TB.saveBank()">${t('t.bSaveBank')}</button>
         </div>
+        <div class="sub" style="margin-top:8px">${t('t.bSaveBankHint')}</div>
       </div>`;
   }
 
@@ -411,8 +413,28 @@ const TBattles = (() => {
     } catch (e) { toast(e.message, 'bad'); }
   }
 
+  /**
+   * ✨ Have Kru CJ write questions for the difficulty currently on screen.
+   *
+   * They are appended to the draft, not saved: the teacher still has to read
+   * them and press Save Bank, which is the only path that reaches students.
+   */
+  function aiGenerate() {
+    syncSettings();
+    syncDraft();
+    TAI.open({
+      target: 'battle',
+      difficulty: tab,
+      types: TYPES,
+      onInsert: (questions) => {
+        questions.forEach((q) => draft.push(mapInQuestion(q)));
+        paint();
+      },
+    });
+  }
+
   const api = {
-    setTab, saveSettings, saveBank,
+    setTab, saveSettings, saveBank, aiGenerate,
     addQuestion, removeQuestion, setType, addChoice, removeChoice, addCol, addRow, removeRow,
   };
   window.TB = api;

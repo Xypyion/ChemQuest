@@ -162,12 +162,6 @@ body.teacher {
 .iconbtn.danger { color: #b4103a; }
 .iconbtn.danger:hover { background: #ffe6ec; }
 
-.terr { font-size: .7rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: .01em; }
-/* measured on the tint each one actually sits on */
-.terr.plain { background: #e3f7e1; color: #1f7a2b; }
-.terr.mountain { background: #f5ecdb; color: #855f16; }
-.terr.snow { background: #e6f2fb; color: #1f6698; }
-
 @media (max-width: 980px) {
   .lesson-row { grid-template-columns: 40px minmax(0, 1fr); }
   .lr-acts { grid-column: 1 / -1; justify-content: flex-start; }
@@ -411,3 +405,37 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
 .resp-key::before { content: '→ '; }
 
 .tbtn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* ---------- ✨ AI question generation (js/teacher-ai.js) ---------- */
+/* A wider dialog for the review pane: a stoichiometry question with four
+   choices does not fit the 440px box the small confirmations use. */
+.modal.wide { max-width: 760px; }
+
+.ai-list { max-height: 56vh; overflow-y: auto; padding-right: 4px; margin: 4px 0; }
+
+.ai-card {
+  border: 2px solid var(--t-line, #e6e2f2); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 10px; transition: border-color .12s ease, opacity .12s ease;
+}
+/* An unticked draft is still readable — it is being judged, not discarded. */
+.ai-card.off { opacity: .55; }
+.ai-card.on { border-color: var(--t-accent, #6c5ce7); }
+
+.ai-pick { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.ai-q { font-weight: 600; line-height: 1.5; margin-bottom: 8px; }
+
+.ai-choices { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.ai-choices li { font-size: .9rem; padding: 3px 8px; border-radius: 7px; }
+/* The key is the whole point of this pane: the teacher is checking the
+   arithmetic, so the correct choice has to be findable without counting. */
+.ai-choices li.right { background: #e3f9e5; color: #1f7a2c; font-weight: 600; }
+
+.ai-key { font-size: .88rem; color: var(--t-ink, #2a2440); background: #f6f4fd; border-radius: 8px; padding: 7px 10px; }
+.ai-why { margin-top: 8px; font-size: .85rem; color: var(--t-soft); }
+.ai-why summary { cursor: pointer; font-weight: 600; }
+.ai-why > div { margin-top: 6px; line-height: 1.6; white-space: pre-wrap; }
+
+@media (max-width: 620px) {
+  .modal.wide { max-width: 100%; }
+  .ai-list { max-height: 50vh; }
+}

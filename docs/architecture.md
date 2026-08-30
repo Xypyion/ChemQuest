@@ -5,7 +5,12 @@
 - **Runtime:** Node.js (tested on Node 18+; works on 25).
 - **Web framework:** Express.
 - **Auth:** JSON Web Tokens (`jsonwebtoken`) + password hashing (`bcryptjs`).
-- **Storage:** a tiny custom JSON document store (`src/db.js`) writing to `data/db.json`.
+- **Storage:** a tiny custom JSON document store (`src/db.js`) writing to `data/db.json`,
+  or Postgres when `DATABASE_URL` is set.
+- **AI:** `@google/genai` (Gemini), behind two modules — `src/tutor.js` for hints
+  and `src/aiQuestions.js` for writing and checking questions. Optional: with no
+  `GEMINI_API_KEY` the three AI features switch themselves off and nothing else
+  is affected.
 - **Front-end:** plain HTML, CSS and vanilla JavaScript — **no build step, no framework.**
 - **Assets:** uploaded assignment files saved to `data/uploads/`, served at `/uploads`.
 
@@ -23,6 +28,12 @@
                          ├─ /api/posts       → posts.routes.js     (assignment board)
                          ├─ /api/challenges  → challenges.routes.js (student: answer)
                          ├─ /api/teacher/challenges → challenges.routes.js (teacher: build, mark)
+                         ├─ /api/quests      → quests.routes.js     (student: answer, wallet)
+                         ├─ /api/teacher/quests → quests.routes.js  (teacher: build, assign)
+                         ├─ /api/battles     → battles.routes.js    (student: raids AND duels)
+                         ├─ /api/teacher/battles → battles.routes.js (teacher: banks, logs)
+                         ├─ /api/teacher/ai  → ai.routes.js         (teacher: write questions)
+                         ├─ /api/tutor       → tutor.routes.js      (student: Kru CJ hints)
                          ├─ /api/leaderboard → leaderboard.routes.js
                          └─ /uploads         → static file attachments
                          │
@@ -42,7 +53,14 @@ chemquest/
 │   ├── db.js                 # JSON document store (all/find/insert/update/remove/save)
 │   ├── auth.js               # hashPassword, verifyPassword, signToken, publicUser, guards
 │   ├── game.js               # scoring, pass rule, level completion + gate helpers
-│   ├── challenges.js         # challenge model + auto-marking rules
+│   ├── challenges.js         # challenge model + auto-marking rules (THE grading engine)
+│   ├── quests.js             # daily quests: a thin layer on challenges.js
+│   ├── battles.js            # coin battles + duels: stakes, limits, coin transfer
+│   ├── tutor.js              # Kru CJ the hint tutor — never told the answer
+│   ├── aiQuestions.js        # AI question writing + duel-question review — IS told the answer
+│   ├── tutorCredit.js        # what a tutor hint costs: free questions, then coins
+│   ├── aiLimit.js            # per-person daily cap on AI calls (the API bill, not a game rule)
+│   ├── config.js             # zero-dependency .env reader; the AI on/off switch
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/
 │       ├── auth.routes.js
@@ -53,7 +71,8 @@ chemquest/
 ├── public/                   # front-end (served statically)
 │   ├── *.html                # one page per screen
 │   ├── css/                  # theme, map, lesson, teacher, feed, pages, character
-│   └── js/                   # i18n, api, character (Ruby SVG), props, page logic, feed
+│   └── js/                   # i18n, icons, api, character (Kru CJ SVG), qrender,
+│                             #   page logic, feed, tutor, duel, teacher-* console modules
 └── data/                     # runtime state (git-ignored)
     ├── db.json
     └── uploads/
@@ -96,7 +115,9 @@ Centralised so every route agrees on the rules:
 - **i18n:** `js/i18n.js` holds `en`/`th` dictionaries, a `t(key, vars)` helper, `tDiff()`,
   and `mountLangSwitch()`. The choice is saved in `localStorage.cq_lang` and switching
   reloads the page. `<html lang>` is updated for screen readers.
-- **Mascot:** Ruby is an original inline SVG (`js/character.js`) — not based on any IP.
+- **Mascot:** Kru CJ is an original inline SVG (`js/character.js`) — not based on any IP.
+  The render helpers are still named `renderRuby` / `setRubyMood` from before the
+  rename; eight files call them and renaming buys nothing.
 - **Shared feed component:** `js/feed.js` powers the assignment board for both students and
   the teacher console.
 
