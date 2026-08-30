@@ -253,8 +253,10 @@ function isTransient(err) {
  * failure, not four minutes of silence.
  */
 async function askJson({ system, prompt, schema, maxTokens }) {
-  const send = () => getClient().interactions.create({
-    model: config.aiModel(),
+  const model = config.aiModel();
+
+  const send = (withThinking) => getClient().interactions.create({
+    model,
     system_instruction: system,
     input: [{ type: 'user_input', content: [{ type: 'text', text: prompt }] }],
     // A teacher's question bank and a child's writing. Keep our copy, not Google's.
@@ -262,14 +264,15 @@ async function askJson({ system, prompt, schema, maxTokens }) {
     response_format: { type: 'text', mime_type: 'application/json', schema },
     generation_config: {
       max_output_tokens: maxTokens || MAX_TOKENS,
-      // Unlike a tutor hint, this is arithmetic that has to be RIGHT.
-      thinking_level: 'high',
+      // Unlike a tutor hint, this is arithmetic that has to be RIGHT — where the
+      // model can think first, let it. Not every model can; see thinkingFor().
+      ...(withThinking ? { thinking_level: withThinking } : {}),
     },
   });
 
   /** One attempt, all the way through to parsed JSON. */
   const attempt = async () => {
-    const interaction = await send();
+    const interaction = await send(config.thinkingFor(model, 'high'));
     const text = (interaction.output_text || '').trim();
     if (!text) {
       const err = new Error('The model returned nothing.');
@@ -282,6 +285,13 @@ async function askJson({ system, prompt, schema, maxTokens }) {
   try {
     return await attempt();
   } catch (err) {
+    // A model that does not take this thinking level says so with a 400. Drop
+    // it, remember, and go again — the alternative is that swapping the model
+    // in .env breaks every AI feature with no clue as to why.
+    if (config.rejectsThinking(err)) {
+      config.noteThinkingUnsupported(model);
+      return attempt();
+    }
     const worthRetrying = isTransient(err) || err.code === 'AI_EMPTY' || err.code === 'AI_BAD_JSON';
     if (!worthRetrying) throw err;
     await sleep(RETRY_DELAY_MS);

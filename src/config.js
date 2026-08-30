@@ -64,7 +64,42 @@ function aiEnabled() {
  */
 function aiModel() {
   load();
-  return (process.env.GEMINI_MODEL || '').trim() || 'gemini-3.7-flash';
+  return (process.env.GEMINI_MODEL || '').trim() || 'gemini-3.1-flash-lite';
+}
+
+/* ------------------------------------------------------------------ *
+ * Thinking level, per model
+ *
+ * `thinking_level` is not universal: the bigger models take it, the Lite ones
+ * generally do not, and which is which changes with every model Google ships.
+ * Rather than keep a list that goes stale, callers ask for a level, notice a
+ * refusal, and remember — so one wasted call per model per process buys a
+ * setting that fixes itself when the school changes `GEMINI_MODEL`.
+ *
+ * It lives here, beside `aiModel()`, because both things that talk to Gemini
+ * need it: `tutor.js` asks to think a little, `aiQuestions.js` asks to think
+ * hard, and neither should have to know what the other learned.
+ * ------------------------------------------------------------------ */
+
+/** Models this process has learned do not accept a thinking level. */
+const noThinking = new Set();
+
+/** Remember that this model refused, and say so once. */
+function noteThinkingUnsupported(model) {
+  if (noThinking.has(model)) return;
+  noThinking.add(model);
+  console.warn(`[ai] ${model} does not take a thinking level; continuing without one.`);
+}
+
+/** `want` when this model will think, '' when it has told us it will not. */
+function thinkingFor(model, want) {
+  return noThinking.has(model) ? '' : want;
+}
+
+/** Is this the API telling us the thinking level was the problem? */
+function rejectsThinking(err) {
+  if (!err || err.status !== 400) return false;
+  return /thinking/i.test(String(err.message || ''));
 }
 
 /**
@@ -116,4 +151,7 @@ function teacherSeed() {
   };
 }
 
-module.exports = { load, apiKey, aiEnabled, aiModel, aiLimits, tutorUnlimited, teacherSeed };
+module.exports = {
+  load, apiKey, aiEnabled, aiModel, aiLimits, tutorUnlimited, teacherSeed,
+  thinkingFor, noteThinkingUnsupported, rejectsThinking,
+};

@@ -180,8 +180,10 @@ async function ask({ message, question, draft, history, lang }) {
     step('user', String(message || '').slice(0, MAX_MESSAGE_CHARS)),
   ];
 
-  const interaction = await getClient().interactions.create({
-    model: config.aiModel(),
+  const model = config.aiModel();
+
+  const send = (thinking) => getClient().interactions.create({
+    model,
     system_instruction: system,
     input,
     // Do not let Google retain the interaction server-side. These are school
@@ -189,9 +191,23 @@ async function ask({ message, question, draft, history, lang }) {
     store: false,
     generation_config: {
       max_output_tokens: MAX_TOKENS,
-      thinking_level: 'low', // a hint needs no deep reasoning; keeps replies fast and cheap
+      // A hint needs no deep reasoning; a little keeps replies fast and cheap.
+      // Not every model takes the setting — see config.thinkingFor().
+      ...(thinking ? { thinking_level: thinking } : {}),
     },
   });
+
+  let interaction;
+  try {
+    interaction = await send(config.thinkingFor(model, 'low'));
+  } catch (err) {
+    // A model that does not take a thinking level says so with a 400. Drop it,
+    // remember, and go again, rather than leaving the tutor broken for every
+    // student because `GEMINI_MODEL` was changed to one that cannot think.
+    if (!config.rejectsThinking(err)) throw err;
+    config.noteThinkingUnsupported(model);
+    interaction = await send('');
+  }
 
   const text = (interaction.output_text || '').trim();
 

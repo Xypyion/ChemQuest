@@ -416,7 +416,8 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
   production — it falls back to a dev default otherwise), `DATABASE_URL`
   (unset = JSON file store; set = Postgres — **required on serverless hosts**),
   `JSON_LIMIT` (default `16mb`), `GEMINI_API_KEY` (all three AI features),
-  `GEMINI_MODEL` (which model they use; blank = the built-in default),
+  `GEMINI_MODEL` (which model all three use; blank = the built-in default,
+  `gemini-3.1-flash-lite`),
   `AI_GENERATE_LIMIT` / `AI_REVIEW_LIMIT` (daily AI calls per person, 0 =
   unlimited), `TUTOR_UNLIMITED=1` (testing only — makes tutor hints free).
   `.env.example` documents all of them; copy it to `.env`, which is git-ignored.
