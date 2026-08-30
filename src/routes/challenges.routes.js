@@ -13,6 +13,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const ch = require('../challenges');
+const bg = require('../badges');
 const { authMiddleware, requireRole } = require('../auth');
 
 const studentRouter = express.Router();
@@ -160,9 +161,21 @@ studentRouter.post('/:id/submit', (req, res) => {
 
   if (existing) Object.assign(existing, record);
   else db.insert('challengeSubmissions', record);
+
+  /* The badge, if this challenge carries one. Awarded on handing in rather than
+     on being marked: a challenge with written answers can sit in the grading
+     queue for days, and a reward that arrives on Thursday for work done on
+     Monday is not a reward. `award()` is a no-op when the student already holds
+     it, so a retake cannot mint a second copy. */
+  const earnedBadge = bg.award(req.user, c);
   db.save();
 
-  res.json({ submission: resultView(c, existing || record) });
+  res.json({
+    submission: resultView(c, existing || record),
+    // Only present when something was actually earned, so the player can just
+    // check for it rather than compare against what they held before.
+    badge: earnedBadge ? { name: earnedBadge.badgeName, image: earnedBadge.badgeImage } : null,
+  });
 });
 
 /** GET /api/challenges/:id/result — my marked result. */

@@ -1,6 +1,12 @@
 // Certificates — a progress-driven achievement shelf: overall progress bar,
-// a featured latest certificate, and a badge grid showing every level as
+// a featured latest certificate, and a grid showing every level as
 // earned / in-progress / locked.
+//
+// Below that sits the BADGE shelf, which is a different thing wearing a similar
+// word. A certificate is automatic — one per level, earned by passing its
+// pre-test. A badge is a picture the teacher drew and hung on a specific
+// challenge (see src/badges.js). The level grid keeps the `.badge` classes it
+// has always had; the teacher's badges use `.bdg-*`, so the two never collide.
 
 const me = guard('student');
 addClouds();
@@ -14,9 +20,11 @@ mountLangSwitch();
     document.getElementById('navPoints').textContent = meData.user.points || 0;
     setNavCoins(meData.user.coins);
 
-    const [{ certificates }, lessonsData] = await Promise.all([
+    const [{ certificates }, lessonsData, badgeData] = await Promise.all([
       API.get('/api/lessons/me/certificates'),
       API.get('/api/lessons'),
+      // A shelf that fails to load must not blank the certificates above it.
+      API.get('/api/badges/me').catch(() => ({ earned: [], locked: [] })),
     ]);
     const lessons = lessonsData.lessons || [];
     const certByLesson = {};
@@ -78,12 +86,42 @@ mountLangSwitch();
       </a>`;
     }).join('');
 
+    /* ---- the teacher's badges ---- */
+    const earnedBadges = (badgeData && badgeData.earned) || [];
+    const lockedBadges = (badgeData && badgeData.locked) || [];
+
+    const badgeTiles = earnedBadges.map((b) => `
+      <div class="bdg-tile earned" title="${escapeHtml(b.name)}">
+        <img class="bdg-tile-img" src="${escapeHtml(b.image)}" alt="${escapeHtml(b.name)}">
+        <div class="bdg-tile-name">${escapeHtml(b.name)}</div>
+        <div class="bdg-tile-meta">${escapeHtml(b.challengeTitle || '')}</div>
+      </div>`).join('')
+      /* Locked ones show as a silhouette with their NAME but not their picture:
+         the name is the goal, the artwork is the reward. The server does not
+         send the image for these, so there is nothing here to spoil. */
+      + lockedBadges.map((b) => `
+      <div class="bdg-tile locked" title="${escapeHtml(b.name)}">
+        <div class="bdg-tile-img empty">🎖️</div>
+        <div class="bdg-tile-name">${escapeHtml(b.name)}</div>
+        <div class="bdg-tile-meta">${t('inv.badgeLocked')}</div>
+      </div>`).join('');
+
+    const badgeShelf = (earnedBadges.length || lockedBadges.length) ? `
+      <div class="bdg-shelf">
+        <div class="sp-row">
+          <span class="sp-label">${t('inv.badgesTitle')}</span>
+          <span class="sp-count">${t('inv.badgesCount', { n: earnedBadges.length })}</span>
+        </div>
+        <div class="bdg-tiles">${badgeTiles}</div>
+      </div>` : '';
+
     content.innerHTML = `
       <div class="shelf-progress">
         <div class="sp-row"><span class="sp-label">${t('inv.progressLabel')}</span><span class="sp-count">${t('inv.progress', { earned, total })}</span></div>
         <div class="sp-bar"><span style="width:${pct}%"></span></div>
       </div>
       ${featured}
+      ${badgeShelf}
       ${badges ? `<div class="badge-grid">${badges}</div>` : `
         <div class="empty-state card">
           <div>${renderRuby('happy', { size: 150, float: true })}</div>

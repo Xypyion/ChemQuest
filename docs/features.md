@@ -95,6 +95,14 @@ finished.
 - The teacher sees every duel — the question, its key and Kru CJ's verdict — and
   can take one down.
 
+### 🎖️ Badges (student side)
+- Earning one is announced on the challenge result screen, above the score,
+  with the picture and its name.
+- The certificate page carries a **badge shelf**: earned badges in full colour
+  with the challenge that won them, and badges still to earn as greyed
+  silhouettes showing the name but not the artwork — something to want, without
+  spoiling it.
+
 ### Rewards
 
 ### ⚙️ Settings (per student)
@@ -186,6 +194,22 @@ saving independently:
   coins changed hands.
 - **Duel log**: every question a student wrote for a classmate, its answer key,
   and what Kru CJ said about it — with a way to take one down.
+
+### 🎖️ Badges
+- Make a badge by **uploading a picture** and giving it a name (and an optional
+  description). PNG, JPG, GIF, WEBP or SVG, up to 512 KB.
+- In the challenge editor, a **Badge reward** picker chooses which badge — if
+  any — finishing that challenge earns. "No badge" is the default, and is how a
+  teacher says this challenge has no reward.
+- Every student who **finishes** the challenge earns it, whatever they scored.
+  It arrives the moment they hand in, not when the teacher finishes marking.
+- A student holds any badge once. Retaking, or finishing a second challenge that
+  gives the same badge, awards nothing further.
+- **Who has it** lists every holder, which challenge they earned it from, and
+  when.
+- A badge students have already earned **cannot be deleted** — that would take
+  it off their shelf. Detach it from the challenge instead, which stops it being
+  given out without erasing anyone's.
 
 ### ✨ AI question writing
 In both the **Daily Quests** editor and each **Coin Battles** bank, a

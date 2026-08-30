@@ -32,6 +32,8 @@
                          ├─ /api/teacher/quests → quests.routes.js  (teacher: build, assign)
                          ├─ /api/battles     → battles.routes.js    (student: raids AND duels)
                          ├─ /api/teacher/battles → battles.routes.js (teacher: banks, logs)
+                         ├─ /api/badges      → badges.routes.js     (student: my shelf)
+                         ├─ /api/teacher/badges → badges.routes.js   (teacher: create & attach)
                          ├─ /api/teacher/ai  → ai.routes.js         (teacher: write questions)
                          ├─ /api/tutor       → tutor.routes.js      (student: Kru CJ hints)
                          ├─ /api/leaderboard → leaderboard.routes.js
@@ -60,6 +62,8 @@ chemquest/
 │   ├── aiQuestions.js        # AI question writing + duel-question review — IS told the answer
 │   ├── tutorCredit.js        # what a tutor hint costs: free questions, then coins
 │   ├── aiLimit.js            # per-person daily cap on AI calls (the API bill, not a game rule)
+│   ├── badges.js             # teacher-made badges: the model and the awarding rule
+│   ├── uploads.js            # storing an uploaded file on either kind of host
 │   ├── config.js             # zero-dependency .env reader; the AI on/off switch
 │   ├── seed.js               # teacher account + 6 sample lessons (first run only)
 │   └── routes/

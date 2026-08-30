@@ -58,7 +58,7 @@ const NAV_BADGE = {
 };
 const NAV_KEY = {
   lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
-  battles: 't.navBattles', grading: 't.navGrading', gradebook: 't.navGradebook',
+  battles: 't.navBattles', badges: 't.navBadges', grading: 't.navGrading', gradebook: 't.navGradebook',
   students: 't.navStudents', preview: 't.playAsStudent',
 };
 function paintNav() {
@@ -80,6 +80,7 @@ function setView(v) {
   if (window.TChallenges) TChallenges.reset();
   if (window.TQuests) TQuests.reset();
   if (window.TBattles) TBattles.reset();
+  if (window.TBadges) TBadges.reset();
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
   document.getElementById('side').classList.remove('open');
   render();
@@ -92,6 +93,7 @@ function render() {
   if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
   if (view === 'battles') return TBattles.render(viewEl);
+  if (view === 'badges') return TBadges.render(viewEl);
   if (view === 'grading') return renderGrading();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();

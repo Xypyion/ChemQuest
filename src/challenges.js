@@ -159,6 +159,11 @@ function normalizeChallenge(body, existing) {
   c.icon = trimmed(body.icon, 8) || '🧩';
   c.timeLimit = clampInt(body.timeLimit, 0, 7200, 0);
   c.allowRetake = !!body.allowRetake;
+  /* The badge this challenge hands out, or null for none — which is how a
+     teacher says "no badge on this one". Only the id is stored: the badge's
+     name and picture belong to the badge, so renaming one updates every
+     challenge that gives it. See src/badges.js. */
+  c.badgeId = str(body.badgeId, 80) || null;
   const due = body.dueAt ? Date.parse(body.dueAt) : NaN;
   c.dueAt = Number.isNaN(due) ? null : new Date(due).toISOString();
   c.questions = (Array.isArray(body.questions) ? body.questions : [])

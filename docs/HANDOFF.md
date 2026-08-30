@@ -76,6 +76,10 @@ Implemented features:
   question, Kru CJ checks it is on topic, solvable, correctly keyed and
   classroom-appropriate, and only then can it be sent to a classmate — who is
   the one who answers it.
+- **Badges**: the teacher uploads a picture, names it, and attaches it to a
+  challenge; every student who finishes that challenge earns it. Held once
+  each, awarded on hand-in rather than on marking, and shown on the student's
+  certificate page beside the badges they have yet to earn.
 - **Level board hub** (`level.html`): tabs 🏠 Board · 📒 Assignments · 🧩 Challenges;
   the board menu lists Storyboard · Pre-test · Assignments · Challenges · Post-test.
 - **Storyboards**: dialogue lines (moods, optional images) + inline YouTube video
@@ -253,6 +257,7 @@ chemquest/
         ├── duel.js           # duels: write a question, get it checked, send it, answer one
         ├── tutor.js          # the Kru CJ help panel on the challenge player
         ├── teacher-ai.js     # teacher console: the ✨ AI question-writing dialog
+        ├── teacher-badges.js # teacher console: the 🎖️ Badges section
         ├── teacher-quests.js # teacher console: the ⚔️ Daily Quests section
         ├── teacher-battles.js# teacher console: the 🤺 Coin Battles section
         ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section

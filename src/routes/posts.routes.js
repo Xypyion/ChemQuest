@@ -3,20 +3,19 @@
  * Students and the teacher can post text + file attachments, comment, like,
  * and students can send a private question to the teacher under any post.
  *
- * Attachments arrive as base64 data URLs and are written to data/uploads/,
- * then served back as /uploads/<file> so the JSON store stays small.
+ * Attachments arrive as base64 data URLs; `src/uploads.js` puts the bytes
+ * wherever this host can keep them and hands back a URL, so the JSON store
+ * stays small either way.
  */
 const express = require('express');
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 const db = require('../db');
+const uploads = require('../uploads');
 const { authMiddleware } = require('../auth');
 
 const router = express.Router();
 router.use(authMiddleware); // both roles may use the board
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB per attached file
 const MAX_FILES_PER_POST = 6;
 const MAX_TEXT = 4000;
@@ -25,47 +24,13 @@ function authorOf(user) {
   return { id: user.id, name: user.name, avatar: user.avatar || (user.role === 'teacher' ? '👩‍🏫' : '🧑‍🎓'), role: user.role };
 }
 
-/**
- * Decode a data URL and store it. Returns attachment meta.
- *
- * On a host with a real disk the file goes to data/uploads/ as before. On a
- * serverless host the filesystem is read-only, so the bytes go into the
- * database instead (collection `uploads`) and are served by /uploads/db/<id>.
- * See docs/KNOWN-ISSUE-vercel-persistence.md.
- */
+/** A board attachment: any file type, up to MAX_FILE_BYTES. */
 function saveAttachment(att) {
-  const name = (att.name || 'file').toString().replace(/[^\w.\- ()฀-๿]/g, '_').slice(0, 120) || 'file';
-  const data = (att.data || '').toString();
-  const m = data.match(/^data:([\w/+.-]+);base64,(.+)$/s);
-  if (!m) return null;
-  const mime = m[1];
-  const buf = Buffer.from(m[2], 'base64');
-  if (!buf.length || buf.length > MAX_FILE_BYTES) return null;
-
-  if (db.backend !== 'file') {
-    const id = crypto.randomUUID();
-    db.insert('uploads', { id, name, type: mime, size: buf.length, b64: m[2], createdAt: new Date().toISOString() });
-    return { id, name, type: mime, size: buf.length, url: '/uploads/db/' + id };
-  }
-
-  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-  const fileName = crypto.randomUUID().slice(0, 8) + '__' + name;
-  fs.writeFileSync(path.join(UPLOAD_DIR, fileName), buf);
-  return { id: crypto.randomUUID(), name, type: mime, size: buf.length, url: '/uploads/' + encodeURIComponent(fileName) };
+  return uploads.saveDataUrl(att, { maxBytes: MAX_FILE_BYTES });
 }
 
 function deleteAttachmentFiles(post) {
-  (post.attachments || []).forEach((a) => {
-    const url = (a.url || '').toString();
-    if (url.startsWith('/uploads/db/')) {
-      db.remove('uploads', url.slice('/uploads/db/'.length));
-      return;
-    }
-    try {
-      const fileName = decodeURIComponent(url.split('/').pop() || '');
-      if (fileName) fs.unlinkSync(path.join(UPLOAD_DIR, fileName));
-    } catch { /* already gone */ }
-  });
+  (post.attachments || []).forEach((a) => uploads.removeByUrl(a.url));
 }
 
 /**

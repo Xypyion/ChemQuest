@@ -439,3 +439,49 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
   .modal.wide { max-width: 100%; }
   .ai-list { max-height: 50vh; }
 }
+
+/* ---------- 🎖️ Badges (js/teacher-badges.js) ---------- */
+/* A badge is a picture first: the list is built so the teacher recognises one
+   by its artwork, the way their students will, rather than by reading a name. */
+.bdg-list { display: grid; gap: 12px; }
+
+.bdg-card {
+  display: flex; align-items: center; gap: 16px;
+  border: 2px solid var(--t-line); border-radius: 12px; padding: 12px 14px;
+}
+.bdg-img {
+  width: 64px; height: 64px; flex: none; object-fit: contain;
+  border-radius: 12px; background: #f6f4fd; padding: 6px;
+}
+.bdg-img.big { width: 96px; height: 96px; display: block; margin: 0 auto 16px; }
+.bdg-img.sm { width: 40px; height: 40px; border-radius: 9px; padding: 4px; }
+.bdg-img.sm.empty, .bdg-preview.empty {
+  display: grid; place-items: center; font-size: 1.3rem; color: var(--t-soft);
+}
+.bdg-body { flex: 1; min-width: 0; }
+.bdg-name { font-weight: 700; }
+.bdg-desc { font-size: .88rem; color: var(--t-soft); margin-top: 2px; }
+.bdg-meta { font-size: .8rem; color: var(--t-soft); margin-top: 6px; }
+.bdg-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* the create/edit dialog */
+.bdg-editor { display: flex; gap: 20px; align-items: flex-start; }
+.bdg-drop { text-align: center; flex: none; width: 170px; }
+.bdg-preview {
+  width: 140px; height: 140px; object-fit: contain; display: block; margin: 0 auto 10px;
+  border-radius: 16px; background: #f6f4fd; padding: 10px; border: 2px dashed var(--t-line);
+}
+.bdg-preview.empty { font-size: 3rem; }
+.bdg-fields { flex: 1; min-width: 0; }
+
+/* the reward picker inside the challenge editor */
+.c-badge-row { margin-top: 14px; }
+.c-badge-pick { display: flex; align-items: center; gap: 12px; }
+.c-badge-pick .t-select { flex: 1; min-width: 0; }
+
+@media (max-width: 620px) {
+  .bdg-card { flex-wrap: wrap; }
+  .bdg-actions { width: 100%; }
+  .bdg-editor { flex-direction: column; align-items: stretch; }
+  .bdg-drop { width: auto; }
+}

@@ -316,6 +316,38 @@ All require a **teacher** token.
 | GET | `/api/teacher/battles/duels` | — | Every duel, **with the question, its answer key and Kru CJ's verdict**. Duels are the only place in StoiVenture where one student's writing is put in front of another, and an AI reviewer is a filter rather than a guardian — the teacher has to be able to read what the class is actually sending. |
 | DELETE | `/api/teacher/battles/duels/:id` | — | Take a duel down. A pending one is simply gone; a resolved one keeps the coins where they landed, because unwinding a transfer days later is a worse surprise than the question was. |
 
+## Badges — `/api/badges` and `/api/teacher/badges`
+
+A badge is a picture the teacher uploads and a name they give it. A challenge
+may carry one; a student earns it by **finishing** that challenge.
+
+| Method | Path | Role | Notes |
+|--------|------|------|-------|
+| GET | `/api/badges/me` | student | `{ earned[], locked[] }`. `earned` carries the picture, the name and which challenge won it. `locked` is every badge a published challenge hands out that this student has not got — **name only, no picture**, so there is something to want without spoiling the art. |
+| GET | `/api/teacher/badges` | teacher | Every badge with `usedBy` (challenges giving it) and `earnedBy` (students holding it). |
+| POST | `/api/teacher/badges` | teacher | `{ name, description?, image:{name,data} }` where `data` is a `data:` URL. The picture is **required**. → `201 { badge }`. |
+| PUT | `/api/teacher/badges/:id` | teacher | Rename, or replace the picture. Omitting `image` keeps the current one; replacing it deletes the old file only once the new one is stored. |
+| DELETE | `/api/teacher/badges/:id` | teacher | **409 `BADGE_EARNED`** once any student holds it — see below. Otherwise it is detached from every challenge using it, and its picture is deleted. |
+| GET | `/api/teacher/badges/:id/holders` | teacher | Who has earned it, from which challenge, and when. |
+
+**Attaching one** is not done here. A challenge carries `badgeId` (`null` = no
+badge), set through the ordinary challenge create/update endpoints — that is
+how a teacher chooses whether a challenge has a badge at all.
+
+**Earning** happens in `POST /api/challenges/:id/submit`, which now answers
+`{ submission, badge }`. `badge` is `null` unless *that* hand-in earned one, so
+the player can simply check for it rather than diff against what was held
+before. A student holds any given badge once: a retake, or a second challenge
+carrying the same badge, awards nothing further.
+
+**Why a badge students hold cannot be deleted.** Deleting would take it off
+somebody's shelf for work they really did, which is not something a stray click
+should do. The teacher detaches it from the challenge instead — that stops it
+being given out without erasing anyone's.
+
+Image constraints: `image/png|jpeg|gif|webp|svg+xml`, up to **512 KB**. Errors:
+`IMAGE_REQUIRED`, `BAD_IMAGE`, `BADGE_EARNED`.
+
 ## AI question writing (teacher) — `/api/teacher/ai`
 
 All require a **teacher** token. Disabled with `503 AI_DISABLED` when no

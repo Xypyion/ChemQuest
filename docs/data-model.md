@@ -166,6 +166,55 @@ never from the request body, which is also what stops a client sending a
 question Kru CJ never saw. A new check replaces the student's previous draft and
 sending deletes it, so the collection can never grow past one row per person.
 
+## Badge
+
+`badges`. A picture the teacher uploaded, plus a name.
+
+```jsonc
+{
+  "id": "uuid",
+  "name": "Mole Master",
+  "description": "For finishing the mole challenge.",   // optional
+  "image": "/uploads/ab12cd34__badge.png",   // or /uploads/db/<id> on Postgres
+  "createdAt": "ISO",
+  "updatedAt": "ISO"
+}
+```
+
+The bytes are **not** in this document. `src/uploads.js` writes them to
+`data/uploads/` on a disk-backed host, or into the `uploads` collection on a
+serverless one, and hands back the URL stored here — so a badge document stays
+small however big the artwork was.
+
+## Badge award
+
+`badgeAwards`. One row per (student, badge). Written by `badges.award()` from
+`POST /api/challenges/:id/submit`.
+
+```jsonc
+{
+  "id": "uuid",
+  "badgeId": "uuid",
+  "userId": "uuid",
+  "userName": "Ploy",
+  "badgeName": "Mole Master",                  // copied, not looked up
+  "badgeImage": "/uploads/ab12cd34__badge.png",// copied, not looked up
+  "challengeId": "uuid",
+  "challengeTitle": "Moles and Molar Mass",
+  "awardedAt": "ISO"
+}
+```
+
+The name and picture are **copied at the moment of awarding**, so a later rename
+— or a deleted challenge — cannot rewrite what a student was told they earned.
+
+A challenge points at its badge with `challenge.badgeId` (`null` = no badge).
+Only the id is stored, so renaming a badge updates every challenge that gives
+it. Earning is on **handing in**, not on being marked: a challenge with written
+answers can sit in the grading queue for days, and a reward that arrives on
+Thursday for work done on Monday is not a reward. There is no score threshold —
+the badge is for doing the work.
+
 ## Coins on the user
 
 `user.coins` (spendable balance) and `user.coinsEarned` (lifetime total) are

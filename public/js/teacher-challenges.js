@@ -30,6 +30,7 @@ const TChallenges = (() => {
   let draft = null;         // challenge being edited
   let responses = null;     // { challenge, responses[], missing[] }
   let simPreview = {};      // questionId -> bool (show the live preview?)
+  let BADGES = [];          // the badge library, for the reward picker
   let loaded = false;
 
   function reset() { mode = 'list'; draft = null; responses = null; loaded = false; }
@@ -40,6 +41,16 @@ const TChallenges = (() => {
     const data = await API.get('/api/teacher/challenges');
     list = data.challenges;
     cats = data.categories.map((c) => ({ id: c.id, name: c.name, icon: c.icon }));
+    /* The badge library, for the reward picker in the editor. A separate
+       request rather than something bolted onto the challenges payload,
+       because the Badges section owns that list — and a failure to load it
+       must not take the whole Challenges section down with it. Worst case the
+       picker says "no badges yet", which is also the honest answer. */
+    try {
+      BADGES = (await API.get('/api/teacher/badges')).badges || [];
+    } catch (e) {
+      BADGES = [];
+    }
     loaded = true;
   }
 
@@ -261,7 +272,7 @@ const TChallenges = (() => {
     const lessons = typeof LESSONS !== 'undefined' ? LESSONS : [];
     draft = {
       id: null, lessonId: lessons.length ? lessons[0].id : '', categoryId: cats.length ? cats[0].id : '',
-      title: '', description: '', icon: '🧩', timeLimit: 0, dueAt: '', allowRetake: false,
+      title: '', description: '', icon: '🧩', timeLimit: 0, dueAt: '', allowRetake: false, badgeId: '',
       published: false, questions: [blankQuestion('mcq')],
     };
     mode = 'editor';
@@ -281,6 +292,7 @@ const TChallenges = (() => {
         timeLimit: challenge.timeLimit || 0,
         dueAt: challenge.dueAt ? toLocalInput(challenge.dueAt) : '',
         allowRetake: !!challenge.allowRetake,
+        badgeId: challenge.badgeId || '',
         published: !!challenge.published,
         questions: (challenge.questions || []).map(mapInQuestion),
       };
@@ -288,6 +300,50 @@ const TChallenges = (() => {
       mode = 'editor';
       render();
     } catch (e) { toast(e.message, 'bad'); }
+  }
+
+  /**
+   * The reward picker: which badge, if any, finishing this challenge earns.
+   *
+   * "No badge" is the first option and the default, because most challenges do
+   * not carry one — that is how a teacher says no, rather than a separate
+   * checkbox that would only ever disable the dropdown next to it.
+   *
+   * `BADGES` is filled by load() from the same list the Badges section
+   * manages; when it is empty the picker explains where badges come from
+   * rather than showing an empty dropdown with nothing to account for it.
+   */
+  function badgePicker() {
+    if (!BADGES.length) {
+      return `
+        <div class="c-badge-row">
+          <label class="t-label">${t('t.chBadge')}</label>
+          <div class="sub">${t('t.chBadgeNoneMade')}</div>
+        </div>`;
+    }
+    const chosen = BADGES.find((b) => b.id === draft.badgeId);
+    const opts = [`<option value="" ${!draft.badgeId ? 'selected' : ''}>${esc(t('t.chBadgeNone'))}</option>`]
+      .concat(BADGES.map((b) =>
+        `<option value="${esc(b.id)}" ${b.id === draft.badgeId ? 'selected' : ''}>${esc(b.name)}</option>`))
+      .join('');
+    return `
+      <div class="c-badge-row">
+        <label class="t-label">${t('t.chBadge')}</label>
+        <div class="c-badge-pick">
+          ${chosen
+            ? `<img class="bdg-img sm" src="${esc(chosen.image)}" alt="${esc(chosen.name)}">`
+            : `<div class="bdg-img sm empty">🎖️</div>`}
+          <select id="c-badge" class="t-select" onchange="TC.pickBadge(this.value)">${opts}</select>
+        </div>
+        <div class="sub">${t('t.chBadgeHint')}</div>
+      </div>`;
+  }
+
+  /** Choosing a badge repaints, so the picture beside the dropdown keeps up. */
+  function pickBadge(id) {
+    syncDraft();
+    draft.badgeId = id || '';
+    paintEditor();
   }
 
   function paintEditor() {
@@ -328,6 +384,7 @@ const TChallenges = (() => {
           <input type="checkbox" id="c-retake" ${draft.allowRetake ? 'checked' : ''}>
           <span>${t('t.chAllowRetake')} <span class="sub" style="color:var(--t-soft)">— ${t('t.chAllowRetakeHint')}</span></span>
         </label>
+        ${badgePicker()}
       </div>
 
       <div class="t-card">
@@ -573,6 +630,8 @@ const TChallenges = (() => {
       draft.dueAt = g('c-due');
       const rt = document.getElementById('c-retake');
       draft.allowRetake = !!(rt && rt.checked);
+      const bd = document.getElementById('c-badge');
+      if (bd) draft.badgeId = bd.value;
     }
     const qList = document.getElementById('qList');
     if (qList) qList.querySelectorAll(':scope > .qcard').forEach(readCard);
@@ -688,6 +747,7 @@ const TChallenges = (() => {
       timeLimit: draft.timeLimit || 0,
       dueAt: draft.dueAt ? new Date(draft.dueAt).toISOString() : null,
       allowRetake: !!draft.allowRetake,
+      badgeId: draft.badgeId || null,
       published: !!draft.published,
       questions: draft.questions.map(outQuestion),
     };
@@ -951,7 +1011,7 @@ const TChallenges = (() => {
     // editor
     addQuestion, addSub, removeQuestion, setType, addChoice, removeChoice, markCorrect,
     toggleCell, addCol, removeCol, addRow, removeRow,
-    setSimMode, toggleSimPreview, removeImage, uploadImage,
+    setSimMode, toggleSimPreview, removeImage, uploadImage, pickBadge,
     cancelEdit, save,
     // responses
     openResponses, updateTotal, saveGrade, backToList, downloadCsv,

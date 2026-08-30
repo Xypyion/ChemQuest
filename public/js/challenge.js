@@ -19,6 +19,7 @@ const stage = document.getElementById('chStage');
 let challenge = null;
 let category = null;
 let mySubmission = null;
+let earnedBadge = null;   // a badge won by THIS hand-in, shown once on the result
 let reviewing = false;   // showing the marked result instead of the form
 let sending = false;
 
@@ -197,9 +198,14 @@ async function submit(auto) {
   try {
     const r = await API.post(`/api/challenges/${encodeURIComponent(CHALLENGE_ID)}/submit`, { answers });
     mySubmission = r.submission;
+    /* Only set when this hand-in actually earned one — the server sends null
+       otherwise, including on a retake of a badge already held. It lives here
+       rather than on the submission because it is about THIS moment, and must
+       not reappear when the student opens their result again later. */
+    earnedBadge = r.badge || null;
     reviewing = true;
     toast(t('ch.sent'), 'good');
-    confetti(80);
+    confetti(earnedBadge ? 160 : 80);
     render();
   } catch (e) {
     toast(e.message === 'ALREADY_SUBMITTED' ? t('ch.alreadyDone') : e.message, 'bad');
@@ -272,6 +278,14 @@ function resultHtml() {
   return `
     <div class="card ch-result">
       <div class="center">
+        ${earnedBadge ? `
+          <div class="ch-badge-won pop-in">
+            <img class="ch-badge-img" src="${escapeHtml(earnedBadge.image)}" alt="">
+            <div class="ch-badge-text">
+              <div class="ch-badge-label">${t('ch.badgeWon')}</div>
+              <div class="ch-badge-name">${escapeHtml(earnedBadge.name)}</div>
+            </div>
+          </div>` : ''}
         <div>${renderRuby(pct >= 60 ? 'cheer' : 'happy', { size: 140, float: true })}</div>
         <h2>${t('ch.resultTitle')}</h2>
         <div class="score-ring" style="--p:${pct}%; background:conic-gradient(var(--grass) ${pct}%, #ececf5 0)">
@@ -298,6 +312,8 @@ document.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'chRetake') {
     reviewing = false;
     mySubmission = null;
+    // Otherwise the old celebration would reappear over the fresh attempt.
+    earnedBadge = null;
     render();
   }
 });

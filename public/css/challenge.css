@@ -151,3 +151,26 @@
   .ch-card { flex-wrap: wrap; }
   .ch-card .ch-go { width: 100%; text-align: center; }
 }
+
+/* ---------- 🎖️ "you earned a badge" on the result card ----------
+   Above the score, because it is the better news. Shown only for the hand-in
+   that actually won it — see `earnedBadge` in js/challenge.js. */
+.ch-badge-won {
+  display: inline-flex; align-items: center; gap: 14px; text-align: left;
+  background: linear-gradient(135deg, #fff6de, #ffe9f2);
+  border: 3px solid var(--sun); border-radius: var(--radius);
+  padding: 12px 20px 12px 14px; margin-bottom: 16px;
+}
+.ch-badge-img {
+  width: 66px; height: 66px; object-fit: contain; flex: none;
+  border-radius: 14px; background: #fff; padding: 6px;
+}
+.ch-badge-label {
+  font-size: .74rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: #8a6d00;
+}
+.ch-badge-name { font-weight: 800; font-size: 1.1rem; color: var(--ink); }
+
+@media (max-width: 480px) {
+  .ch-badge-won { width: 100%; }
+}
