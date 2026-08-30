@@ -26,7 +26,7 @@ const { GoogleGenAI } = require('@google/genai');
 const config = require('./config');
 
 const MAX_BATCH = 10;         // questions the teacher may ask for in one go
-const MAX_TOKENS = 8000;      // a batch of ten questions with working shown
+const MAX_TOKENS = 16000;     // a batch of ten questions, with room to think first
 const MAX_NOTES = 600;        // the teacher's free-text steer
 const RETRY_DELAY_MS = 1500;
 
@@ -237,12 +237,20 @@ function isTransient(err) {
 }
 
 /**
- * One JSON call to the model, retried once on a rate limit.
+ * One JSON call to the model, tried twice at most.
  *
- * The retry is here because the school runs on a free API tier, where a 429 on
- * the first try is routine rather than exceptional. One retry, not a loop: a
- * teacher waiting on a page needs an answer or an honest failure, not four
- * minutes of silence.
+ * Two different things get a second go, for the same practical reason — the
+ * school is on a free API tier and the first attempt fails more often than it
+ * would on a paid one:
+ *
+ *   - a 429 or a 5xx, which is the provider having a moment, and
+ *   - a reply that came back EMPTY or cut off mid-JSON, which is this model
+ *     spending its whole output budget on thinking and leaving nothing to say.
+ *     Raising the budget made it rare; it did not make it impossible, and the
+ *     failure is stochastic, so asking again usually just works.
+ *
+ * Twice, not a loop: a teacher waiting on a page needs an answer or an honest
+ * failure, not four minutes of silence.
  */
 async function askJson({ system, prompt, schema, maxTokens }) {
   const send = () => getClient().interactions.create({
@@ -259,22 +267,26 @@ async function askJson({ system, prompt, schema, maxTokens }) {
     },
   });
 
-  let interaction;
-  try {
-    interaction = await send();
-  } catch (err) {
-    if (!isTransient(err)) throw err;
-    await sleep(RETRY_DELAY_MS);
-    interaction = await send();
-  }
+  /** One attempt, all the way through to parsed JSON. */
+  const attempt = async () => {
+    const interaction = await send();
+    const text = (interaction.output_text || '').trim();
+    if (!text) {
+      const err = new Error('The model returned nothing.');
+      err.code = 'AI_EMPTY';
+      throw err;
+    }
+    return parseJson(text);
+  };
 
-  const text = (interaction.output_text || '').trim();
-  if (!text) {
-    const err = new Error('The model returned nothing.');
-    err.code = 'AI_EMPTY';
-    throw err;
+  try {
+    return await attempt();
+  } catch (err) {
+    const worthRetrying = isTransient(err) || err.code === 'AI_EMPTY' || err.code === 'AI_BAD_JSON';
+    if (!worthRetrying) throw err;
+    await sleep(RETRY_DELAY_MS);
+    return attempt();
   }
-  return parseJson(text);
 }
 
 /**
@@ -367,8 +379,13 @@ async function generateQuestions({ count, difficulty, types, lang, notes, avoid 
     system,
     prompt: asks.join('\n\n'),
     schema: BATCH_SCHEMA,
-    // Room to think, write, and show the working for every question asked for.
-    maxTokens: Math.min(MAX_TOKENS, 1200 + n * 700),
+    /* Room to think AND to write. `thinking_level: 'high'` spends output tokens
+       reasoning before it emits anything, and those come out of this same
+       budget — the first version allowed 1200 + 700/question, which the
+       thinking alone could exhaust, and the reply then arrived empty or cut
+       off mid-JSON. The floor matters most: one question needs almost as much
+       thinking headroom as ten. */
+    maxTokens: Math.min(MAX_TOKENS, 4000 + n * 900),
   });
 
   return Array.isArray(out.questions) ? out.questions.slice(0, n) : [];
@@ -478,7 +495,9 @@ async function reviewStudentQuestion({ question, lang }) {
 
   const prompt = `A student wrote this question:\n\n${describeForReview(question)}`;
 
-  const r = await askJson({ system, prompt, schema: REVIEW_SCHEMA, maxTokens: 2000 });
+  // Working the answer out is most of this call, and that thinking is billed
+  // against the same budget as the reply — see the note in generateQuestions.
+  const r = await askJson({ system, prompt, schema: REVIEW_SCHEMA, maxTokens: 4000 });
 
   const onTopic = !!r.onTopic;
   const solvable = !!r.solvable;

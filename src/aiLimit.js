@@ -36,12 +36,20 @@ function limitFor(purpose) {
   return limits[purpose] == null ? 0 : limits[purpose];
 }
 
-/** What is left today, without spending anything. */
+/**
+ * What is left today, without spending anything.
+ *
+ * The "have I got allowance left" flag is called `allowed`, NOT `ok`. Routes
+ * spread this object into their responses next to their own answer — and
+ * `/duels/check` answers with `ok`, meaning "Kru CJ approved the question". A
+ * field called `ok` here silently overwrote that one, so a REJECTED question
+ * came back looking approved. Different questions, different names.
+ */
 function statusOf(user, purpose) {
   const limit = limitFor(purpose);
-  if (!limit) return { used: 0, limit: 0, left: null, ok: true, unlimited: true };
+  if (!limit) return { used: 0, limit: 0, left: null, allowed: true, unlimited: true };
   const used = counterOf(user)[purpose] || 0;
-  return { used, limit, left: Math.max(0, limit - used), ok: used < limit, unlimited: false };
+  return { used, limit, left: Math.max(0, limit - used), allowed: used < limit, unlimited: false };
 }
 
 /**
