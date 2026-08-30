@@ -879,6 +879,7 @@ const I18N = {
     't.aiErr.AI_DAILY_LIMIT': 'You have used all of today\u2019s AI requests. They reset tomorrow morning.',
     't.aiErr.AI_BUSY': 'Kru CJ is getting a lot of requests right now — wait about a minute and try again.',
     't.aiErr.AI_FAILED': 'Kru CJ could not write those just now. Please try again in a moment.',
+    't.aiErr.AI_BAD_KEY': 'The server rejected the AI key. Check GEMINI_API_KEY on the host, then redeploy.',
     't.aiErr.AI_NOTHING_USABLE': 'Nothing usable came back that time. Try again, or ask for fewer questions.',
     't.bSaveBankHint': 'Questions are not in the bank until you save it.',
 
@@ -956,6 +957,7 @@ const I18N = {
     'duel.err.AI_DAILY_LIMIT': 'You have had all of today\u2019s checks from Kru CJ. Try again tomorrow.',
     'duel.err.AI_BUSY': 'Kru CJ is busy right now — wait about a minute and try again.',
     'duel.err.AI_FAILED': 'Kru CJ could not read that just now. Please try again in a moment.',
+    'duel.err.AI_BAD_KEY': 'Kru CJ is not set up correctly on this server. Please tell your teacher.',
     'duel.err.DUEL_INCOMPLETE': 'Fill in the question and mark the correct answer first.',
     'duel.err.DUEL_NOT_CHECKED': 'Ask Kru CJ to check your question before you send it.',
     'duel.err.DUEL_EXPIRED': 'That question ran out of time. No coins moved.',
@@ -1836,6 +1838,7 @@ const I18N = {
     't.aiErr.AI_DAILY_LIMIT': 'วันนี้ใช้ AI ครบจำนวนแล้ว จะเริ่มนับใหม่พรุ่งนี้เช้า',
     't.aiErr.AI_BUSY': 'ตอนนี้มีคนเรียกใช้ครู CJ เยอะมาก รออีกประมาณหนึ่งนาทีแล้วลองใหม่นะคะ',
     't.aiErr.AI_FAILED': 'ตอนนี้ครู CJ ออกข้อสอบให้ไม่ได้ ลองใหม่อีกครั้งในอีกสักครู่',
+    't.aiErr.AI_BAD_KEY': 'เซิร์ฟเวอร์ปฏิเสธคีย์ AI กรุณาตรวจสอบ GEMINI_API_KEY บนโฮสต์แล้วดีพลอยใหม่',
     't.aiErr.AI_NOTHING_USABLE': 'รอบนี้ไม่ได้ข้อที่ใช้ได้เลย ลองใหม่หรือลดจำนวนข้อลง',
     't.bSaveBankHint': 'คำถามจะยังไม่เข้าคลังจนกว่าจะกดบันทึก',
 
@@ -1913,6 +1916,7 @@ const I18N = {
     'duel.err.AI_DAILY_LIMIT': 'วันนี้ให้ครู CJ ตรวจครบจำนวนแล้ว พรุ่งนี้ลองใหม่นะ',
     'duel.err.AI_BUSY': 'ตอนนี้ครู CJ ไม่ว่าง รออีกประมาณหนึ่งนาทีแล้วลองใหม่',
     'duel.err.AI_FAILED': 'ตอนนี้ครู CJ อ่านโจทย์ให้ไม่ได้ ลองใหม่อีกครั้งในอีกสักครู่',
+    'duel.err.AI_BAD_KEY': 'ระบบครู CJ ตั้งค่าไม่ถูกต้องในเซิร์ฟเวอร์นี้ กรุณาแจ้งคุณครู',
     'duel.err.DUEL_INCOMPLETE': 'กรอกโจทย์และเลือกคำตอบที่ถูกให้ครบก่อน',
     'duel.err.DUEL_NOT_CHECKED': 'ให้ครู CJ ตรวจโจทย์ก่อนส่งนะ',
     'duel.err.DUEL_EXPIRED': 'โจทย์ข้อนั้นหมดเวลาแล้ว ไม่มีการย้ายเหรียญ',

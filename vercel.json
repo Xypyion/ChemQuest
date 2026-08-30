@@ -5,7 +5,11 @@
     {
       "src": "api/index.js",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["public/**"] }
+      "config": {
+        "includeFiles": ["public/**"],
+        "//": "A Gemini call that thinks before it answers takes tens of seconds. Vercel's default cuts a function off at 10s, which killed the AI features mid-request and surfaced as a generic 'could not answer just now'. 60 is the Hobby ceiling; Pro allows more.",
+        "maxDuration": 60
+      }
     }
   ],
   "routes": [{ "src": "/(.*)", "dest": "/api/index.js" }]

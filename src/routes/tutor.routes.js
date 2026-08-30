@@ -16,6 +16,7 @@ const db = require('../db');
 const ch = require('../challenges');
 const config = require('../config');
 const tutor = require('../tutor');
+const ai = require('../aiQuestions'); // failureOf/describeFailure: one failure vocabulary for both AI features
 const credit = require('../tutorCredit');
 const { authMiddleware, requireRole } = require('../auth');
 
@@ -179,18 +180,23 @@ router.post('/ask', async (req, res) => {
       charged: 0,
     });
     db.save();
-    console.error('[tutor]', (err && err.message) || err);
+    console.error('[tutor]', ai.describeFailure(err));
 
-    // 429 from the model provider means its OWN rate limit was hit — distinct
-    // from our coin/free-question limit, and common on a free API tier under
-    // rapid testing. Say so plainly rather than a generic failure.
-    const rateLimited = err && err.status === 429;
-    res.status(rateLimited ? 429 : 502).json({
-      error: rateLimited
-        ? "Kru CJ is getting a lot of questions right now — wait about a minute and try again."
-        : 'Kru CJ could not answer just now. Please try again in a moment.',
-      ...credit.statusOf(req.user),
-    });
+    /* Which failure it was matters, because these read very differently to the
+       person on the other end:
+         AI_BUSY     — the provider's OWN rate limit, distinct from the coin and
+                       free-question limits, and common on a free tier.
+         AI_BAD_KEY  — the provider rejected the key. A student can do nothing
+                       about it, so say plainly that it is the server, not them;
+                       the detail is in the log for whoever deployed it.
+       Everything else stays the generic "try again". */
+    const { status, code } = ai.failureOf(err);
+    const MESSAGES = {
+      AI_BUSY: 'Kru CJ is getting a lot of questions right now — wait about a minute and try again.',
+      AI_BAD_KEY: 'Kru CJ is not set up correctly on this server. Please tell your teacher.',
+      AI_FAILED: 'Kru CJ could not answer just now. Please try again in a moment.',
+    };
+    res.status(status).json({ error: MESSAGES[code], ...credit.statusOf(req.user) });
   }
 });
 

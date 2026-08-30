@@ -137,15 +137,12 @@ router.post('/questions', async (req, res) => {
     // The teacher got nothing, so the allowance goes back.
     aiLimit.refund(req.user, 'generate');
     db.save();
-    console.error('[ai/questions]', (err && err.message) || err);
+    console.error('[ai/questions]', ai.describeFailure(err));
 
-    // A 429 here is the MODEL PROVIDER's rate limit, not ours — a different
-    // thing from AI_DAILY_LIMIT above, and routine on a free API tier.
-    const rateLimited = err && err.status === 429;
-    res.status(rateLimited ? 429 : 502).json({
-      error: rateLimited ? 'AI_BUSY' : 'AI_FAILED',
-      ...aiLimit.statusOf(req.user, 'generate'),
-    });
+    // AI_BUSY is the MODEL PROVIDER's rate limit, a different thing from the
+    // AI_DAILY_LIMIT above; AI_BAD_KEY is a key the provider would not accept.
+    const { status, code } = ai.failureOf(err);
+    res.status(status).json({ error: code, ...aiLimit.statusOf(req.user, 'generate') });
   }
 });
 

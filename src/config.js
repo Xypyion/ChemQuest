@@ -91,9 +91,27 @@ function noteThinkingUnsupported(model) {
   console.warn(`[ai] ${model} does not take a thinking level; continuing without one.`);
 }
 
-/** `want` when this model will think, '' when it has told us it will not. */
+/**
+ * How hard this model should think on this call.
+ *
+ * `want` is what the caller would like; '' means send no thinking level at all.
+ * Two things override it:
+ *
+ *   - a model that has already refused the setting (above), and
+ *   - `GEMINI_THINKING` in the environment, which is the escape hatch for a
+ *     host that kills slow requests. Thinking is what makes a generated answer
+ *     key arithmetically right, so it is on by default — but a reply that gets
+ *     cut off by a serverless timeout is worth nothing at all, and on Vercel
+ *     that is a real trade. `GEMINI_THINKING=off` turns it off everywhere;
+ *     `low` or `minimal` dials it down.
+ */
 function thinkingFor(model, want) {
-  return noThinking.has(model) ? '' : want;
+  if (noThinking.has(model)) return '';
+  load();
+  const override = (process.env.GEMINI_THINKING || '').trim().toLowerCase();
+  if (override === 'off' || override === 'none') return '';
+  if (override) return override;
+  return want;
 }
 
 /** Is this the API telling us the thinking level was the problem? */

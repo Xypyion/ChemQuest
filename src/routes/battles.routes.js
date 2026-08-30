@@ -405,12 +405,9 @@ studentRouter.post('/duels/check', async (req, res) => {
   } catch (err) {
     aiLimit.refund(req.user, 'review');
     db.save();
-    console.error('[duel/check]', (err && err.message) || err);
-    const rateLimited = err && err.status === 429;
-    return res.status(rateLimited ? 429 : 502).json({
-      error: rateLimited ? 'AI_BUSY' : 'AI_FAILED',
-      ...aiLimit.statusOf(req.user, 'review'),
-    });
+    console.error('[duel/check]', ai.describeFailure(err));
+    const { status, code } = ai.failureOf(err);
+    return res.status(status).json({ error: code, ...aiLimit.statusOf(req.user, 'review') });
   }
 
   if (!review.ok) {

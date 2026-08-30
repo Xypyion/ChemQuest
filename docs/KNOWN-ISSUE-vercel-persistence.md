@@ -268,6 +268,41 @@ Environment Variables), for Production *and* Preview:
 |----------|-------|
 | `DATABASE_URL` | the connection string from step 1 |
 | `JWT_SECRET` | a long random string — **do not skip this**, it currently falls back to a development default |
+| `GEMINI_API_KEY` | required for the AI tutor, AI question writing and student duels. Without it all three switch themselves off; the rest of the app is fine |
+| `GEMINI_MODEL` | optional; blank uses `gemini-3.1-flash-lite` |
+| `GEMINI_THINKING` | optional; blank is fine. Set `low` or `off` only if AI calls are being cut off by the function timeout |
+| `AI_GENERATE_LIMIT` | daily AI question batches per teacher (default 60) |
+| `AI_REVIEW_LIMIT` | daily duel-question checks per student (default 20). **0 means unlimited** — do not use 0 with a class on a free tier |
+
+> `.env` is git-ignored and therefore **not deployed**. Anything you set locally
+> has to be set again in the Vercel dashboard, and the project has to be
+> **redeployed** afterwards — changing a variable does not restart what is
+> already running.
+
+### 7b-2. The AI works locally but fails on Vercel
+
+The symptom is a generic *"Kru CJ could not answer just now"* or *"could not
+read that just now"*. Work down this list:
+
+1. **Is the key set in Vercel at all?** If it is missing the app says "not set
+   up on this server yet" instead — a *different* message. Seeing "could not
+   answer" means the key is present and the call itself failed.
+2. **Is the function being killed on time?** This is the usual cause. A Gemini
+   call that thinks before answering takes tens of seconds, and Vercel's default
+   cuts a function off at **10 seconds**. `vercel.json` now sets
+   `maxDuration: 60`, which is the Hobby ceiling — if you are on Hobby and a big
+   batch still times out, ask for fewer questions at a time, or set
+   `GEMINI_THINKING=low`.
+3. **Was the key rejected?** A key that is wrong, restricted to the wrong
+   referrer, or belongs to a project without the API enabled comes back 401/403.
+   That is reported separately now — students see "not set up correctly on this
+   server", the teacher console names `GEMINI_API_KEY`, and the function log
+   carries the provider's status.
+4. **Read the function log.** Every model call logs how long it took
+   (`[ai] <model> replied in NNNNms`) and every failure logs the provider's HTTP
+   status. Vercel → the deployment → Functions. A number close to your timeout
+   is the answer; a 401 or 403 is the answer; a 429 means the free tier's
+   request-per-day allowance is spent.
 
 **4. Redeploy**, then run the checks in §7c.
 

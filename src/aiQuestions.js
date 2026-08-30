@@ -272,7 +272,12 @@ async function askJson({ system, prompt, schema, maxTokens }) {
 
   /** One attempt, all the way through to parsed JSON. */
   const attempt = async () => {
+    const started = Date.now();
     const interaction = await send(config.thinkingFor(model, 'high'));
+    // How long the model took, in the log. On a host that kills slow requests
+    // — Vercel defaults to 10s — this number is the difference between "the AI
+    // is broken" and "the AI needed 24 seconds and was cut off at 10".
+    console.log(`[ai] ${model} replied in ${Date.now() - started}ms`);
     const text = (interaction.output_text || '').trim();
     if (!text) {
       const err = new Error('The model returned nothing.');
@@ -528,10 +533,39 @@ async function reviewStudentQuestion({ question, lang }) {
   };
 }
 
+/**
+ * Turn a thrown model error into the status and code a route should answer with.
+ *
+ * Both AI routes used to collapse everything that was not a 429 into a flat
+ * "AI_FAILED", which is the least useful thing you can tell someone whose
+ * deployment is misconfigured — a rejected API key and a network blip read
+ * identically. The cases that are worth telling apart are told apart here, once.
+ */
+function failureOf(err) {
+  const status = err && err.status;
+  // The provider's OWN rate limit, distinct from our per-person daily cap.
+  if (status === 429) return { status: 429, code: 'AI_BUSY' };
+  // The key is missing, wrong, restricted, or the API is not enabled for it.
+  // Overwhelmingly the cause when a deployment has never worked even once.
+  if (status === 401 || status === 403) return { status: 502, code: 'AI_BAD_KEY' };
+  return { status: 502, code: 'AI_FAILED' };
+}
+
+/** A one-line description of a model failure, for the server log. */
+function describeFailure(err) {
+  const bits = [];
+  if (err && err.status) bits.push('HTTP ' + err.status);
+  if (err && err.code) bits.push(err.code);
+  bits.push((err && err.message) || String(err));
+  return bits.join(' — ');
+}
+
 module.exports = {
   MAX_BATCH,
   MAX_NOTES,
   TOPIC,
   generateQuestions,
   reviewStudentQuestion,
+  failureOf,
+  describeFailure,
 };
