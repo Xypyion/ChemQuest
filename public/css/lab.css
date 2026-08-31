@@ -1,0 +1,290 @@
+/* =========================================================================
+   The Lab — StoiVenture's games tab.
+
+   THIS IS THE SAME DESIGN SYSTEM, IN A DIFFERENT ROOM.
+   Every other page is outdoors in daylight: pale sky gradient, soft, airy. A
+   game should feel like the opposite — indoors, at night, the screen glowing.
+   Getting there without inventing a second design system is the whole trick,
+   so only ONE thing changes: the ground.
+
+   The Lab's floor is the app's own ink. `--ink: #3a3357` in theme.css is the
+   colour every word in StoiVenture is already written in; pushed deeper it
+   becomes the background here. Same hue, different job — which is why this
+   cannot read as a different product.
+
+   EVERY ACCENT KEEPS ITS EXACT VALUE. --grass, --primary, --sun, --secondary
+   and --pink are used unchanged, straight from theme.css. On a dark ground
+   they stop sitting *on* the page and become the light in it. The house rule
+   from theme.css still holds and gets easier here, not harder: bright fill,
+   dark ink.
+
+   Scoped entirely to `body.lab`, the same way login.css scopes to
+   `body.login-page`. Nothing outside the Lab can be affected by this file.
+   ========================================================================= */
+
+body.lab {
+  /* ---- the new ground, all four values derived from --ink ---- */
+  --void:   #170f2b;
+  --deep:   #1f1740;
+  --panel:  #2b2050;
+  --panel-2:#352866;
+  --line:   #48397a;
+  --glass:  rgba(255, 255, 255, .07);
+
+  --lab-text: #f2ecff;
+  --lab-dim:  #a99ccb;
+
+  /* Corners tighten from theme.css's 22px. Games read as precise; the rest of
+     the app reads as bubbly. Same shapes, less bounce. */
+  --lab-radius: 11px;
+
+  color: var(--lab-text);
+  background:
+    /* graph paper, like a lab notebook — texture with no artwork */
+    linear-gradient(rgba(255, 255, 255, .028) 1px, transparent 1px) 0 0 / 26px 26px,
+    linear-gradient(90deg, rgba(255, 255, 255, .028) 1px, transparent 1px) 0 0 / 26px 26px,
+    radial-gradient(120% 70% at 50% -10%, #2f2358 0%, var(--deep) 46%, var(--void) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* The shared topbar sits on the dark ground here. Same markup, same icons —
+   mountNav() is untouched; only what is behind it changes. */
+body.lab .topbar {
+  background: rgba(12, 8, 24, .55);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+body.lab .nav-link { color: var(--lab-dim); }
+body.lab .nav-link:hover { background: var(--glass); color: var(--lab-text); }
+body.lab .nav-link.is-current { background: var(--secondary); color: #0e1830; }
+body.lab .nav-name { color: var(--lab-text); }
+body.lab .nav-out { color: var(--lab-dim); }
+body.lab .nav-out:hover { color: var(--lab-text); background: var(--glass); }
+body.lab .wordmark { color: var(--brand-pink); }
+body.lab .wordmark b { color: #6fa8ff; }
+
+body.lab h1, body.lab h2, body.lab h3 { color: var(--lab-text); }
+body.lab .muted { color: var(--lab-dim); }
+
+/* ---------- the glow ----------
+   The single new effect in this file. The hard 3D edge from theme.css stays
+   exactly as it is; the halo is added underneath it. This is what makes the
+   page read as a screen you play rather than a page you read. */
+.lab-glow-grass { box-shadow: 0 5px 0 #2c6a1c, 0 0 26px rgba(126, 217, 87, .40); }
+.lab-glow-sun   { box-shadow: 0 5px 0 #a87f00, 0 0 26px rgba(255, 210, 63, .40); }
+.lab-glow-pri   { box-shadow: 0 5px 0 var(--primary-dark), 0 0 26px rgba(255, 138, 61, .40); }
+
+/* ---------- layout ---------- */
+.lab-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 18px 80px; }
+
+.lab-head { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.lab-head h1 { font-size: clamp(1.5rem, 3.4vw, 2.1rem); margin: 0; }
+.lab-head .lab-sub { color: var(--lab-dim); font-size: var(--t-sm, .92rem); margin: 4px 0 0; }
+.lab-count {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 2px solid var(--line); border-radius: 999px;
+  padding: 7px 16px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.lab-count b { font-size: 1.15rem; }
+.lab-count span { color: var(--lab-dim); font-weight: 600; font-size: .82rem; }
+
+.lab-panel {
+  background: var(--panel); border: 2px solid var(--line);
+  border-radius: var(--lab-radius); padding: 18px;
+  box-shadow: 0 6px 0 #150e2c, inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+/* ---------- the periodic table ---------- */
+.ptable-scroll { overflow-x: auto; padding-bottom: 6px; }
+.ptable {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(30px, 1fr));
+  gap: 3px;
+  min-width: 620px;
+}
+.ptable .spacer { grid-column: 1 / -1; height: 8px; }
+
+.el {
+  position: relative;
+  aspect-ratio: 1; border-radius: 5px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1px solid rgba(0, 0, 0, .45);
+  font-weight: 800; line-height: 1;
+  cursor: default; padding: 0;
+  font-family: var(--font);
+  transition: transform .12s ease;
+}
+.el .z {
+  position: absolute; top: 2px; left: 3px;
+  font-size: 7px; font-weight: 500; opacity: .55; font-variant-numeric: tabular-nums;
+}
+.el .sym { font-size: clamp(9px, 1.15vw, 13px); }
+
+/* Found elements take their group colour. The palette is the app's own
+   accents, assigned per group so the table teaches its own structure. */
+.el.is-found { color: #171030; cursor: pointer; }
+.el.is-found:hover { transform: translateY(-2px); }
+.el.is-found:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; z-index: 3; }
+
+.el.cat-alkali     { background: #ffb98a; }
+.el.cat-alkaline   { background: #ffd08a; }
+.el.cat-transition { background: #a8e88a; }
+.el.cat-post       { background: #8ae0c8; }
+.el.cat-metalloid  { background: #8fd4ff; }
+.el.cat-nonmetal   { background: #9fc4ff; }
+.el.cat-halogen    { background: #c9b0ff; }
+.el.cat-noble      { background: #ff9fd0; }
+.el.cat-lanthanide { background: #ffe08a; }
+.el.cat-actinide   { background: #ffab9f; }
+
+.el.is-locked {
+  background: rgba(255, 255, 255, .045);
+  border-color: rgba(255, 255, 255, .09);
+  color: rgba(242, 236, 255, .20);
+}
+.el.is-new { animation: elPop .5s ease both; z-index: 4; }
+.el.is-new::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 7px;
+  border: 2px solid var(--sun); box-shadow: 0 0 18px rgba(255, 210, 63, .8);
+}
+@keyframes elPop {
+  0%   { transform: scale(.4) rotate(-12deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ---------- element card ---------- */
+.el-card {
+  display: grid; grid-template-columns: 76px 1fr; gap: 16px; align-items: start;
+}
+.el-card .big {
+  width: 76px; height: 76px; border-radius: 12px; border: 3px solid #17102e;
+  display: grid; place-items: center; font-size: 1.9rem; font-weight: 900; color: #171030;
+}
+.el-card h3 { margin: 0 0 2px; font-size: 1.2rem; }
+.el-card .meta { color: var(--lab-dim); font-size: .84rem; margin: 0 0 8px; }
+.el-card .fact { margin: 0; font-size: .95rem; line-height: 1.55; }
+
+/* ---------- game chooser ---------- */
+.lab-games { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 22px 0; }
+.game-card {
+  text-align: left; font-family: var(--font); color: var(--lab-text);
+  background: var(--panel-2); border: 2px solid var(--line);
+  border-radius: var(--lab-radius); padding: 17px 18px 19px; cursor: pointer;
+  box-shadow: 0 6px 0 #150e2c; transition: transform .1s ease, box-shadow .1s ease;
+}
+.game-card:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #150e2c; }
+.game-card:active { transform: translateY(4px); box-shadow: 0 2px 0 #150e2c; }
+.game-card:focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+.game-card h3 { margin: 0 0 5px; font-size: 1.08rem; display: flex; align-items: center; gap: 9px; }
+.game-card h3 svg { flex: none; }
+.game-card p { margin: 0; color: var(--lab-dim); font-size: .88rem; line-height: 1.5; }
+.game-card .worth {
+  display: inline-block; margin-top: 11px; font-size: .76rem; font-weight: 800;
+  background: var(--sun); color: #6b4a00; border-radius: 999px; padding: 3px 10px;
+}
+
+/* ---------- playing ---------- */
+.play { max-width: 620px; margin: 0 auto; }
+.play-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.play-top h2 { margin: 0; font-size: 1.25rem; }
+.play-worth {
+  margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: var(--sun); color: #6b4a00; border-radius: 999px; padding: 5px 13px; font-size: .86rem;
+}
+
+.clues { display: flex; flex-direction: column; gap: 9px; }
+.clue {
+  background: var(--glass); border-left: 4px solid var(--accent);
+  border-radius: 0 10px 10px 0; padding: 12px 14px; font-size: 1rem; line-height: 1.5;
+  animation: clueIn .28s ease both;
+}
+@keyframes clueIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+
+.statement {
+  background: var(--glass); border: 2px solid var(--line); border-radius: var(--lab-radius);
+  padding: 20px; font-size: 1.1rem; line-height: 1.55; text-align: center;
+}
+
+.choices { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.choice {
+  flex: 1 1 90px; font-family: var(--font); font-size: 1.15rem; font-weight: 900;
+  color: var(--lab-text); background: var(--panel-2);
+  border: 2px solid rgba(0, 0, 0, .45); border-radius: var(--lab-radius);
+  padding: 15px 8px; cursor: pointer; box-shadow: 0 5px 0 #150e2c;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+.choice:hover { transform: translateY(-2px); box-shadow: 0 7px 0 #150e2c; }
+.choice:active { transform: translateY(3px); box-shadow: 0 2px 0 #150e2c; }
+.choice:focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+.choice.is-right { background: var(--grass); color: #1c4a10; box-shadow: 0 5px 0 #2c6a1c, 0 0 26px rgba(126, 217, 87, .45); }
+.choice.is-wrong { background: #ff6f8a; color: #4d0715; box-shadow: 0 5px 0 #c03a55; }
+.choice[disabled] { cursor: default; }
+.choice[disabled]:hover { transform: none; box-shadow: 0 5px 0 #150e2c; }
+.choice.is-right[disabled]:hover { box-shadow: 0 5px 0 #2c6a1c, 0 0 26px rgba(126, 217, 87, .45); }
+.choice.is-wrong[disabled]:hover { box-shadow: 0 5px 0 #c03a55; }
+
+.tf-row .choice { font-size: 1.05rem; }
+
+.clue-more {
+  display: block; width: 100%; margin-top: 12px;
+  font-family: var(--font); font-size: .9rem; font-weight: 700; color: var(--lab-dim);
+  background: transparent; border: 2px dashed var(--line); border-radius: var(--lab-radius);
+  padding: 11px; cursor: pointer;
+}
+.clue-more:hover { color: var(--lab-text); border-color: var(--lab-dim); }
+.clue-more:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.clue-more[disabled] { opacity: .4; cursor: default; }
+
+/* ---------- result ---------- */
+.result { margin-top: 20px; animation: clueIn .3s ease both; }
+.verdict { font-size: 1.25rem; font-weight: 900; margin: 0 0 10px; }
+.verdict.good { color: #8ff06f; }
+.verdict.bad  { color: #ff9db0; }
+.why { margin: 0; font-size: .98rem; line-height: 1.6; color: var(--lab-text); }
+
+.reward { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.reward .coin-won {
+  display: flex; align-items: center; gap: 6px; font-weight: 900;
+  background: var(--sun); color: #6b4a00; border-radius: 999px; padding: 7px 15px;
+  font-variant-numeric: tabular-nums;
+}
+.reward .found-el {
+  display: flex; align-items: center; gap: 9px; font-weight: 800;
+  background: var(--glass); border: 2px solid var(--line); border-radius: 999px; padding: 6px 15px 6px 7px;
+}
+.reward .found-el i {
+  width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+  font-style: normal; font-weight: 900; color: #171030; border: 2px solid #17102e;
+}
+
+.play-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.lab-btn {
+  font-family: var(--font); font-size: .98rem; font-weight: 800;
+  border: 2px solid rgba(0, 0, 0, .45); border-radius: 999px;
+  padding: 11px 22px; cursor: pointer; color: #171030;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+.lab-btn:active { transform: translateY(3px); }
+.lab-btn:focus-visible { outline: 3px solid var(--sun); outline-offset: 3px; }
+.lab-btn.primary { background: var(--grass); }
+.lab-btn.ghost {
+  background: transparent; color: var(--lab-dim);
+  border-color: var(--line); box-shadow: none;
+}
+.lab-btn.ghost:hover { color: var(--lab-text); background: var(--glass); }
+
+/* ---------- daily ceiling notice ---------- */
+.capped {
+  margin-top: 16px; background: var(--glass); border: 2px solid var(--line);
+  border-radius: var(--lab-radius); padding: 13px 16px; font-size: .9rem; color: var(--lab-dim);
+}
+.capped b { color: var(--sun); }
+
+/* The pulse on a fresh drop and the clue slide are decoration. Anyone who has
+   asked the OS to stop moving things gets the same information, still. */
+@media (prefers-reduced-motion: reduce) {
+  .el.is-new, .clue, .result { animation: none; }
+  .game-card, .choice, .el, .lab-btn { transition: none; }
+}

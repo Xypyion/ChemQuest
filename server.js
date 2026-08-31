@@ -81,6 +81,7 @@ app.use('/api/teacher/quests', questRoutes.teacherRouter);          // teacher b
 const battleRoutes = require('./src/routes/battles.routes');
 app.use('/api/battles', battleRoutes.studentRouter);                // students raid each other for coins
 app.use('/api/teacher/battles', battleRoutes.teacherRouter);        // teacher sets stakes & question banks
+app.use('/api/lab', require('./src/routes/lab.routes'));             // the Lab: games, coins, the element collection
 app.use('/api/teacher/ai', require('./src/routes/ai.routes'));       // AI writes questions
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
