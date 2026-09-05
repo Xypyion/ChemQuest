@@ -439,3 +439,98 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
   .modal.wide { max-width: 100%; }
   .ai-list { max-height: 50vh; }
 }
+
+/* ===================================================================
+   AI marking — the rubric editor, Kru CJ's suggestions, the report.
+
+   Everything here is built from the existing --t-* tokens plus --good
+   and --bad from theme.css. No new raw hex: teacher.css already carries
+   more of that than it should (see CLAUDE.md), and this should not add
+   to the pile.
+
+   The visual rule: a SUGGESTION never looks like a mark. Suggestions are
+   dashed, tinted and quiet; the score box the teacher confirms in keeps
+   the solid border it has always had.
+   =================================================================== */
+
+.t-hint { font-size: .8rem; color: var(--t-soft); line-height: 1.5; margin: 0 0 6px; }
+
+.q-aimark-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .88rem; font-weight: 600; color: var(--t-ink); cursor: pointer; }
+.q-aimark-row input { width: 17px; height: 17px; accent-color: var(--t-accent); cursor: pointer; }
+
+/* ---------------------------- the toolbar ---------------------------- */
+
+.ai-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.ai-bar .ai-bar-text { flex: 1 1 220px; min-width: 0; }
+.ai-bar .ai-bar-text b { display: block; color: var(--t-ink); }
+.ai-bar .ai-bar-text .sub { font-size: .82rem; color: var(--t-soft); }
+.ai-bar .ai-status { font-size: .82rem; font-weight: 600; color: var(--t-accent-dark); }
+.ai-bar.off { color: var(--t-soft); font-size: .88rem; }
+.ai-bar .tbtn svg { vertical-align: -2px; }
+
+/* ------------------------ a suggestion, per answer ------------------- */
+
+.ai-chip {
+  font-size: .7rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
+  color: var(--t-accent-dark); background: color-mix(in srgb, var(--t-accent) 14%, transparent);
+  padding: 3px 8px; border-radius: 999px;
+}
+
+.ai-mark {
+  margin-top: 10px; padding: 10px 12px; border-radius: 11px;
+  border: 1px dashed color-mix(in srgb, var(--t-accent) 45%, var(--t-line));
+  background: color-mix(in srgb, var(--t-accent) 6%, transparent);
+}
+.ai-mark-head { font-size: .82rem; font-weight: 800; color: var(--t-accent-dark); display: flex; align-items: center; gap: 6px; }
+.ai-mark .ai-crit { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.ai-mark .ai-crit li { display: flex; align-items: flex-start; gap: 7px; font-size: .84rem; line-height: 1.45; color: var(--t-ink); }
+.ai-mark .ai-crit li svg { flex: none; margin-top: 2px; }
+.ai-mark .ai-crit li.met { color: var(--t-ink); }
+.ai-mark .ai-crit li.met svg { color: var(--good); }
+.ai-mark .ai-crit li.unmet { color: var(--t-soft); }
+.ai-mark .ai-crit li.unmet svg { color: var(--bad); }
+.ai-mark .ai-fb { margin-top: 8px; font-size: .86rem; line-height: 1.55; color: var(--t-ink); }
+.ai-mark .ai-warn { margin-top: 8px; font-size: .8rem; font-weight: 600; color: var(--t-danger); }
+
+/* --------------------- the per-student diagnosis --------------------- */
+
+.ai-diag {
+  margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+  background: var(--t-bg); border-left: 4px solid var(--t-soft);
+}
+.ai-diag.level-strong { border-left-color: var(--good); }
+.ai-diag.level-mixed { border-left-color: var(--t-blue); }
+.ai-diag.level-struggling { border-left-color: var(--t-danger); }
+.ai-diag-head { font-size: .82rem; font-weight: 800; color: var(--t-soft); text-transform: uppercase; letter-spacing: .03em; }
+.ai-diag .ai-level { font-weight: 800; color: var(--t-ink); text-transform: none; letter-spacing: 0; }
+.ai-diag p { margin: 6px 0 0; font-size: .9rem; line-height: 1.55; color: var(--t-ink); }
+.ai-diag-row { display: flex; gap: 8px; margin-top: 6px; font-size: .84rem; line-height: 1.5; }
+.ai-diag-row b { flex: none; color: var(--t-soft); font-weight: 700; }
+.ai-diag-row span { color: var(--t-ink); }
+
+/* -------------------------- the class report ------------------------- */
+
+.ai-report h3 { margin: 0 0 2px; display: flex; align-items: center; gap: 8px; color: var(--t-ink); }
+.ai-report h4 { margin: 16px 0 6px; font-size: .84rem; text-transform: uppercase; letter-spacing: .03em; color: var(--t-soft); }
+.ai-report .sub { font-size: .8rem; color: var(--t-soft); }
+.ai-report-sum { margin: 10px 0 0; font-size: .95rem; line-height: 1.6; color: var(--t-ink); }
+.ai-report ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.ai-report li { font-size: .88rem; line-height: 1.55; color: var(--t-ink); }
+.ai-mis li { display: flex; align-items: flex-start; gap: 10px; }
+.ai-count {
+  flex: none; min-width: 26px; text-align: center; font-weight: 800; font-size: .8rem;
+  color: var(--t-danger); background: color-mix(in srgb, var(--t-danger) 12%, transparent);
+  border-radius: 999px; padding: 2px 6px;
+}
+.ai-mis i { color: var(--t-soft); font-style: italic; }
+.ai-reteach li, .ai-byq li { padding-left: 16px; position: relative; }
+.ai-reteach li::before, .ai-byq li::before {
+  content: ''; position: absolute; left: 0; top: .55em;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--t-accent);
+}
+
+@media (max-width: 620px) {
+  .ai-bar { flex-direction: column; align-items: stretch; }
+  .ai-bar .tbtn { width: 100%; }
+  .ai-diag-row { flex-direction: column; gap: 2px; }
+}

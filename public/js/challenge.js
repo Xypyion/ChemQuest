@@ -22,6 +22,12 @@ let mySubmission = null;
 let reviewing = false;   // showing the marked result instead of the form
 let sending = false;
 
+// "Check my answer" state: how many looks are left per question, from the
+// server. Only a label — src/aiMarking.js is what actually enforces the cap.
+let CHECKS = {};
+let AI_ENABLED = false;
+let MAX_CHECKS = 2;
+
 // countdown
 let deadline = 0;
 let timerId = null;
@@ -35,6 +41,9 @@ async function start() {
     challenge = data.challenge;
     category = data.category;
     mySubmission = data.mySubmission;
+    CHECKS = data.checks || {};
+    AI_ENABLED = !!data.aiEnabled;
+    MAX_CHECKS = data.maxChecks || 2;
     reviewing = !!mySubmission;
     document.getElementById('chTitlePill').textContent = (challenge.icon || '🧩') + ' ' + challenge.title;
     render();
@@ -128,6 +137,7 @@ function questionHtml(q, n, sub) {
       <div class="ch-q-text">${chem(q.question)}</div>
       ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
       ${answerHtml(q)}
+      ${checkRow(q)}
     </section>`;
 }
 
@@ -144,6 +154,85 @@ function askRuby(qid) {
       return qid in answers ? myAnswerText(q, answers[qid]) : '';
     },
   });
+}
+
+/* ------------------------- checking your own answer ---------------------- *
+ *
+ * "Check my answer" is not the same button as "Ask Ruby". Ruby has never been
+ * shown the answer and gives hints; this asks Kru CJ to look over what you have
+ * actually written, against the marking rubric your teacher wrote.
+ *
+ * Because the model IS given that rubric, the number of checks is capped
+ * server-side (see src/aiMarking.js). The count shown here is only a label —
+ * the server is what enforces it, and it is what we re-read after every call.
+ * It never returns a score: a mark is the teacher's to give.
+ * ------------------------------------------------------------------------- */
+
+/** The check row under one answer, or nothing at all. */
+function checkRow(q) {
+  if (reviewing || !AI_ENABLED || !q.canCheck) return '';
+  const left = CHECKS[q.id] == null ? MAX_CHECKS : CHECKS[q.id];
+  return `
+    <div class="ch-check" data-check="${escapeHtml(q.id)}">
+      <button type="button" class="ch-check-btn" onclick="checkMyAnswer('${q.id}')" ${left ? '' : 'disabled'}>
+        ${ICON.chat(15)} <span>${escapeHtml(t('ch.checkBtn'))}</span>
+        <span class="ch-check-left">${escapeHtml(t('ch.checkLeft', { n: left }))}</span>
+      </button>
+      <div class="ch-check-out" hidden></div>
+    </div>`;
+}
+
+async function checkMyAnswer(qid) {
+  const row = document.querySelector(`.ch-check[data-check="${qid}"]`);
+  if (!row) return;
+  const btn = row.querySelector('.ch-check-btn');
+  const out = row.querySelector('.ch-check-out');
+
+  const answers = collectAnswers();
+  const answer = qid in answers ? String(answers[qid]) : '';
+  if (!answer.trim()) { toast(t('ch.checkEmpty'), 'bad'); return; }
+
+  btn.disabled = true;
+  const label = btn.querySelector('span');
+  const wasLabel = label.textContent;
+  label.textContent = t('ch.checkWorking');
+  out.hidden = true;
+
+  try {
+    const r = await API.post('/api/tutor/check', {
+      challengeId: CHALLENGE_ID, questionId: qid, answer, lang: getLang(),
+    });
+
+    CHECKS[qid] = r.checksLeft;
+    const bullets = (cls, items) => (items || []).map((x) =>
+      `<li class="${cls}">${cls === 'met' ? ICON.check(13) : ICON.close(13)}<span>${escapeHtml(x)}</span></li>`).join('');
+
+    out.innerHTML = `
+      <div class="ch-check-card">
+        <div class="ch-check-head">${ICON.chat(14)} ${escapeHtml(t('ch.checkHead'))}</div>
+        <p class="ch-check-fb">${chem(r.feedback)}</p>
+        ${(r.met || []).length || (r.missing || []).length ? `<ul class="ch-check-list">
+          ${bullets('met', r.met)}${bullets('unmet', r.missing)}</ul>` : ''}
+        <div class="ch-check-note">${escapeHtml(t('ch.checkNotAMark'))}</div>
+      </div>`;
+    out.hidden = false;
+  } catch (e) {
+    const MSG = {
+      CHECK_LIMIT: 'ch.checkNoneLeft',
+      NOT_CHECKABLE: 'ch.checkNotAvailable',
+      EMPTY_ANSWER: 'ch.checkEmpty',
+      AI_DISABLED: 'ch.checkOff',
+      AI_DAILY_LIMIT: 'ch.checkDailyLimit',
+    };
+    toast(MSG[e.message] ? t(MSG[e.message]) : e.message, 'bad');
+    if (e.message === 'CHECK_LIMIT') CHECKS[qid] = 0;
+  } finally {
+    label.textContent = wasLabel;
+    const left = CHECKS[qid] == null ? MAX_CHECKS : CHECKS[qid];
+    const pill = row.querySelector('.ch-check-left');
+    if (pill) pill.textContent = t('ch.checkLeft', { n: left });
+    btn.disabled = !left;
+  }
 }
 
 // Rendering + answer collection are shared with the quest player — see js/qrender.js.

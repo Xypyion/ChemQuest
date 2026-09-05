@@ -18,8 +18,15 @@
 const config = require('./config');
 const credit = require('./tutorCredit');
 
-/** The purposes we count separately. */
-const PURPOSES = ['generate', 'review'];
+/**
+ * The purposes we count separately.
+ *
+ *   generate - a teacher writing a question bank
+ *   review   - a student having their own duel question checked
+ *   mark     - a teacher marking a class set against their rubric
+ *   check    - a student checking their own written answer while working
+ */
+const PURPOSES = ['generate', 'review', 'mark', 'check'];
 
 /** This person's counter, reset when the school day rolled over. */
 function counterOf(user) {

@@ -231,6 +231,7 @@ const TChallenges = (() => {
   function blankQuestion(type) {
     return {
       _id: uid(), type: type || 'mcq', question: '', image: '', points: 1, explanation: '',
+      rubric: '', aiMark: false,
       choices: ['', ''], correctIndex: 0, correctIndexes: [],
       accepted: [], caseSensitive: false,
       table: { columns: ['', ''], rows: [{ cells: [{ text: '', blank: false, answer: '' }, { text: '', blank: true, answer: '' }] }] },
@@ -246,6 +247,8 @@ const TChallenges = (() => {
     b.image = q.image || '';
     b.points = q.points == null ? 1 : q.points;
     b.explanation = q.explanation || '';
+    b.rubric = q.rubric || '';
+    b.aiMark = !!q.aiMark;
     if (q.choices && q.choices.length) b.choices = q.choices.slice();
     b.correctIndex = q.correctIndex || 0;
     b.correctIndexes = (q.correctIndexes || []).slice();
@@ -372,6 +375,21 @@ const TChallenges = (() => {
       <label class="t-label">${t('t.chExplain')}</label>
       <input type="text" class="t-input q-explain" value="${esc(q.explanation)}" placeholder="${esc(t('t.chExplainPh'))}">`;
 
+    /* The rubric is offered only on the types the machine cannot mark on its
+       own. `src/challenges.js isAiMarkable` makes the same call server-side and
+       is the one that counts — a rubric typed on a question that already has an
+       answer key is simply ignored, which the hint below says out loud. */
+    const RUBRIC_TYPES = ['written', 'short', 'table'];
+    const rubricRow = !RUBRIC_TYPES.includes(q.type) ? '' : `
+      <label class="t-label">${t('t.chRubric')}</label>
+      <div class="t-hint">${t('t.chRubricHint')}</div>
+      <textarea class="t-input q-rubric" rows="4" placeholder="${esc(t('t.chRubricPh'))}">${esc(q.rubric || '')}</textarea>
+      <label class="q-aimark-row">
+        <input type="checkbox" class="q-aimark" ${q.aiMark ? 'checked' : ''}>
+        <span>${t('t.chAiMark')}</span>
+      </label>
+      <div class="t-hint">${t('t.chAiMarkHint')}</div>`;
+
     return `
       <div class="builder-item qcard ${q.type === 'simulation' ? 'simcard' : ''}" data-qid="${q._id}" data-qtype="${q.type}">
         <div class="builder-head">${parentId ? '↳ ' : ''}${t('t.question', { n: i + 1 })} · ${TYPE_LABEL[q.type]()}</div>
@@ -382,6 +400,7 @@ const TChallenges = (() => {
         ${questionBody(q)}
         ${pointsRow}
         ${explainRow}
+        ${rubricRow}
       </div>`;
   }
 
@@ -516,6 +535,10 @@ const TChallenges = (() => {
     if (pts) q.points = Math.max(0, Math.min(1000, parseInt(pts.value, 10) || 0));
     const exp = el.querySelector(':scope > .q-explain');
     if (exp) q.explanation = exp.value;
+    const rub = el.querySelector(':scope > .q-rubric');
+    if (rub) q.rubric = rub.value;
+    const aim = el.querySelector(':scope > .q-aimark-row .q-aimark');
+    if (aim) q.aiMark = aim.checked;
     const imgUrl = el.querySelector(':scope > .row > .q-image-url');
     const imgData = el.querySelector(':scope > .q-image-data');
     if (imgUrl || imgData) {
@@ -666,6 +689,7 @@ const TChallenges = (() => {
     const base = {
       id: q._id, type: q.type, question: q.question, image: q.image || '',
       points: q.points == null ? 1 : q.points, explanation: q.explanation || '',
+      rubric: q.rubric || '', aiMark: !!q.aiMark,
     };
     if (q.type === 'mcq') { base.choices = q.choices; base.correctIndex = q.correctIndex; }
     else if (q.type === 'multi') { base.choices = q.choices; base.correctIndexes = q.correctIndexes || []; }
@@ -714,6 +738,175 @@ const TChallenges = (() => {
     } catch (e) { toast(e.message, 'bad'); }
   }
 
+  /* ------------------------------ AI marking ------------------------------ *
+   *
+   * Kru CJ SUGGESTS, the teacher confirms. Nothing here saves a mark: the
+   * suggestion pre-fills the same score box the teacher has always used, and
+   * the same "Save marks" button is what makes it real. That is the whole
+   * safety design of this feature, and it is why there is no "accept all and
+   * save" shortcut — a teacher who never looks is exactly what we are avoiding.
+   *
+   * One request per student, in sequence. A class set in a single request
+   * would be killed by a serverless timeout, and looping here also lets the
+   * teacher watch it happen.
+   * ----------------------------------------------------------------------- */
+
+  let aiBusy = false;
+
+  /** Papers with at least one rubric-marked answer nobody has confirmed yet. */
+  function papersNeedingAi() {
+    if (!responses) return [];
+    const rubricQs = new Set(responses.challenge.questions.filter((q) => q.aiMark).map((q) => q.id));
+    if (!rubricQs.size) return [];
+    return responses.responses.filter((r) => r.status !== 'graded'
+      && r.answers.some((a) => rubricQs.has(a.questionId) && a.needsMark && a.awarded == null && !a.ai));
+  }
+
+  function setAiStatus(msg) {
+    const el = document.getElementById('aiStatus');
+    if (el) el.textContent = msg || '';
+  }
+
+  async function aiMarkAll() {
+    if (aiBusy) return;
+    const todo = papersNeedingAi();
+    if (!todo.length) { toast(t('t.aiNothingToMark'), 'bad'); return; }
+
+    aiBusy = true;
+    const btn = document.getElementById('aiMarkBtn');
+    if (btn) btn.disabled = true;
+    let done = 0, failed = 0;
+
+    for (const r of todo) {
+      setAiStatus(t('t.aiMarking', { n: done + 1, total: todo.length, name: r.userName }));
+      try {
+        await API.post(`/api/teacher/challenges/responses/${r.id}/ai-mark`, { lang: getLang() });
+        done++;
+      } catch (e) {
+        failed++;
+        // Stop on the first hard failure rather than burning the allowance on
+        // thirty more that will fail the same way.
+        setAiStatus('');
+        toast(aiError(e.message), 'bad');
+        break;
+      }
+    }
+
+    aiBusy = false;
+    setAiStatus('');
+    if (done) toast(t('t.aiMarked', { n: done }), 'good');
+    // Repaint from the server so the boxes hold what was actually stored.
+    await openResponses(responses.challenge.id);
+    if (failed && !done) { /* the toast above already said why */ }
+  }
+
+  async function buildReport() {
+    if (aiBusy) return;
+    aiBusy = true;
+    const btn = document.getElementById('aiReportBtn');
+    if (btn) btn.disabled = true;
+    setAiStatus(t('t.aiReporting'));
+    try {
+      await API.post(`/api/teacher/challenges/${responses.challenge.id}/ai-report`, { lang: getLang() });
+      aiBusy = false;
+      await openResponses(responses.challenge.id);
+      toast(t('t.aiReportDone'), 'good');
+    } catch (e) {
+      aiBusy = false;
+      setAiStatus('');
+      if (btn) btn.disabled = false;
+      toast(aiError(e.message), 'bad');
+    }
+  }
+
+  /** The server speaks in codes so both languages can say it properly. */
+  function aiError(code) {
+    const known = {
+      AI_DISABLED: 't.aiDisabled',
+      AI_DAILY_LIMIT: 't.aiDailyLimit',
+      AI_BUSY: 't.aiBusy',
+      AI_BAD_KEY: 't.aiBadKey',
+      AI_FAILED: 't.aiFailed',
+      NO_RUBRIC_QUESTIONS: 't.aiNoRubricQs',
+      NO_SUBMISSIONS: 't.aiNoSubmissions',
+    };
+    return known[code] ? t(known[code]) : code;
+  }
+
+  /** Kru CJ's suggestion under one answer: the criteria, then the comment. */
+  function aiBlock(a) {
+    if (!a.ai) return '';
+    const crit = (a.ai.criteria || []).map((c) => `
+      <li class="${c.met ? 'met' : 'unmet'}">${c.met ? ICON.check(13) : ICON.close(13)}<span>${esc(c.name)}</span></li>`).join('');
+    return `
+      <div class="ai-mark">
+        <div class="ai-mark-head">${ICON.chat(14)} ${t('t.aiSuggests', { s: a.ai.score, m: a.ai.outOf })}</div>
+        ${crit ? `<ul class="ai-crit">${crit}</ul>` : ''}
+        ${a.ai.feedback ? `<div class="ai-fb">${esc(a.ai.feedback)}</div>` : ''}
+        ${a.ai.rubricSilent ? `<div class="ai-warn">${t('t.aiRubricSilent')}</div>` : ''}
+      </div>`;
+  }
+
+  /** What Kru CJ made of one student overall. */
+  function diagnosisBlock(r) {
+    const d = r.aiDiagnosis;
+    if (!d) return '';
+    const bullets = (label, items) => !items || !items.length ? '' :
+      `<div class="ai-diag-row"><b>${label}</b><span>${items.map(esc).join(' · ')}</span></div>`;
+    return `
+      <div class="ai-diag level-${esc(d.level)}">
+        <div class="ai-diag-head">${t('t.aiDiagnosis')} <span class="ai-level">${t('t.aiLevel.' + d.level)}</span></div>
+        <p>${esc(d.summary)}</p>
+        ${bullets(t('t.aiStrengths'), d.strengths)}
+        ${bullets(t('t.aiGaps'), d.gaps)}
+        ${d.nextStep ? `<div class="ai-diag-row"><b>${t('t.aiNextStep')}</b><span>${esc(d.nextStep)}</span></div>` : ''}
+      </div>`;
+  }
+
+  /** The class report: what to reteach tomorrow. */
+  function reportBlock() {
+    const R = responses.aiReport;
+    if (!R) return '';
+    const mis = (R.misconceptions || []).map((m) => `
+      <li><span class="ai-count">${m.count}</span>
+        <span>${esc(m.what)}${m.example ? ` <i>${esc(m.example)}</i>` : ''}</span></li>`).join('');
+    const re = (R.reteach || []).map((x) => `<li>${esc(x)}</li>`).join('');
+    const byQ = (R.byQuestion || []).map((b) => {
+      const i = responses.challenge.questions.findIndex((q) => q.id === b.questionId);
+      return `<li><b>${t('t.chQn', { n: i + 1 })}</b> ${esc(b.note)}</li>`;
+    }).join('');
+    return `
+      <div class="t-card ai-report">
+        <h3>${ICON.lines(16)} ${t('t.aiReportTitle')}</h3>
+        <div class="sub">${t('t.aiReportMeta', { n: R.submissionCount, when: fmtWhen(R.at) })}</div>
+        <p class="ai-report-sum">${esc(R.summary)}</p>
+        ${mis ? `<h4>${t('t.aiMisconceptions')}</h4><ul class="ai-mis">${mis}</ul>` : ''}
+        ${re ? `<h4>${t('t.aiReteach')}</h4><ul class="ai-reteach">${re}</ul>` : ''}
+        ${byQ ? `<h4>${t('t.aiByQuestion')}</h4><ul class="ai-byq">${byQ}</ul>` : ''}
+      </div>`;
+  }
+
+  /** The AI toolbar above the class set — hidden entirely with no key set. */
+  function aiBar() {
+    const d = responses;
+    const rubricCount = d.challenge.questions.filter((q) => q.aiMark).length;
+    if (!rubricCount) return '';
+    if (!d.aiEnabled) return `<div class="t-card ai-bar off">${t('t.aiDisabled')}</div>`;
+    const todo = papersNeedingAi().length;
+    return `
+      <div class="t-card ai-bar">
+        <div class="ai-bar-text">
+          <b>${t('t.aiBarTitle')}</b>
+          <span class="sub">${t('t.aiBarSub', { q: rubricCount, n: todo })}</span>
+        </div>
+        <span class="ai-status" id="aiStatus"></span>
+        <button class="tbtn blue" id="aiMarkBtn" onclick="TC.aiMarkAll()" ${todo ? '' : 'disabled'}>
+          ${ICON.chat(14)} ${t('t.aiMarkAll')}</button>
+        <button class="tbtn ghost" id="aiReportBtn" onclick="TC.buildReport()" ${d.responses.length ? '' : 'disabled'}>
+          ${ICON.lines(14)} ${d.aiReport ? t('t.aiReportAgain') : t('t.aiReportBuild')}</button>
+      </div>`;
+  }
+
   function paintResponses() {
     const d = responses;
     const toMark = d.responses.filter((r) => r.status !== 'graded').length;
@@ -737,6 +930,8 @@ const TChallenges = (() => {
         <span>${t('t.chToMark', { n: toMark })}</span>
         <span>${t('t.chOutOf', { n: d.challenge.maxPoints })}</span>
       </div>
+      ${aiBar()}
+      ${reportBlock()}
       ${cards}
       ${missing}`;
     d.responses.forEach((r) => updateTotal(r.id));
@@ -779,8 +974,10 @@ const TChallenges = (() => {
         <div class="grade-score">
           <label class="t-label" style="margin:0">${t('t.gradeScoreLabel')}</label>
           <input type="number" class="grade-score-input" min="0" max="${q.points}" step="1"
-                 value="${a.awarded == null ? 0 : a.awarded}" oninput="TC.updateTotal('${sid}')">
+                 value="${a.awarded != null ? a.awarded : (a.ai ? a.ai.score : 0)}"
+                 oninput="TC.updateTotal('${sid}')">
           <span class="grade-outof">/ ${q.points}</span>
+          ${a.ai && a.awarded == null ? `<span class="ai-chip">${t('t.aiPrefilled')}</span>` : ''}
         </div>`;
     }
     if (!a.auto) return `<span class="resp-tag manual">${t('t.chNotMarked')}</span>`;
@@ -807,6 +1004,7 @@ const TChallenges = (() => {
           ${wrong ? `<div class="resp-expected">${t('t.chExpected')}: <b>${esc(q.expected)}</b></div>` : ''}
           ${a.needsMark && q.guide ? `<div class="grade-guide">💡 ${esc(q.guide)}</div>` : ''}
           ${outcomeBlock(q, a, r.id)}
+          ${aiBlock(a)}
         </div>`;
     }).join('');
 
@@ -822,6 +1020,7 @@ const TChallenges = (() => {
           <span class="grade-auto">${t('t.chAutoScore', { e: r.autoEarned, m: r.maxPoints })}</span>
         </div>
         <div class="resp-list">${items}</div>
+        ${diagnosisBlock(r)}
         <label class="t-label">${t('t.chFeedback')}</label>
         <input type="text" class="t-input grade-feedback" value="${esc(r.feedback)}" placeholder="${esc(t('t.chFeedbackPh'))}">
         <div class="grade-foot">
@@ -955,6 +1154,8 @@ const TChallenges = (() => {
     cancelEdit, save,
     // responses
     openResponses, updateTotal, saveGrade, backToList, downloadCsv,
+    // AI marking
+    aiMarkAll, buildReport,
   };
   window.TC = api;
 
