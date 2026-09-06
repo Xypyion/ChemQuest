@@ -138,6 +138,12 @@ function aiLimits() {
     generate: num(process.env.AI_GENERATE_LIMIT, 60),
     // every student, checking their own duel question: tighter
     review: num(process.env.AI_REVIEW_LIMIT, 20),
+    // one teacher, marking class sets: one call per student's paper plus one
+    // per class report, so a 40-student class costs 41. Enough for a day of it.
+    mark: num(process.env.AI_MARK_LIMIT, 200),
+    // every student, checking their own written answer while they work. The
+    // real guard is the per-question cap in aiMarking.js; this is the bill.
+    check: num(process.env.AI_CHECK_LIMIT, 30),
   };
 }
 

@@ -564,6 +564,11 @@ module.exports = {
   MAX_BATCH,
   MAX_NOTES,
   TOPIC,
+  // Exported for src/aiMarking.js, which needs the same Gemini caller: the
+  // retry-on-transient, the thinking-level climbdown and the JSON repair are
+  // all things a second implementation would get subtly wrong.
+  askJson,
+  LANGS,
   generateQuestions,
   reviewStudentQuestion,
   failureOf,

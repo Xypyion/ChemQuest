@@ -152,7 +152,7 @@ const TBattles = (() => {
       const tag = b.status === 'open' ? t('t.bOpen') : b.status === 'won' ? t('t.bWon') : t('t.bLost');
       return `
         <tr>
-          <td>${b.attackerAvatar || '🧑‍🎓'} ${line}</td>
+          <td><span class="av">${avatarHtml(b.attackerAvatar, 26)}</span> ${line}</td>
           <td>${esc(tDiff(b.difficulty))}</td>
           <td><span class="t-pill ${b.status === 'won' ? 'pub' : 'draft'}">${esc(tag)}</span></td>
           <td>${t('t.bCoinsMoved', { n: b.coinsMoved })}</td>
@@ -200,14 +200,33 @@ const TBattles = (() => {
     return b;
   }
 
+  /* Every question in the bank used to be fully expanded at once: three banks
+     of six questions made a four-thousand-pixel page where a teacher scrolled
+     past five editors to reach the sixth.
+
+     The <details> element IS the .qcard, not a wrapper around it. That matters:
+     `readBank` finds cards with `:scope > .qcard` and `readCard` reads their
+     fields with `:scope > .q-text`, so a wrapper would silently break saving
+     while looking perfectly fine. Collapsed content stays in the DOM, so every
+     one of those reads still works whether a question is open or shut.
+
+     A blank question opens automatically — that is one a teacher just added
+     and is about to type into. */
   function questionCard(q, i) {
+    const isNew = !String(q.question || '').trim();
+    const label = isNew ? t('t.bNewQuestion') : q.question;
     return `
-      <div class="qcard" data-qid="${esc(q._id)}">
+      <details class="qcard" data-qid="${esc(q._id)}" ${isNew ? 'open' : ''}>
+        <summary class="qcard-sum">
+          <span class="qcard-sum-n">${i + 1}</span>
+          <span class="qcard-sum-q">${escapeHtml(label)}</span>
+          <span class="qcard-sum-meta">${esc(TYPE_LABEL[q.type]())} · ${q.points}</span>
+        </summary>
         <div class="qcard-head">
           <div class="q-types">
             ${TYPES.map((ty) => `<button class="tbtn sm ${q.type === ty ? 'indigo' : 'ghost'}" onclick="TB.setType('${esc(q._id)}','${ty}')">${esc(TYPE_LABEL[ty]())}</button>`).join('')}
           </div>
-          <button class="tbtn sm danger" onclick="TB.removeQuestion('${esc(q._id)}')">🗑</button>
+          <button class="tbtn sm danger" onclick="TB.removeQuestion('${esc(q._id)}')" aria-label="${esc(t('common.delete'))}">${ICON.trash(14)}</button>
         </div>
         <textarea class="t-area q-text" rows="2" placeholder="${esc(t('t.chQuestionPh'))}">${esc(q.question)}</textarea>
         ${questionBody(q)}
@@ -221,7 +240,7 @@ const TBattles = (() => {
             <input class="t-input q-explain" value="${esc(q.explanation)}">
           </div>
         </div>
-      </div>`;
+      </details>`;
   }
 
   function questionBody(q) {

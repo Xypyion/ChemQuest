@@ -75,19 +75,23 @@ const TQuests = (() => {
         <div class="lr-main">
           <div class="lr-title">${esc(q.title)} ${statePill(q)}</div>
           <div class="lr-sub">
-            🪙 ${q.reward} · ${t('t.qQuestionCount', { n: q.questionCount })} · ${t('t.qResponseCount', { n: q.responses })}
+            ${ICON.coin(14)} ${q.reward} · ${t('t.qQuestionCount', { n: q.questionCount })} · ${t('t.qResponseCount', { n: q.responses })}
             ${q.opensAt ? ` · ${t('t.qOpens')} ${esc(fmtWhen(q.opensAt))}` : ''}
             ${q.closesAt ? ` · ${t('t.qCloses')} ${esc(fmtWhen(q.closesAt))}` : ''}
           </div>
         </div>
         <div class="lr-actions">
-          <button class="tbtn sm blue" onclick="TQ.openResponses('${esc(q.id)}')">${t('t.qResponses')}${q.responses ? ` <span class="t-badge">${q.responses}</span>` : ''}</button>
-          <button class="tbtn sm ghost" onclick="TQ.openAssign('${esc(q.id)}')">${t('t.qAssign')}</button>
-          <button class="tbtn sm ${q.published ? 'ghost' : 'green'}" onclick="TQ.togglePublish('${esc(q.id)}', ${!q.published})">${q.published ? t('t.qUnpublish') : t('t.qPublish')}</button>
-          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','up')">${ICON.up(14)}</button>
-          <button class="tbtn sm ghost" onclick="TQ.move('${esc(q.id)}','down')">${ICON.down(14)}</button>
-          <button class="tbtn sm indigo" onclick="TQ.edit('${esc(q.id)}')">${t('t.edit')}</button>
-          <button class="tbtn sm danger" onclick="TQ.confirmDelete('${esc(q.id)}')">🗑</button>
+          <button class="tbtn sm ${q.responses ? '' : 'ghost'}" onclick="TQ.openResponses('${esc(q.id)}')">${esc(t('t.qResponses'))}${q.responses ? ` <span class="t-badge">${q.responses}</span>` : ''}</button>
+          ${TMenu.html('quest-' + q.id, [
+            { label: t('t.edit'), action: `TQ.edit('${esc(q.id)}')`, icon: 'pencil' },
+            { label: t('t.qAssign'), action: `TQ.openAssign('${esc(q.id)}')`, icon: 'people' },
+            { label: q.published ? t('t.qUnpublish') : t('t.qPublish'),
+              action: `TQ.togglePublish('${esc(q.id)}', ${!q.published})`,
+              icon: q.published ? 'lock' : 'unlock' },
+            { label: t('t.moveUp'), action: `TQ.move('${esc(q.id)}','up')`, icon: 'up' },
+            { label: t('t.moveDown'), action: `TQ.move('${esc(q.id)}','down')`, icon: 'down' },
+            { label: t('common.delete'), action: `TQ.confirmDelete('${esc(q.id)}')`, icon: 'trash', danger: true },
+          ], t('t.rowActions', { title: q.title }))}
         </div>
       </div>`;
   }
@@ -243,7 +247,7 @@ const TQuests = (() => {
           <div class="q-types">
             ${TYPES.map((ty) => `<button class="tbtn sm ${q.type === ty ? 'indigo' : 'ghost'}" onclick="TQ.setType('${esc(q._id)}','${ty}')">${esc(TYPE_LABEL[ty]())}</button>`).join('')}
           </div>
-          <button class="tbtn sm danger" onclick="TQ.removeQuestion('${esc(q._id)}')">🗑</button>
+          <button class="tbtn sm danger" onclick="TQ.removeQuestion('${esc(q._id)}')" aria-label="${esc(t('common.delete'))}">${ICON.trash(14)}</button>
         </div>
         <textarea class="t-area q-text" rows="2" placeholder="${esc(t('t.chQuestionPh'))}">${esc(q.question)}</textarea>
         ${questionBody(q)}
@@ -447,7 +451,7 @@ const TQuests = (() => {
       <p>${t('t.qDeleteMsg', { title: esc(q.title) })}</p>
       <div class="editor-actions" style="border:none;padding-top:14px">
         <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
-        <button class="tbtn danger" onclick="TQ.doDelete('${esc(id)}')">🗑</button>
+        <button class="tbtn danger" onclick="TQ.doDelete('${esc(id)}')">${ICON.trash(14)} ${esc(t('common.delete'))}</button>
       </div>`);
   }
 
@@ -500,9 +504,9 @@ const TQuests = (() => {
     const r = responses;
     const rows = r.responses.map((s) => `
       <tr>
-        <td>${esc(s.userAvatar || '🧑‍🎓')} ${esc(s.userName)}</td>
+        <td><span class="av">${avatarHtml(s.userAvatar, 26)}</span> ${esc(s.userName)}</td>
         <td>${s.earned} / ${s.maxPoints}</td>
-        <td><b style="color:#c89200">🪙 ${s.coinsAwarded}</b></td>
+        <td><b class="coin-num">${ICON.coin(14)} ${s.coinsAwarded}</b></td>
         <td>${esc(fmtWhen(s.createdAt))}</td>
       </tr>`).join('');
 

@@ -151,3 +151,64 @@
   .ch-card { flex-wrap: wrap; }
   .ch-card .ch-go { width: 100%; text-align: center; }
 }
+
+/* ===================================================================
+   "Check my answer" — Kru CJ looking over a draft before it is handed in.
+
+   Built on theme.css tokens only; challenge.css already carries raw hex
+   from before the redesign and this does not add more (CLAUDE.md).
+
+   Deliberately quieter than the answer field above it. This is a second
+   opinion, not a result — and it is never a score, which the footer of
+   the panel says in words as well as in weight.
+   =================================================================== */
+
+.ch-check { margin-top: 10px; }
+
+.ch-check-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font); font-size: .84rem; font-weight: 700;
+  color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px; padding: 7px 14px; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.ch-check-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.ch-check-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ch-check-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ch-check-btn svg { flex: none; }
+
+.ch-check-left {
+  font-size: .72rem; font-weight: 800; color: var(--ink-soft);
+  background: var(--card); border-radius: 999px; padding: 2px 7px;
+}
+
+.ch-check-card {
+  margin-top: 10px; padding: 12px 14px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.ch-check-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .8rem; font-weight: 800; letter-spacing: .02em;
+  text-transform: uppercase; color: var(--accent);
+}
+.ch-check-fb { margin: 8px 0 0; font-size: .92rem; line-height: 1.6; color: var(--ink); }
+
+.ch-check-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 5px; }
+.ch-check-list li { display: flex; align-items: flex-start; gap: 8px; font-size: .86rem; line-height: 1.5; }
+.ch-check-list li svg { flex: none; margin-top: 2px; }
+.ch-check-list li.met { color: var(--ink); }
+.ch-check-list li.met svg { color: var(--good); }
+.ch-check-list li.unmet { color: var(--ink-soft); }
+.ch-check-list li.unmet svg { color: var(--bad); }
+
+/* Said in words, not only in styling: this panel is never a mark. */
+.ch-check-note {
+  margin-top: 10px; padding-top: 8px; font-size: .76rem; color: var(--ink-soft);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+@media (max-width: 620px) {
+  .ch-check-btn { width: 100%; justify-content: center; }
+}

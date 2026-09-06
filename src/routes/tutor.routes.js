@@ -9,6 +9,17 @@
  * Every exchange is logged. These are minors, so a teacher must be able to read
  * back what was said. The log is trimmed per student because storyboard and
  * challenge images already make the store big — see CLAUDE.md "db.json grows".
+ *
+ * Two different things live here, and they have OPPOSITE rules about the answer:
+ *
+ *   POST /ask    — a hint. The model is handed `sanitizeQuestion()` output and
+ *                  has never seen the key. Costs coins (src/tutorCredit.js).
+ *   POST /check  — a look over the student's own written answer, against the
+ *                  teacher's rubric. The model IS handed the rubric, so the
+ *                  containment lives in the prompt, in a hard per-question cap,
+ *                  and in this log. Read the header of src/aiMarking.js before
+ *                  touching it. Free, because checking your own work is doing
+ *                  the work, not buying a hint.
  */
 const express = require('express');
 const crypto = require('crypto');
@@ -16,6 +27,8 @@ const db = require('../db');
 const ch = require('../challenges');
 const config = require('../config');
 const tutor = require('../tutor');
+const marking = require('../aiMarking');
+const aiLimit = require('../aiLimit');
 const ai = require('../aiQuestions'); // failureOf/describeFailure: one failure vocabulary for both AI features
 const credit = require('../tutorCredit');
 const { authMiddleware, requireRole } = require('../auth');
@@ -197,6 +210,118 @@ router.post('/ask', async (req, res) => {
       AI_FAILED: 'Kru CJ could not answer just now. Please try again in a moment.',
     };
     res.status(status).json({ error: MESSAGES[code], ...credit.statusOf(req.user) });
+  }
+});
+
+/**
+ * POST /api/tutor/check — look over my written answer before I hand it in.
+ * Body: { challengeId, questionId, answer, lang }
+ *
+ * Deliberately NOT sanitized: `checkAnswer` needs the teacher's rubric to say
+ * anything useful. See the "THE INVERSION" note in src/aiMarking.js.
+ */
+router.post('/check', async (req, res) => {
+  if (!config.aiEnabled()) {
+    return res.status(503).json({ error: 'AI_DISABLED' });
+  }
+
+  const challenge = openChallenge(req, res);
+  if (!challenge) return;
+
+  const raw = ch.flatQuestions(challenge).find((q) => q.id === req.body.questionId);
+  if (!raw) return res.status(404).json({ error: 'Question not found.' });
+
+  // The teacher has to have opted this question in AND written a rubric. One
+  // test, shared with the player and the marker, so they cannot disagree.
+  if (!ch.isAiMarkable(raw)) {
+    return res.status(400).json({ error: 'NOT_CHECKABLE' });
+  }
+
+  const answer = String((req.body && req.body.answer) || '').trim();
+  // Refuse an empty answer here rather than spending a check on it: the reply
+  // would only be "write your first step", which the button already implies.
+  if (!answer) return res.status(400).json({ error: 'EMPTY_ANSWER' });
+
+  const lang = req.body.lang === 'th' ? 'th' : 'en';
+
+  /* Both allowances are spent BEFORE the await, for the reason in
+     aiLimit.take(): db.js has no transactions, so a check made after an await
+     lets two concurrent requests both pass it. The daily one goes first because
+     it is what rebuilds `user.aiUsage` on a new school day. */
+  try {
+    aiLimit.take(req.user, 'check');
+  } catch (err) {
+    if (err.code === 'AI_DAILY_LIMIT') {
+      return res.status(429).json({ error: 'AI_DAILY_LIMIT', ...aiLimit.statusOf(req.user, 'check') });
+    }
+    throw err;
+  }
+  try {
+    marking.takeCheck(req.user, raw.id);
+  } catch (err) {
+    if (err.code === 'CHECK_LIMIT') {
+      aiLimit.refund(req.user, 'check');
+      db.save();
+      return res.status(429).json({ error: 'CHECK_LIMIT', checksLeft: 0, maxChecks: marking.MAX_CHECKS });
+    }
+    throw err;
+  }
+  db.save();
+
+  const giveBack = () => {
+    marking.refundCheck(req.user, raw.id);
+    aiLimit.refund(req.user, 'check');
+  };
+
+  try {
+    const result = await marking.checkAnswer({ question: raw, answer, lang });
+
+    logExchange(req.user, {
+      kind: 'check',
+      challengeId: challenge.id,
+      challengeTitle: challenge.title,
+      questionId: raw.id,
+      questionText: raw.question,
+      lang,
+      question: answer,          // what the student had written when they asked
+      answer: result.feedback,   // what Kru CJ said back
+      refused: false,
+      charged: 0,
+    });
+    db.save();
+
+    res.json({ ...result, checksLeft: marking.checksLeft(req.user, raw.id), maxChecks: marking.MAX_CHECKS });
+  } catch (err) {
+    giveBack();
+    // Log the attempt even though it failed: a teacher reading this log for
+    // safety reasons needs every answer a student actually submitted to Kru CJ.
+    logExchange(req.user, {
+      kind: 'check',
+      challengeId: challenge.id,
+      challengeTitle: challenge.title,
+      questionId: raw.id,
+      questionText: raw.question,
+      lang,
+      question: answer,
+      answer: '',
+      refused: false,
+      error: true,
+      charged: 0,
+    });
+    db.save();
+    console.error('[tutor/check]', ai.describeFailure(err));
+
+    const { status, code } = ai.failureOf(err);
+    const MESSAGES = {
+      AI_BUSY: 'Kru CJ is looking at a lot of answers right now — wait about a minute and try again.',
+      AI_BAD_KEY: 'Kru CJ is not set up correctly on this server. Please tell your teacher.',
+      AI_FAILED: 'Kru CJ could not read that just now. Please try again in a moment.',
+    };
+    res.status(status).json({
+      error: MESSAGES[code],
+      checksLeft: marking.checksLeft(req.user, raw.id),
+      maxChecks: marking.MAX_CHECKS,
+    });
   }
 });
 
