@@ -246,7 +246,7 @@ const TChallenges = (() => {
   function blankQuestion(type) {
     return {
       _id: uid(), type: type || 'mcq', question: '', image: '', points: 1, explanation: '',
-      rubric: '', aiMark: false,
+      rubric: '', aiNote: '', aiMark: false,
       choices: ['', ''], correctIndex: 0, correctIndexes: [],
       accepted: [], caseSensitive: false,
       table: { columns: ['', ''], rows: [{ cells: [{ text: '', blank: false, answer: '' }, { text: '', blank: true, answer: '' }] }] },
@@ -263,6 +263,7 @@ const TChallenges = (() => {
     b.points = q.points == null ? 1 : q.points;
     b.explanation = q.explanation || '';
     b.rubric = q.rubric || '';
+    b.aiNote = q.aiNote || '';
     b.aiMark = !!q.aiMark;
     if (q.choices && q.choices.length) b.choices = q.choices.slice();
     b.correctIndex = q.correctIndex || 0;
@@ -390,15 +391,22 @@ const TChallenges = (() => {
       <label class="t-label">${t('t.chExplain')}</label>
       <input type="text" class="t-input q-explain" value="${esc(q.explanation)}" placeholder="${esc(t('t.chExplainPh'))}">`;
 
-    /* The rubric is offered only on the types the machine cannot mark on its
-       own. `src/challenges.js isAiMarkable` makes the same call server-side and
-       is the one that counts — a rubric typed on a question that already has an
-       answer key is simply ignored, which the hint below says out loud. */
+    /* The teacher writes the answer they expect (แนวคำตอบ) and, if they want,
+       an instruction for how to weigh it. Kru CJ compares the student's answer
+       to the first and applies the second as policy.
+
+       Offered only on the types the machine cannot mark on its own.
+       `src/challenges.js isAiMarkable` makes the same call server-side and is
+       the one that counts — an expected answer typed on a question that already
+       has an answer key is simply ignored, which the hint says out loud. */
     const RUBRIC_TYPES = ['written', 'short', 'table'];
     const rubricRow = !RUBRIC_TYPES.includes(q.type) ? '' : `
       <label class="t-label">${t('t.chRubric')}</label>
       <div class="t-hint">${t('t.chRubricHint')}</div>
       <textarea class="t-input q-rubric" rows="4" placeholder="${esc(t('t.chRubricPh'))}">${esc(q.rubric || '')}</textarea>
+      <label class="t-label">${t('t.chAiNote')}</label>
+      <div class="t-hint">${t('t.chAiNoteHint')}</div>
+      <textarea class="t-input q-ainote" rows="2" placeholder="${esc(t('t.chAiNotePh'))}">${esc(q.aiNote || '')}</textarea>
       <label class="q-aimark-row">
         <input type="checkbox" class="q-aimark" ${q.aiMark ? 'checked' : ''}>
         <span>${t('t.chAiMark')}</span>
@@ -552,6 +560,8 @@ const TChallenges = (() => {
     if (exp) q.explanation = exp.value;
     const rub = el.querySelector(':scope > .q-rubric');
     if (rub) q.rubric = rub.value;
+    const note = el.querySelector(':scope > .q-ainote');
+    if (note) q.aiNote = note.value;
     const aim = el.querySelector(':scope > .q-aimark-row .q-aimark');
     if (aim) q.aiMark = aim.checked;
     const imgUrl = el.querySelector(':scope > .row > .q-image-url');
@@ -704,7 +714,7 @@ const TChallenges = (() => {
     const base = {
       id: q._id, type: q.type, question: q.question, image: q.image || '',
       points: q.points == null ? 1 : q.points, explanation: q.explanation || '',
-      rubric: q.rubric || '', aiMark: !!q.aiMark,
+      rubric: q.rubric || '', aiNote: q.aiNote || '', aiMark: !!q.aiMark,
     };
     if (q.type === 'mcq') { base.choices = q.choices; base.correctIndex = q.correctIndex; }
     else if (q.type === 'multi') { base.choices = q.choices; base.correctIndexes = q.correctIndexes || []; }

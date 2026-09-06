@@ -20,11 +20,19 @@
  * Anything that cannot be marked by the machine lands in the teacher's
  * challenge-response grading queue.
  *
- * A question that lands in that queue may also carry a `rubric` — the teacher's
- * own words for how the answer should be judged — and `aiMark`, which opts it
- * in to being marked against that rubric by Kru CJ (src/aiMarking.js). Both are
- * teacher-only: `sanitizeQuestion` never emits them, and `isAiMarkable` below is
- * the one place that decides whether a question qualifies.
+ * A question that lands in that queue may also carry three teacher-only fields:
+ *
+ *   rubric  — the answer the teacher expects (แนวคำตอบ). Prose, or a list of
+ *             the points that must appear; either way it is the standard a
+ *             student's answer is compared against. Named `rubric` for history;
+ *             everything the teacher and the model see calls it the expected
+ *             answer.
+ *   aiNote  — anything else the teacher wants to tell Kru CJ about marking this
+ *             one question. Their prompt, applied on top of the expected answer.
+ *   aiMark  — opts the question in to being marked this way (src/aiMarking.js).
+ *
+ * `sanitizeQuestion` never emits any of them, and `isAiMarkable` below is the
+ * one place that decides whether a question qualifies.
  */
 const crypto = require('crypto');
 
@@ -34,7 +42,8 @@ const ASSIGN_MODES = ['all', 'some'];
 const MAX_IMAGE_CHARS = 900 * 1024;   // ~900KB of base64 per question image
 const MAX_SIM_CHARS = 400 * 1024;     // teacher-authored simulation HTML
 const MAX_TEXT = 4000;
-const MAX_RUBRIC = 2000;      // the teacher's marking guide, sent to the model
+const MAX_RUBRIC = 2000;      // the answer the teacher expects, sent to the model
+const MAX_AI_NOTE = 800;      // the teacher's own instruction to Kru CJ
 const MAX_QUESTIONS = 60;
 const MAX_CHOICES = 8;
 const MAX_TABLE_COLS = 8;
@@ -105,10 +114,12 @@ function normalizeQuestion(raw, allowSim) {
     image: normalizeImage(raw.image),
     points: clampInt(raw.points, 0, 1000, 1),
     explanation: trimmed(raw.explanation, MAX_TEXT),
-    // How the teacher wants this answer judged, and whether Kru CJ may use it.
-    // Kept even on auto-marked types: a teacher who switches a question from
-    // 'short' to 'written' should not silently lose what they wrote.
+    // The answer the teacher expects, their extra instruction to Kru CJ, and
+    // whether Kru CJ may mark against them. Kept even on auto-marked types: a
+    // teacher who switches a question from 'short' to 'written' should not
+    // silently lose what they wrote.
     rubric: trimmed(raw.rubric, MAX_RUBRIC),
+    aiNote: trimmed(raw.aiNote, MAX_AI_NOTE),
     aiMark: !!raw.aiMark,
   };
 
@@ -275,10 +286,10 @@ function gradeQuestion(q, answer) {
 }
 
 /**
- * Should Kru CJ mark this question against the teacher's rubric?
+ * Should Kru CJ mark this question against the teacher's expected answer?
  *
  * Three things must all be true: the teacher ticked the box, they actually
- * wrote a rubric, and the machine cannot mark it already. That last test asks
+ * wrote an expected answer, and the machine cannot mark it already. That last test asks
  * `gradeQuestion` rather than re-listing the types — so a question with an
  * answer key stays auto-marked, and a new auto-markable type can never quietly
  * become AI-markable as well.
@@ -369,7 +380,7 @@ function sanitizeQuestion(q) {
     points: q.points || 0,
   };
   // A BOOLEAN, deliberately — the player needs to know whether to draw the
-  // "Check my answer" button, and must never be told what the rubric says.
+  // "Check my answer" button, and must never be told what the teacher expects.
   out.canCheck = isAiMarkable(q);
   if (q.type === 'mcq' || q.type === 'multi') out.choices = q.choices || [];
   if (q.type === 'table') {

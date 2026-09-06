@@ -399,9 +399,11 @@ function teacherQuestionView(q, simTitle) {
     points: q.points || 0,
     guide: q.explanation || '',
     expected: ch.expectedText(q),
-    // The teacher's own marking guide, and whether Kru CJ marks against it.
-    // Teacher-side only — `sanitizeQuestion` never emits either of these.
+    // The answer the teacher expects, their own instruction to Kru CJ, and
+    // whether Kru CJ marks against them. Teacher-side only —
+    // `sanitizeQuestion` never emits any of these.
     rubric: q.rubric || '',
+    aiNote: q.aiNote || '',
     aiMark: ch.isAiMarkable(q),
     simTitle: simTitle || '',   // the simulation this question sits under, if any
   };
@@ -525,6 +527,7 @@ function markableItems(c, sub) {
       questionId: x.q.id,
       question: x.q.question,
       rubric: x.q.rubric,
+      aiNote: x.q.aiNote,
       expected: ch.expectedText(x.q),
       points: x.q.points || 0,
       answer: ch.answerText(x.q, (sub.answers || {})[x.q.id]),
@@ -613,6 +616,7 @@ teacherRouter.post('/:id/ai-report', async (req, res) => {
     questionId: q.id,
     question: q.question,
     rubric: q.rubric,
+    aiNote: q.aiNote,
     points: q.points || 0,
   }));
   if (!questions.length) return res.status(400).json({ error: 'NO_RUBRIC_QUESTIONS' });
