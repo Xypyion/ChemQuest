@@ -298,8 +298,6 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
 .gb-sticky { position: sticky; left: 0; background: #fff; text-align: left !important; box-shadow: 1px 0 0 var(--t-line); }
 .gb-table tbody td.gb-sticky { z-index: 1; }
 .gb-table thead th.gb-corner { z-index: 5; background: #e6e8f4; }
-.gb-name { font-weight: 600; }
-.gb-name .av { margin-right: 4px; }
 .gb-col-edit { border: none; background: none; font: inherit; font-weight: 700; cursor: pointer; color: var(--t-ink); display: inline-flex; align-items: center; gap: 4px; }
 .gb-col-edit:hover { color: var(--t-accent-dark); }
 .gb-max { color: var(--t-soft); font-weight: 500; font-size: .82rem; }
@@ -494,13 +492,24 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
 
 /* --------------------- the per-student diagnosis --------------------- */
 
+/* The level is carried by the LABEL, not by a coloured tab down the side of
+   the card. A four-pixel accent border reads as decoration and says nothing
+   about which of the three levels this is until you have learnt the code;
+   the word itself, tinted, says it outright. */
 .ai-diag {
   margin-top: 14px; padding: 12px 14px; border-radius: 12px;
-  background: var(--t-bg); border-left: 4px solid var(--t-soft);
+  background: var(--t-bg); border: 1px solid var(--t-line);
 }
-.ai-diag.level-strong { border-left-color: var(--good); }
-.ai-diag.level-mixed { border-left-color: var(--t-blue); }
-.ai-diag.level-struggling { border-left-color: var(--t-danger); }
+.ai-diag .ai-level {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px; font-size: .78rem;
+}
+.ai-diag .ai-level::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor;
+}
+.ai-diag.level-strong .ai-level { color: #14804a; background: color-mix(in srgb, var(--good) 16%, transparent); }
+.ai-diag.level-mixed .ai-level { color: var(--t-indigo); background: color-mix(in srgb, var(--t-blue) 15%, transparent); }
+.ai-diag.level-struggling .ai-level { color: var(--t-danger); background: color-mix(in srgb, var(--t-danger) 13%, transparent); }
 .ai-diag-head { font-size: .82rem; font-weight: 800; color: var(--t-soft); text-transform: uppercase; letter-spacing: .03em; }
 .ai-diag .ai-level { font-weight: 800; color: var(--t-ink); text-transform: none; letter-spacing: 0; }
 .ai-diag p { margin: 6px 0 0; font-size: .9rem; line-height: 1.55; color: var(--t-ink); }
@@ -533,4 +542,216 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
   .ai-bar { flex-direction: column; align-items: stretch; }
   .ai-bar .tbtn { width: 100%; }
   .ai-diag-row { flex-direction: column; gap: 2px; }
+}
+
+/* ===================================================================
+   Teacher console — the simplification pass.
+
+   Three rules held throughout, all of them subtractive:
+
+     1. ONE primary action per row. Everything else is in the row menu,
+        including delete — which was previously the brightest, loudest
+        thing on a page, repeated once per student.
+     2. State is information, not a button. Published/draft, access,
+        post-test open: these are chips you read, not controls competing
+        with the thing you came to do.
+     3. No card inside a card. A marking card is one surface with rules
+        between its questions, not eight nested boxes.
+
+   Everything is built from the existing --t-* tokens. No new raw hex
+   beyond the few tints below, which follow the file's own convention.
+   =================================================================== */
+
+/* ------------------------- the row menu ---------------------------- */
+
+.tmenu { position: relative; display: inline-flex; }
+.tmenu.is-open .tmenu-trigger { background: #e4e6f3; color: var(--t-ink); }
+
+.tmenu-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+  min-width: 190px; padding: 6px;
+  background: var(--t-card); border: 1px solid var(--t-line); border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(40, 30, 90, .16);
+}
+.tmenu-pop.up { top: auto; bottom: calc(100% + 6px); }
+
+.tmenu-item {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: 8px; background: none;
+  font-family: var(--font); font-size: .88rem; font-weight: 600; color: var(--t-ink);
+  text-align: left; cursor: pointer;
+}
+.tmenu-item:hover:not(:disabled) { background: var(--t-bg); }
+.tmenu-item:focus-visible { outline: 2px solid var(--t-blue); outline-offset: -2px; }
+.tmenu-item:disabled { opacity: .38; cursor: not-allowed; }
+.tmenu-item svg { flex: none; color: var(--t-soft); }
+/* Destructive styling lives HERE and nowhere else — inside a menu the
+   teacher had to open on purpose, never on the row itself. */
+.tmenu-item.danger { color: #b4103a; }
+.tmenu-item.danger:hover:not(:disabled) { background: #ffe6ec; }
+.tmenu-item.danger svg { color: #b4103a; }
+.tmenu-gap { display: inline-block; width: 15px; flex: none; }
+
+/* --------------------------- To mark ------------------------------- */
+
+.mark-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.mark-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  font-family: var(--font); font-size: .86rem; font-weight: 700;
+  color: var(--t-soft); background: var(--t-card);
+  border: 1px solid var(--t-line);
+}
+.mark-chip span {
+  font-size: .78rem; padding: 1px 7px; border-radius: 999px;
+  background: #eef0fb; color: var(--t-soft);
+}
+.mark-chip:hover { color: var(--t-ink); }
+.mark-chip:focus-visible { outline: 3px solid var(--t-blue); outline-offset: 2px; }
+.mark-chip.is-on { background: var(--t-indigo); border-color: var(--t-indigo); color: #fff; }
+.mark-chip.is-on span { background: rgba(255, 255, 255, .22); color: #fff; }
+
+.grade-who { min-width: 0; }
+.grade-where {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: .82rem; color: var(--t-soft); margin-top: 2px;
+}
+/* Which queue this came from. The only thing that differs between the two
+   sources, so it is the only thing given a colour. */
+.mark-src {
+  font-size: .72rem; font-weight: 800; letter-spacing: .02em;
+  padding: 2px 8px; border-radius: 999px;
+}
+.mark-src.src-post { background: color-mix(in srgb, var(--t-blue) 15%, transparent); color: var(--t-indigo); }
+.mark-src.src-challenge { background: color-mix(in srgb, var(--t-accent) 13%, transparent); color: var(--t-accent-dark); }
+
+/* A marking card is ONE surface: rules between questions, not a box per
+   question sitting inside the outer box. */
+.grade-item {
+  background: none; border: 0; border-radius: 0;
+  border-top: 1px solid var(--t-line);
+  padding: 16px 0 4px; margin-top: 0;
+}
+.grade-items > .grade-item:first-child { border-top: 0; }
+.grade-q { display: flex; align-items: baseline; gap: 9px; font-weight: 700; margin-bottom: 8px; }
+.grade-q-n {
+  flex: none; width: 22px; height: 22px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #eef0fb; color: var(--t-soft); font-size: .76rem; font-weight: 800;
+}
+.grade-ai {
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+  margin-top: 8px; font-size: .84rem; color: var(--t-accent-dark); font-weight: 600;
+}
+.grade-ai span { color: var(--t-soft); font-weight: 400; }
+
+/* ------------------------- students table -------------------------- */
+
+.t-search { max-width: 280px; }
+.t-tablewrap { overflow-x: auto; }
+
+/* Name and email are one identity, not two columns to scan separately. */
+.st-who { display: flex; align-items: center; gap: 11px; }
+.st-id { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }
+.st-mail { font-size: .8rem; color: var(--t-soft); }
+.t-table td.num, .t-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.st-acts { text-align: right; white-space: nowrap; }
+.st-acts .tbtn { vertical-align: middle; }
+.st-acts .tmenu { vertical-align: middle; margin-left: 4px; }
+.t-table .av { font-size: 1rem; line-height: 0; }
+.t-table .av img { display: block; border-radius: 50%; }
+
+/* The gradebook name cell wrapped its avatar onto its own line, which
+   made every one of forty rows two lines tall for no reason. */
+.gb-name { font-weight: 600; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.gb-name .av { margin-right: 0; line-height: 0; flex: none; }
+
+.coin-num { color: #c89200; display: inline-flex; align-items: center; gap: 5px; }
+
+/* --------------------- folded setup sections ----------------------- */
+
+/* Categories are a setup task done once. They used to sit above the
+   challenges themselves, taking the top of the page every visit. */
+.t-fold { margin-top: 16px; }
+.t-fold > summary {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none;
+  padding: 12px 16px; border-radius: 12px;
+  background: var(--t-card); border: 1px solid var(--t-line);
+  font-weight: 700; font-size: .9rem; color: var(--t-soft);
+}
+.t-fold > summary::-webkit-details-marker { display: none; }
+.t-fold > summary:hover { color: var(--t-ink); }
+.t-fold > summary:focus-visible { outline: 3px solid var(--t-blue); outline-offset: 2px; }
+.t-fold[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
+.t-fold[open] > summary svg { transform: rotate(90deg); }
+.t-fold > .t-card { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* ----------------------------- phone ------------------------------- */
+
+@media (max-width: 720px) {
+  .t-head { align-items: flex-start; }
+  .t-search { max-width: none; width: 100%; }
+  .mark-filters { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .mark-chip { white-space: nowrap; }
+  .grade-head { flex-wrap: wrap; }
+  .grade-head .grade-auto { margin-left: 0; }
+  /* A menu anchored to the right edge of a narrow row can leave the
+     viewport; on a phone let it use the row's full width instead. */
+  .tmenu-pop { right: auto; left: 0; min-width: 200px; }
+  .st-acts .tmenu-pop { right: 0; left: auto; }
+  .st-mail { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* ------------------- collapsed question bank ----------------------- */
+
+/* The <details> IS the card (see the note in teacher-battles.js), so the
+   card's own padding has to move to its parts or a collapsed row would
+   still be as tall as an open one. */
+details.qcard { padding: 0; overflow: hidden; }
+details.qcard > .qcard-head,
+details.qcard > .q-text,
+details.qcard > .q-choices,
+details.qcard > .t-grid-2,
+details.qcard > .q-table-wrap,
+details.qcard > .q-short { margin-left: 14px; margin-right: 14px; }
+details.qcard > .t-grid-2 { margin-bottom: 14px; }
+
+.qcard-sum {
+  display: flex; align-items: center; gap: 11px; cursor: pointer;
+  padding: 12px 14px; list-style: none; user-select: none;
+}
+.qcard-sum::-webkit-details-marker { display: none; }
+.qcard-sum:hover { background: var(--t-bg); }
+.qcard-sum:focus-visible { outline: 3px solid var(--t-blue); outline-offset: -3px; }
+details.qcard[open] > .qcard-sum { border-bottom: 1px solid var(--t-line); }
+
+.qcard-sum-n {
+  flex: none; width: 24px; height: 24px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #eef0fb; color: var(--t-soft); font-size: .76rem; font-weight: 800;
+}
+.qcard-sum-q {
+  flex: 1; min-width: 0; font-weight: 600; color: var(--t-ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qcard-sum-meta { flex: none; font-size: .78rem; color: var(--t-soft); font-weight: 600; }
+
+/* ------------------------- touch targets --------------------------- */
+
+/* Small buttons sat at 26–31px tall. That is fine for a mouse and poor for
+   a thumb, and half this console's use is on a phone in a classroom. */
+@media (max-width: 900px) {
+  .tbtn.sm,
+  .chip,
+  .mark-chip,
+  .q-types .tbtn { min-height: 40px; }
+  .iconbtn { min-width: 40px; min-height: 40px; }
+  .tmenu-item { min-height: 42px; }
+  .grade-score-input { min-height: 42px; }
+}
+
+/* Pointer devices that are actually touch, at any width. */
+@media (pointer: coarse) {
+  .tbtn.sm, .chip, .mark-chip { min-height: 40px; }
+  .iconbtn { min-width: 40px; min-height: 40px; }
 }

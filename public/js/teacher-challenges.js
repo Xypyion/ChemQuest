@@ -90,37 +90,52 @@ const TChallenges = (() => {
         <div><h1>${t('t.chTitle')}</h1><div class="sub">${t('t.chSub')}</div></div>
         <button class="tbtn" onclick="TC.newChallenge()">${t('t.chNew')}</button>
       </div>
-      <div class="t-card" id="catCard"></div>
-      ${body}`;
+      ${body}
+      <details class="t-fold" ${cats.length ? '' : ''}>
+        <summary>${ICON.lines(15)} ${esc(t('t.chCatsFold'))}</summary>
+        <div class="t-card" id="catCard"></div>
+      </details>`;
     paintCategories();
   }
 
+  /* Seven buttons in five colours became one. "Responses" is what a teacher
+     opens this list to reach once a class has handed in; everything else —
+     assign, publish, reorder, delete — is setup, and lives in the row menu.
+     Published/draft is a FACT about the challenge, so it reads as a chip beside
+     the title rather than as a third coloured button. */
   function challengeRow(c) {
     const assigned = c.assign && c.assign.mode === 'some'
       ? t('t.chAssignedN', { n: (c.assign.studentIds || []).length })
       : t('t.chAssignedAll');
+    const bit = (icon, text) => `<i>${ICON[icon](14)}${esc(text)}</i>`;
     return `
       <div class="lesson-row">
-        <div class="ico">${esc(c.icon || '🧩')}</div>
         <div class="info">
-          <div class="t">${esc(c.title)}
-            <span class="t-pill ${c.published ? 'pub' : 'draft'}">${c.published ? t('t.chPublished') : t('t.chDraft')}</span>
+          <div class="t">${chem(c.title)}
+            <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
           </div>
-          <div class="d">${esc(lessonName(c.lessonId))} · ❓ ${c.questionCount} ${t('t.questions')} · ⭐ ${c.maxPoints}
-            · 👥 ${assigned} · ${t('t.chStats', { r: c.responses, p: c.pending })}</div>
+          <div class="d lr-meta">
+            ${bit('book', lessonName(c.lessonId))}
+            ${bit('question', `${c.questionCount} ${t('t.questions')}`)}
+            ${bit('star', String(c.maxPoints))}
+            ${bit('people', assigned)}
+            ${c.responses ? bit('pen', t('t.chStats', { r: c.responses, p: c.pending })) : ''}
+          </div>
         </div>
         <div class="acts">
-          <button class="tbtn ${c.pending ? 'blue' : 'ghost'} sm" onclick="TC.openResponses('${c.id}')">
-            ${t('t.chResponses')}${c.pending ? ` <span class="t-badge">${c.pending}</span>` : ''}
+          <button class="tbtn ${c.pending ? '' : 'ghost'} sm" onclick="TC.openResponses('${c.id}')">
+            ${esc(t('t.chResponses'))}${c.pending ? ` <span class="t-badge">${c.pending}</span>` : ''}
           </button>
-          <button class="tbtn ghost sm" onclick="TC.openAssign('${c.id}')">${t('t.chAssign')}</button>
-          <button class="tbtn ${c.published ? 'green' : 'ghost'} sm" onclick="TC.togglePublish('${c.id}', ${c.published ? 'false' : 'true'})">
-            ${c.published ? t('t.chUnpublish') : t('t.chPublish')}
-          </button>
-          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','up')" title="${t('t.moveUp')}">${ICON.up(14)}</button>
-          <button class="tbtn ghost sm" onclick="TC.move('${c.id}','down')" title="${t('t.moveDown')}">${ICON.down(14)}</button>
-          <button class="tbtn blue sm" onclick="TC.edit('${c.id}')">${t('t.edit')}</button>
-          <button class="tbtn danger sm" onclick="TC.confirmDelete('${c.id}')">🗑</button>
+          ${TMenu.html('ch-' + c.id, [
+            { label: t('t.edit'), action: `TC.edit('${c.id}')`, icon: 'pencil' },
+            { label: t('t.chAssign'), action: `TC.openAssign('${c.id}')`, icon: 'people' },
+            { label: c.published ? t('t.chUnpublish') : t('t.chPublish'),
+              action: `TC.togglePublish('${c.id}', ${c.published ? 'false' : 'true'})`,
+              icon: c.published ? 'lock' : 'unlock' },
+            { label: t('t.moveUp'), action: `TC.move('${c.id}','up')`, icon: 'up' },
+            { label: t('t.moveDown'), action: `TC.move('${c.id}','down')`, icon: 'down' },
+            { label: t('t.chDelete'), action: `TC.confirmDelete('${c.id}')`, icon: 'trash', danger: true },
+          ], t('t.rowActions', { title: c.title }))}
         </div>
       </div>`;
   }
@@ -413,7 +428,7 @@ const TChallenges = (() => {
         <textarea class="t-area q-accepted" rows="3" placeholder="${esc(t('t.chAcceptedPh'))}">${esc((q.accepted || []).join('\n'))}</textarea>
         <div class="sub" style="color:var(--t-soft)">${t('t.chAcceptedHint')}</div>
         <label class="check-row"><input type="checkbox" class="q-case" ${q.caseSensitive ? 'checked' : ''}><span>${t('t.chCaseSensitive')}</span></label>`;
-      case 'written': return `<div class="written-box"><div class="written-hint">📝 ${t('t.chLongHint')}</div>
+      case 'written': return `<div class="written-box"><div class="written-hint">${ICON.pen(14)} ${t('t.chLongHint')}</div>
         <textarea class="t-area" disabled>${esc(t('t.writtenPreviewPh'))}</textarea></div>`;
       case 'table': return tableBody(q);
       case 'simulation': return simBody(q);
@@ -996,13 +1011,13 @@ const TChallenges = (() => {
           <div class="resp-q-head">
             <span class="resp-q-n">${t('t.chQn', { n: i + 1 })}</span>
             <span class="resp-q-type">${TYPE_LABEL[q.type] ? TYPE_LABEL[q.type]() : q.type}</span>
-            ${q.simTitle ? `<span class="resp-q-sim">🧪 ${esc(q.simTitle)}</span>` : ''}
+            ${q.simTitle ? `<span class="resp-q-sim">${ICON.flask(13)} ${esc(q.simTitle)}</span>` : ''}
             <span class="resp-q-pts">${q.points}</span>
           </div>
           <div class="resp-q-text">${esc(q.question)}</div>
           ${answerBlock(q, a)}
           ${wrong ? `<div class="resp-expected">${t('t.chExpected')}: <b>${esc(q.expected)}</b></div>` : ''}
-          ${a.needsMark && q.guide ? `<div class="grade-guide">💡 ${esc(q.guide)}</div>` : ''}
+          ${a.needsMark && q.guide ? `<div class="grade-guide">${ICON.question(13)} ${esc(q.guide)}</div>` : ''}
           ${outcomeBlock(q, a, r.id)}
           ${aiBlock(a)}
         </div>`;

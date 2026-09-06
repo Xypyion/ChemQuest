@@ -230,6 +230,68 @@ teacherRouter.get('/', (req, res) => {
   res.json({ challenges: list, categories: categories(), pending: pendingCount() });
 });
 
+/**
+ * GET /api/teacher/challenges/pending
+ *
+ * Every challenge answer still waiting for a mark, across every challenge, in
+ * the SAME shape `/api/teacher/submissions` uses for post-test answers.
+ *
+ * Why the same shape: written work used to live in two places, and a teacher
+ * had to know which feature produced an answer before they could find it. The
+ * console now shows one "To mark" queue, so both sources have to arrive looking
+ * alike. `source` is what tells the client where to send the marks back.
+ *
+ * Registered before `/:id/responses` so a challenge can never be called
+ * "pending" and swallow this route.
+ */
+teacherRouter.get('/pending', (req, res) => {
+  const students = db.filter('users', (u) => u.role === 'student');
+  const out = [];
+
+  db.filter('challengeSubmissions', (s) => s.status === 'pending').forEach((s) => {
+    const c = db.findById('challenges', s.challengeId);
+    if (!c) return;                                  // challenge was deleted
+    const byId = new Map(ch.flatQuestions(c).map((q) => [q.id, q]));
+    const user = students.find((u) => u.id === s.userId);
+
+    const written = (s.manual || [])
+      .filter((m) => m.awarded == null)
+      .map((m) => {
+        const q = byId.get(m.questionId);
+        return {
+          questionId: m.questionId,
+          question: (q && q.question) || m.question || '',
+          answer: m.answer || '',
+          points: m.points || 0,
+          guide: m.guide || '',
+          // Kru CJ's suggestion, when there is one. Still only a suggestion —
+          // the teacher's number is what this route saves.
+          ai: m.ai || null,
+        };
+      });
+    if (!written.length) return;
+
+    out.push({
+      id: s.id,
+      source: 'challenge',
+      userId: s.userId,
+      userName: s.userName,
+      userAvatar: (user && user.avatar) || s.userAvatar || '',
+      title: s.challengeTitle || c.title,
+      difficulty: (user && user.difficulty) || '',
+      autoPoints: s.autoEarned || 0,
+      autoOf: (s.results || []).filter((r) => r.auto).length,
+      autoCorrect: (s.results || []).filter((r) => r.auto && r.correct === true).length,
+      maxPoints: s.maxPoints || 0,
+      written,
+      createdAt: s.createdAt,
+    });
+  });
+
+  out.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));   // oldest first
+  res.json({ submissions: out });
+});
+
 /** GET /api/teacher/challenges/:id — one challenge in full (with answer keys). */
 teacherRouter.get('/item/:id', (req, res) => {
   const c = db.findById('challenges', req.params.id);

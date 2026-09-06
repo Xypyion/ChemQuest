@@ -126,6 +126,13 @@ const ICON = (() => {
     /* lines of dialogue */
     lines: make('<path d="M4 4.4h16a1.2 1.2 0 0 1 0 2.4H4a1.2 1.2 0 0 1 0-2.4Zm0 5.4h16a1.2 1.2 0 0 1 0 2.4H4a1.2 1.2 0 1 1 0-2.4Zm0 5.4h10.4a1.2 1.2 0 0 1 0 2.4H4a1.2 1.2 0 0 1 0-2.4Z"/>'),
 
+    /* Three dots — the row overflow menu. Vertical, because it sits at the
+       end of a horizontal row of actions and a horizontal ellipsis there
+       reads as more of the same row rather than as a way in. Rotating the
+       hamburger was the first attempt and gave three bars, which reads as a
+       chart. */
+    more: make('<circle cx="12" cy="5" r="2.05"/><circle cx="12" cy="12" r="2.05"/><circle cx="12" cy="19" r="2.05"/>'),
+
     /* a video clip */
     video: make('<path d="M3.4 5.2h11.4a2.4 2.4 0 0 1 2.4 2.4v8.8a2.4 2.4 0 0 1-2.4 2.4H3.4A2.4 2.4 0 0 1 1 16.4V7.6a2.4 2.4 0 0 1 2.4-2.4Z"/>' +
                 '<path d="m19.4 9.5 2.2-1.6a.9.9 0 0 1 1.4.8v6.6a.9.9 0 0 1-1.4.8l-2.2-1.6V9.5Z" opacity=".6"/>'),

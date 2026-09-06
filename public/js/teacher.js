@@ -13,8 +13,11 @@ const MAX_IMG_BYTES = 800 * 1024;
 let LESSONS = [];
 let STUDENTS = [];
 let CHALLENGES = [];                          // challenge summaries (for the gradebook import)
-let CHALLENGES_PENDING = 0;                   // responses waiting to be marked
-let SUBMISSIONS = [];                         // written answers waiting to be graded
+// The two sources of written work waiting to be marked. They are fetched
+// separately because they are stored separately, and merged for display in one
+// "To mark" queue — see the block comment there.
+let POST_PENDING = [];                        // post-test written answers
+let CH_PENDING = [];                          // challenge written answers
 let GRADEBOOK = { columns: [], rows: [] };    // spreadsheet-style gradebook
 let view = 'lessons';
 let draft = null;
@@ -38,27 +41,46 @@ async function init() {
 async function reload() {
   LESSONS = (await API.get('/api/teacher/lessons')).lessons;
   STUDENTS = (await API.get('/api/teacher/students')).students;
-  SUBMISSIONS = (await API.get('/api/teacher/submissions')).submissions;
+  // Post-test answers arrive in their own shape; give them the same field
+  // names the challenge queue uses so one card can render either.
+  POST_PENDING = (await API.get('/api/teacher/submissions')).submissions.map((s) => ({
+    id: s.id,
+    source: 'post',
+    userId: s.userId,
+    userName: s.userName,
+    userAvatar: s.userAvatar || '',
+    title: s.lessonTitle || '',
+    difficulty: s.difficulty || '',
+    autoPoints: s.mcqPoints || 0,
+    autoCorrect: s.mcqCorrect || 0,
+    autoOf: s.mcqTotal || 0,
+    maxPoints: s.maxPoints || 0,
+    written: s.written || [],
+    createdAt: s.createdAt,
+  }));
   try {
     const ch = await API.get('/api/teacher/challenges');
     CHALLENGES = ch.challenges;
-    CHALLENGES_PENDING = ch.pending || 0;
-  } catch { CHALLENGES = []; CHALLENGES_PENDING = 0; }
-  updateGradingBadge();
-  updateChallengeBadge();
+  } catch { CHALLENGES = []; }
+  try {
+    CH_PENDING = (await API.get('/api/teacher/challenges/pending')).submissions;
+  } catch { CH_PENDING = []; }
+  paintNav();
 }
 
 /* Every sidebar button is painted here — icon, label, and a count when work
    is waiting. It used to be two functions that each rebuilt a button's
    innerHTML from a label alone, which wiped whatever icon was in the markup
    the moment a badge appeared. */
+/* ONE badge in the whole console, and it means one thing: work is waiting for
+   you. Challenges used to carry a second count of the same answers, so the two
+   numbers overlapped and neither was the total. */
 const NAV_BADGE = {
-  challenges: () => CHALLENGES_PENDING,
-  grading: () => SUBMISSIONS.length,
+  tomark: () => POST_PENDING.length + CH_PENDING.length,
 };
 const NAV_KEY = {
   lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
-  battles: 't.navBattles', grading: 't.navGrading', gradebook: 't.navGradebook',
+  battles: 't.navBattles', tomark: 't.navToMark', gradebook: 't.navGradebook',
   students: 't.navStudents', preview: 't.playAsStudent',
 };
 function paintNav() {
@@ -74,7 +96,7 @@ function paintNav() {
   if (menu) menu.innerHTML = `${ICON.lines(18)} ${esc(t('t.menu'))}`;
 }
 function updateChallengeBadge() { paintNav(); }
-function updateGradingBadge() { paintNav(); }
+function updateGradingBadge() { paintNav(); }   // kept: called from other console files
 function setView(v) {
   view = v; draft = null; boardLessonId = null; preview = null;
   if (window.TChallenges) TChallenges.reset();
@@ -92,11 +114,112 @@ function render() {
   if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
   if (view === 'battles') return TBattles.render(viewEl);
-  if (view === 'grading') return renderGrading();
+  if (view === 'tomark') return renderToMark();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();
   return renderLessons();
 }
+
+/* ========================= ROW OVERFLOW MENU =========================
+
+   Every list in this console had grown the same way: one more action, one more
+   button on the row. A challenge row reached seven buttons in five colours, a
+   level row five, and the loudest thing on all of them was a red Delete
+   repeated once per row — a destructive action given the strongest visual
+   weight on the page, eighteen times over.
+
+   So each row now shows the ONE action a teacher actually came for, and
+   everything else lives behind a "..." button. Delete goes in there with the
+   rest and is styled as danger only inside the menu, where it cannot be hit by
+   accident and cannot shout.
+
+   Deliberately no framework and no library: one module, inline `onclick`
+   strings like the rest of this file, and a single document-level listener
+   rather than one per row.
+
+   Keyboard: the trigger is a real <button> with aria-haspopup/aria-expanded,
+   the menu items are real buttons in DOM order so Tab reaches them, Escape
+   closes and returns focus to the trigger.                                   */
+
+const TMenu = (() => {
+  let openId = null;
+
+  /** Build a row's menu. `items` are {label, action, icon?, danger?, disabled?}. */
+  function html(id, items, label) {
+    const rows = items.filter(Boolean).map((it) => `
+      <button role="menuitem" type="button"
+              class="tmenu-item${it.danger ? ' danger' : ''}"
+              ${it.disabled ? 'disabled' : ''}
+              onclick="TMenu.run(event, ${JSON.stringify(it.action).replace(/"/g, '&quot;')})">
+        ${it.icon && ICON[it.icon] ? ICON[it.icon](15) : '<i class="tmenu-gap"></i>'}
+        <span>${escapeHtml(it.label)}</span>
+      </button>`).join('');
+
+    return `
+      <div class="tmenu" data-menu="${escapeHtml(id)}">
+        <button class="iconbtn tmenu-trigger" type="button"
+                aria-haspopup="menu" aria-expanded="false"
+                aria-label="${escapeHtml(label || t('t.moreActions'))}"
+                title="${escapeHtml(label || t('t.moreActions'))}"
+                onclick="TMenu.toggle(event, '${escapeHtml(id)}')">${ICON.more(16)}</button>
+        <div class="tmenu-pop" role="menu" hidden>${rows}</div>
+      </div>`;
+  }
+
+  function nodeOf(id) { return document.querySelector(`.tmenu[data-menu="${CSS.escape(id)}"]`); }
+
+  function close() {
+    if (!openId) return;
+    const n = nodeOf(openId);
+    if (n) {
+      n.classList.remove('is-open');
+      n.querySelector('.tmenu-pop').hidden = true;
+      n.querySelector('.tmenu-trigger').setAttribute('aria-expanded', 'false');
+    }
+    openId = null;
+  }
+
+  function toggle(ev, id) {
+    ev.stopPropagation();
+    const wasOpen = openId === id;
+    close();
+    if (wasOpen) return;
+    const n = nodeOf(id);
+    if (!n) return;
+    n.classList.add('is-open');
+    n.querySelector('.tmenu-pop').hidden = false;
+    n.querySelector('.tmenu-trigger').setAttribute('aria-expanded', 'true');
+    openId = id;
+    // Flip upward when there is not room below, so the last row's menu is
+    // never cut off by the bottom of the page.
+    const pop = n.querySelector('.tmenu-pop');
+    pop.classList.remove('up');
+    const r = pop.getBoundingClientRect();
+    if (r.bottom > window.innerHeight - 8) pop.classList.add('up');
+    const first = pop.querySelector('.tmenu-item:not([disabled])');
+    if (first) first.focus();
+  }
+
+  /** Run an item's action, then close. Actions are inline calls, as elsewhere. */
+  function run(ev, action) {
+    ev.stopPropagation();
+    close();
+    // eslint-disable-next-line no-new-func
+    try { new Function(action)(); } catch (e) { console.error('[TMenu]', action, e); }
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest || !e.target.closest('.tmenu')) close();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !openId) return;
+    const n = nodeOf(openId);
+    close();
+    if (n) n.querySelector('.tmenu-trigger').focus();
+  });
+
+  return { html, toggle, run, close };
+})();
 
 /* ============================ LESSONS LIST ============================ *
 
@@ -166,18 +289,13 @@ function renderLessons() {
       </div>
 
       <div class="lr-acts" role="group" aria-label="${esc(t('t.rowActions', { title: l.title }))}">
-        <span class="lr-move">
-          <button class="iconbtn" onclick="moveLesson('${l.id}','up')"
-                  title="${esc(t('t.moveUp'))}" aria-label="${esc(t('t.moveUp'))}"
-                  ${i === 0 ? 'disabled' : ''}>${ICON.up(16)}</button>
-          <button class="iconbtn" onclick="moveLesson('${l.id}','down')"
-                  title="${esc(t('t.moveDown'))}" aria-label="${esc(t('t.moveDown'))}"
-                  ${i === LESSONS.length - 1 ? 'disabled' : ''}>${ICON.down(16)}</button>
-        </span>
-        <button class="tbtn ghost sm" onclick="openBoard('${l.id}')">${esc(t('t.board'))}</button>
         <button class="tbtn sm" onclick="editLesson('${l.id}')">${ICON.pencil(15)} ${esc(t('t.edit'))}</button>
-        <button class="iconbtn danger" onclick="confirmDeleteLesson('${l.id}')"
-                title="${esc(t('t.deleteLevel'))}" aria-label="${esc(t('t.deleteLevel'))}">${ICON.trash(16)}</button>
+        ${TMenu.html('lesson-' + l.id, [
+          { label: t('t.board'), action: `openBoard('${l.id}')`, icon: 'people' },
+          { label: t('t.moveUp'), action: `moveLesson('${l.id}','up')`, icon: 'up', disabled: i === 0 },
+          { label: t('t.moveDown'), action: `moveLesson('${l.id}','down')`, icon: 'down', disabled: i === LESSONS.length - 1 },
+          { label: t('t.deleteLevel'), action: `confirmDeleteLesson('${l.id}')`, icon: 'trash', danger: true },
+        ], t('t.rowActions', { title: l.title }))}
       </div>
     </div>`;
   }).join('') : `<div class="empty">${esc(t('t.noLevels'))}</div>`;
@@ -400,7 +518,7 @@ function renderQuizSection(zone) {
   const openToggle = zone === 'post' && d.id ? `
     <button class="tbtn ${d.postTest.open ? 'green' : 'ghost'} sm" style="margin-bottom:8px"
             onclick="togglePostTestFromEditor()">
-      ${d.postTest.open ? '🔓 ' + t('t.postTestShort') + ': ' + t('t.open') + ' — ' + t('t.closePostTest') : t('t.openPostTest')}
+      ${d.postTest.open ? ICON.unlock(14) + ' ' + t('t.postTestShort') + ': ' + t('t.open') + ' — ' + t('t.closePostTest') : t('t.openPostTest')}
     </button>` : '';
 
   return `
@@ -528,7 +646,7 @@ function renderQuestionCard(q, i, zone) {
   if (isWritten) {
     bodyHtml = `
       <div class="written-box">
-        <div class="written-hint">✍️ ${t('t.writtenHint')}</div>
+        <div class="written-hint">${ICON.pen(14)} ${t('t.writtenHint')}</div>
         <textarea class="t-area q-sample" disabled>${esc(t('t.writtenPreviewPh'))}</textarea>
       </div>
       <label class="t-label">${t('t.answerGuide')}</label>
@@ -715,30 +833,79 @@ async function saveLesson() {
 }
 
 /* ============================ STUDENTS ============================ */
+/* Eighteen students used to mean fifty-four buttons — an Edit, a key and a red
+   bin on every single row, the destructive one the brightest thing on the page.
+   Now: one Edit, everything else behind the row menu, and a filter box, because
+   a real class is forty names and scanning is the actual task here. */
+let studentQuery = '';
+
+function setStudentQuery(v) {
+  studentQuery = v;
+  const body = document.getElementById('studentRows');
+  if (body) body.innerHTML = studentRowsHtml();
+  const count = document.getElementById('studentCount');
+  if (count) count.textContent = t('t.studentsShowing', { n: filteredStudents().length, total: STUDENTS.length });
+}
+
+function filteredStudents() {
+  const q = studentQuery.trim().toLowerCase();
+  if (!q) return STUDENTS;
+  return STUDENTS.filter((s) => (s.name || '').toLowerCase().includes(q)
+    || (s.email || '').toLowerCase().includes(q));
+}
+
+function studentRowsHtml() {
+  const list = filteredStudents();
+  if (!list.length) {
+    return `<tr><td colspan="6" class="empty">${esc(STUDENTS.length ? t('t.noStudentMatch') : t('t.noStudents'))}</td></tr>`;
+  }
+  return list.map((s) => `
+    <tr>
+      <td class="st-who">
+        <span class="av">${avatarHtml(s.avatar, 30)}</span>
+        <span class="st-id">
+          <b>${esc(s.name)}</b>
+          <span class="st-mail">${esc(s.email)}</span>
+        </span>
+      </td>
+      <td><span class="t-pill ${esc(s.difficulty || '')}">${esc(tDiff(s.difficulty))}</span></td>
+      <td class="num">${s.levelsCompleted}</td>
+      <td class="num">${s.certificates}</td>
+      <td class="num"><b>${s.points}</b></td>
+      <td class="st-acts">
+        <button class="tbtn ghost sm" onclick='editStudent("${s.id}")'>${ICON.pencil(14)} ${esc(t('t.edit'))}</button>
+        ${TMenu.html('student-' + s.id, [
+          { label: t('t.resetPw'), action: `resetPassword("${s.id}")`, icon: 'lock' },
+          { label: t('t.deleteStudent'), action: `confirmDeleteStudent("${s.id}")`, icon: 'trash', danger: true },
+        ], t('t.rowActions', { title: s.name }))}
+      </td>
+    </tr>`).join('');
+}
+
 function renderStudents() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'students'));
-  const rows = STUDENTS.length ? STUDENTS.map((s) => `
-    <tr>
-      <td><span class="av">${avatarHtml(s.avatar, 28)}</span></td>
-      <td><b>${esc(s.name)}</b></td>
-      <td class="sub" style="color:var(--t-soft)">${esc(s.email)}</td>
-      <td><span class="t-pill ${s.difficulty}">${(s.difficulty || '').toUpperCase()}</span></td>
-      <td>${s.levelsCompleted}</td>
-      <td>${s.certificates} 🎖️</td>
-      <td><b>${s.points}</b></td>
-      <td style="white-space:nowrap">
-        <button class="tbtn blue sm" onclick='editStudent("${s.id}")'>${ICON.pencil(14)}</button>
-        <button class="tbtn ghost sm" onclick='resetPassword("${s.id}")' title="${t('t.resetPw')}">🔑</button>
-        <button class="tbtn danger sm" onclick='confirmDeleteStudent("${s.id}")'>🗑</button>
-      </td>
-    </tr>`).join('') : `<tr><td colspan="8" class="empty">${t('t.noStudents')}</td></tr>`;
 
   viewEl.innerHTML = `
-    <div class="t-head"><div><h1>${t('t.studentsTitle')}</h1><div class="sub">${t('t.studentsSub', { n: STUDENTS.length, s: STUDENTS.length === 1 ? '' : 's' })}</div></div></div>
-    <div class="t-card" style="overflow-x:auto">
+    <div class="t-head">
+      <div>
+        <h1>${esc(t('t.studentsTitle'))}</h1>
+        <div class="sub" id="studentCount">${esc(t('t.studentsShowing', { n: filteredStudents().length, total: STUDENTS.length }))}</div>
+      </div>
+      <input class="t-input t-search" type="search" id="studentSearch"
+             placeholder="${esc(t('t.studentSearchPh'))}" aria-label="${esc(t('t.studentSearchPh'))}"
+             value="${esc(studentQuery)}" oninput="setStudentQuery(this.value)">
+    </div>
+    <div class="t-card t-tablewrap">
       <table class="t-table">
-        <thead><tr><th></th><th>${t('t.thName')}</th><th>${t('t.thEmail')}</th><th>${t('t.thDiff')}</th><th>${t('t.thLevels')}</th><th>${t('t.thCerts')}</th><th>${t('t.thPoints')}</th><th>${t('t.thActions')}</th></tr></thead>
-        <tbody>${rows}</tbody>
+        <thead><tr>
+          <th>${esc(t('t.thName'))}</th>
+          <th>${esc(t('t.thDiff'))}</th>
+          <th class="num">${esc(t('t.thLevels'))}</th>
+          <th class="num">${esc(t('t.thCerts'))}</th>
+          <th class="num">${esc(t('t.thPoints'))}</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="studentRows">${studentRowsHtml()}</tbody>
       </table>
     </div>`;
 }
@@ -818,7 +985,7 @@ function renderPreviewPicker() {
         <div class="ico">${esc(l.icon || '🧪')}</div>
         <div class="info">
           <div class="t">${i + 1}. ${escChem(l.title)}</div>
-          <div class="d">📖 ${(l.storyboard || []).length} · ❓ ${qCount} ${t('t.questions')}</div>
+          <div class="d lr-meta"><i>${ICON.book(14)}${(l.storyboard || []).length}</i><i>${ICON.question(14)}${qCount} ${t('t.questions')}</i></div>
         </div>
         <div class="acts"><button class="tbtn blue sm" onclick="startPreview('${l.id}')">${t('t.previewPlay')}</button></div>
       </div>`;
@@ -871,7 +1038,7 @@ function renderPreview() {
       <div><h1>${esc(lesson.icon || '🧪')} ${esc(lesson.title)}</h1><div class="sub">${t('t.previewSub')}</div></div>
       <button class="tbtn ghost" onclick="exitPreview()">${t('t.previewExit')}</button>
     </div>
-    <div class="tp-banner">👀 ${t('t.previewBanner')} · <b>${tDiff(preview.difficulty)}</b></div>
+    <div class="tp-banner">${ICON.play(15)} ${t('t.previewBanner')} · <b>${tDiff(preview.difficulty)}</b></div>
     <div class="t-card tp-stage">${inner}</div>`;
 }
 
@@ -885,7 +1052,7 @@ function previewStoryHtml(lesson) {
   if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
     body = embed
-      ? `${step.title ? `<div class="tp-vtitle">🎬 ${esc(step.title)}</div>` : ''}<div class="tp-video"><iframe src="${embed}" allowfullscreen loading="lazy"></iframe></div>`
+      ? `${step.title ? `<div class="tp-vtitle">${ICON.video(14)} ${esc(step.title)}</div>` : ''}<div class="tp-video"><iframe src="${embed}" allowfullscreen loading="lazy"></iframe></div>`
       : `<p class="sub">${t('lesson.cantEmbed')}</p>`;
   } else {
     body = `
@@ -923,8 +1090,8 @@ function previewQuizHtml(lesson) {
   if (q.type === 'written') {
     body = `
       <textarea class="t-area" disabled placeholder="${esc(t('lesson.writtenPlaceholder'))}"></textarea>
-      <div class="tp-written-note">✍️ ${t('t.previewWrittenNote')}</div>
-      ${q.explanation ? `<div class="grade-guide">💡 ${esc(q.explanation)}</div>` : ''}`;
+      <div class="tp-written-note">${ICON.pen(14)} ${t('t.previewWrittenNote')}</div>
+      ${q.explanation ? `<div class="grade-guide">${ICON.question(13)} ${esc(q.explanation)}</div>` : ''}`;
   } else {
     body = `<div class="tp-choices">${(q.choices || []).map((c, i) => `
       <div class="tp-choice ${i === q.correctIndex ? 'correct' : ''}"><span class="ltr">${letters[i]}</span><span>${esc(c)}</span>${i === q.correctIndex ? `<span class="tp-correct-tag">${t('t.correct')}</span>` : ''}</div>`).join('')}</div>
@@ -970,55 +1137,133 @@ function restartPreview() {
   render();
 }
 
-/* ============================ GRADING (written answers) ============================ */
-function renderGrading() {
-  document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'grading'));
-  const cards = SUBMISSIONS.length ? SUBMISSIONS.map(renderSubmissionCard).join('')
-    : `<div class="t-card empty">${t('t.gradingEmpty')}</div>`;
+/* ============================== TO MARK ==============================
+
+   Written work used to live in two places. Post-test answers were in "Writing
+   Grading"; challenge answers were three clicks deep inside Challenges ->
+   Responses. Both are the same job — read what a student wrote, give it a
+   number — but a teacher had to know which feature produced an answer before
+   they could find it, and two separate badges each claimed to be the count of
+   work outstanding.
+
+   There is now ONE queue and ONE badge. `source` on each row is the only thing
+   that differs, and it decides which endpoint the marks are saved back to:
+
+     post      -> POST /api/teacher/submissions/:id/grade
+     challenge -> POST /api/teacher/challenges/responses/:id/grade
+
+   The server does the shaping (`/api/teacher/challenges/pending` deliberately
+   answers in the same shape as `/api/teacher/submissions`) so this file renders
+   one card and does not care where the work came from.
+
+   Marking a whole class set for one challenge at once — with Kru CJ's help —
+   still lives on that challenge's Responses screen. This queue is for clearing
+   what is outstanding; that screen is for working through one piece of work
+   across the class.                                                          */
+
+let markFilter = 'all';                       // 'all' | 'post' | 'challenge'
+
+/** Both sources, oldest first, as one list. */
+function toMarkList() {
+  const all = [...POST_PENDING, ...CH_PENDING];
+  all.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return markFilter === 'all' ? all : all.filter((s) => s.source === markFilter);
+}
+
+function setMarkFilter(f) { markFilter = f; renderToMark(); }
+
+function renderToMark() {
+  document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'tomark'));
+
+  const rows = toMarkList();
+  const nPost = POST_PENDING.length;
+  const nCh = CH_PENDING.length;
+  const total = nPost + nCh;
+
+  const chip = (key, label, n) => `
+    <button class="mark-chip ${markFilter === key ? 'is-on' : ''}" type="button" onclick="setMarkFilter('${key}')">
+      ${esc(label)} <span>${n}</span>
+    </button>`;
+
+  const body = !total
+    ? `<div class="t-card empty">${esc(t('t.markAllClear'))}</div>`
+    : (rows.length
+      ? rows.map(markCard).join('')
+      : `<div class="t-card empty">${esc(t('t.markNoneInFilter'))}</div>`);
+
   viewEl.innerHTML = `
     <div class="t-head">
-      <div><h1>${t('t.gradingTitle')}</h1><div class="sub">${t('t.gradingSub')}</div></div>
-      <button class="tbtn ghost" onclick="reloadGrading()">${t('t.refresh')}</button>
+      <div>
+        <h1>${esc(t('t.markTitle'))}</h1>
+        <div class="sub">${esc(total ? t('t.markSub', { n: total }) : t('t.markSubEmpty'))}</div>
+      </div>
+      <button class="tbtn ghost" onclick="reloadToMark()">${ICON.timer(15)} ${esc(t('t.refresh'))}</button>
     </div>
-    ${cards}`;
-  SUBMISSIONS.forEach((s) => updateGradeTotal(s.id)); // paint initial earned/max
+    ${total ? `<div class="mark-filters">
+      ${chip('all', t('t.markAll'), total)}
+      ${chip('post', t('t.markPostTests'), nPost)}
+      ${chip('challenge', t('t.markChallenges'), nCh)}
+    </div>` : ''}
+    ${body}`;
+
+  rows.forEach((s) => updateGradeTotal(s.id));
 }
-async function reloadGrading() {
-  try { SUBMISSIONS = (await API.get('/api/teacher/submissions')).submissions; updateGradingBadge(); render(); }
+
+async function reloadToMark() {
+  try { await reload(); render(); }
   catch (e) { toast(e.message, 'bad'); }
 }
-function renderSubmissionCard(s) {
-  const modeLabel = s.mode === 'post' ? t('t.gradeModePost') : t('t.gradeModePre');
+
+/** One student's outstanding written work. Identical for both sources. */
+function markCard(s) {
   const items = s.written.map((w, i) => `
     <div class="grade-item" data-qid="${esc(w.questionId)}" data-max="${w.points}">
-      <div class="grade-q">${i + 1}. ${esc(w.question)} <span class="grade-qpts">(${t('t.outOf', { n: w.points })})</span></div>
-      <div class="grade-ans">${esc(w.answer) || `<span class="grade-blank">${t('t.gradeNoAnswer')}</span>`}</div>
-      ${w.guide ? `<div class="grade-guide">💡 ${esc(w.guide)}</div>` : ''}
+      <div class="grade-q">
+        <span class="grade-q-n">${i + 1}</span>
+        <span>${escChem(w.question)}</span>
+        <span class="grade-qpts">${esc(t('t.outOf', { n: w.points }))}</span>
+      </div>
+      <div class="grade-ans">${w.answer ? escChem(w.answer) : `<span class="grade-blank">${esc(t('t.gradeNoAnswer'))}</span>`}</div>
+      ${w.guide ? `<div class="grade-guide">${ICON.question(13)} ${esc(w.guide)}</div>` : ''}
+      ${w.ai ? `<div class="grade-ai">${ICON.chat(13)} ${esc(t('t.aiSuggests', { s: w.ai.score, m: w.ai.outOf }))}
+        ${w.ai.feedback ? `<span>${esc(w.ai.feedback)}</span>` : ''}</div>` : ''}
       <div class="grade-score">
-        <label class="t-label" style="margin:0">${t('t.gradeScoreLabel')}</label>
-        <input type="number" class="grade-score-input" min="0" max="${w.points}" step="1" value="0"
-               oninput="updateGradeTotal('${s.id}')">
+        <label class="t-label" style="margin:0">${esc(t('t.gradeScoreLabel'))}</label>
+        <input type="number" class="grade-score-input" min="0" max="${w.points}" step="1"
+               value="${w.ai ? w.ai.score : 0}" oninput="updateGradeTotal('${s.id}')">
         <span class="grade-outof">/ ${w.points}</span>
+        ${w.ai ? `<span class="ai-chip">${esc(t('t.aiPrefilled'))}</span>` : ''}
       </div>
     </div>`).join('');
+
+  const where = s.source === 'post'
+    ? t('t.markFromPost')
+    : t('t.markFromChallenge');
+
   return `
-    <div class="t-card grade-card" data-sid="${s.id}" data-mcq="${s.mcqPoints}" data-max="${s.maxPoints}">
+    <div class="t-card grade-card" data-sid="${esc(s.id)}" data-source="${esc(s.source)}"
+         data-mcq="${s.autoPoints}" data-max="${s.maxPoints}">
       <div class="grade-head">
-        <span class="av">${s.userAvatar || '🧑‍🎓'}</span>
-        <div>
+        <span class="av">${avatarHtml(s.userAvatar, 34)}</span>
+        <div class="grade-who">
           <div class="grade-name">${esc(s.userName)}</div>
-          <div class="sub" style="color:var(--t-soft)">${s.lessonIcon} ${esc(s.lessonTitle)} · <b>${modeLabel}</b> · ${tDiff(s.difficulty)}</div>
+          <div class="grade-where">
+            <span class="mark-src src-${esc(s.source)}">${esc(where)}</span>
+            <span>${escChem(s.title)}</span>
+            ${s.difficulty ? `<span>${esc(tDiff(s.difficulty))}</span>` : ''}
+          </div>
         </div>
-        <span class="grade-auto">${t('t.gradeAutoMcqPts', { c: s.mcqCorrect, t: s.mcqTotal, p: s.mcqPoints })}</span>
+        <span class="grade-auto">${esc(t('t.markAutoAlready', { p: s.autoPoints }))}</span>
       </div>
       <div class="grade-items">${items}</div>
       <div class="grade-foot">
-        <span class="grade-total" id="gt-${s.id}"></span>
-        <button class="tbtn" onclick="saveGrades('${s.id}')">${t('t.gradeSave')}</button>
+        <span class="grade-total" id="gt-${esc(s.id)}"></span>
+        <button class="tbtn" onclick="saveGrades('${esc(s.id)}')">${esc(t('t.gradeSave'))}</button>
       </div>
     </div>`;
 }
-/** Live "earned / max points" readout as the teacher types scores. */
+
+/** Live "earned / max" readout as the teacher types. */
 function updateGradeTotal(sid) {
   const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
   if (!card) return;
@@ -1032,6 +1277,7 @@ function updateGradeTotal(sid) {
   const el = document.getElementById('gt-' + sid);
   if (el) el.textContent = t('t.gradeTotal', { e: earned, m: card.dataset.max });
 }
+
 async function saveGrades(sid) {
   const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
   if (!card) return;
@@ -1043,12 +1289,24 @@ async function saveGrades(sid) {
     if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
     scores[qid] = v;
   });
+
+  /* The one place the two sources differ. Both endpoints take the same
+     `scores` body keyed by question id; only the path changes. */
+  const url = card.dataset.source === 'challenge'
+    ? `/api/teacher/challenges/responses/${sid}/grade`
+    : `/api/teacher/submissions/${sid}/grade`;
+
+  const btn = card.querySelector('.grade-foot .tbtn');
+  if (btn) { btn.disabled = true; btn.textContent = t('t.gradeSaving'); }
   try {
-    await API.post(`/api/teacher/submissions/${sid}/grade`, { scores });
+    await API.post(url, { scores });
     toast(t('t.gradeSaved'), 'good');
     await reload();
     render();
-  } catch (e) { toast(e.message, 'bad'); }
+  } catch (e) {
+    toast(e.message, 'bad');
+    if (btn) { btn.disabled = false; btn.textContent = t('t.gradeSave'); }
+  }
 }
 
 /* ============================ GRADEBOOK ============================ */
