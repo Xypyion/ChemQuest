@@ -182,6 +182,7 @@ const NAV_ITEMS = [
   { page: 'map',          href: '/dashboard.html',   key: 'nav.map',          icon: 'map' },
   { page: 'quests',       href: '/quests.html',      key: 'nav.quests',       icon: 'quests' },
   { page: 'battle',       href: '/battle.html',      key: 'nav.battle',       icon: 'battle' },
+  { page: 'lab',          href: '/lab.html',         key: 'nav.lab',          icon: 'flask' },
   { page: 'certificates', href: '/inventory.html',   key: 'nav.certificates', icon: 'certificates' },
   { page: 'leaderboard',  href: '/leaderboard.html', key: 'nav.leaderboard',  icon: 'leaderboard' },
 ];

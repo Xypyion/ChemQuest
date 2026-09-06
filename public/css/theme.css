@@ -292,11 +292,12 @@ textarea { resize: vertical; min-height: 90px; }
    between them, and a right-anchored bar shifts with it. */
 html { scrollbar-gutter: stable; }
 
-/* One row needs about 1460px: brand 175 + stats 229 + five destinations 617 +
-   account 371, plus gaps and padding. Below that it wraps, and the
-   destinations take a full-width row of their own — which is identical on
-   every page, so they still cannot move. Measured, not guessed. */
-@media (max-width: 1460px) {
+/* One row needs about 1580px: brand 175 + stats 229 + six destinations 735 +
+   account 371, plus gaps and padding. (It was 1460 with five, before the Lab
+   was added — the number is re-measured whenever a destination is.) Below that
+   it wraps, and the destinations take a full-width row of their own — which is
+   identical on every page, so they still cannot move. Measured, not guessed. */
+@media (max-width: 1580px) {
   .topbar { flex-wrap: wrap; padding: 10px 14px; position: static; }
   .nav-links { order: 3; width: 100%; margin-left: 0; }
   .nav-account { margin-left: auto; }
