@@ -755,3 +755,34 @@ details.qcard[open] > .qcard-sum { border-bottom: 1px solid var(--t-line); }
   .tbtn.sm, .chip, .mark-chip { min-height: 40px; }
   .iconbtn { min-width: 40px; min-height: 40px; }
 }
+
+/* ------------------- the challenge row's own grid ------------------- *
+ *
+ * `.lesson-row` is a THREE-column grid — 44px for the level number, the body,
+ * then the actions. The levels list fills all three. The challenges list used
+ * to fill them with an emoji icon, the body and the actions; when that emoji
+ * was removed for the drawn icon set, the row was left with two children and
+ * the body dropped into the 44px column, which wrapped every title one word
+ * per line and slid the buttons over the text.
+ *
+ * A challenge row has no leading number or icon, so it gets two columns and
+ * says so, rather than depending on a filler element being present.
+ * ------------------------------------------------------------------- */
+
+.lesson-row.challenge-row { grid-template-columns: minmax(0, 1fr) auto; }
+
+.challenge-row .info { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.challenge-row .info .t {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  font-weight: 700; font-size: 1.02rem; letter-spacing: -.01em; color: var(--t-ink);
+}
+.challenge-row .acts { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+
+@media (max-width: 720px) {
+  .lesson-row.challenge-row { grid-template-columns: minmax(0, 1fr); }
+  .challenge-row .acts { justify-content: flex-start; }
+}
+
+.cat-head { margin: 0 0 10px; }
+.cat-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--t-soft); }
+.cat-head h3 svg { color: var(--t-soft); }

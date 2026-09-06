@@ -61,15 +61,17 @@ const TChallenges = (() => {
     await render();
   }
 
+  /* Plain text: the row draws its own icon beside this, and a level's own
+     emoji doubled it up. */
   function lessonName(id) {
     const l = (typeof LESSONS !== 'undefined' ? LESSONS : []).find((x) => x.id === id);
-    return l ? `${l.icon || '🧪'} ${l.title}` : '—';
+    return l ? l.title : '—';
   }
 
   /* ================================ LIST ================================ */
 
   function paintList() {
-    const groups = cats.map((c) => ({ label: `${c.icon || '📂'} ${c.name}`, items: [] }));
+    const groups = cats.map((c) => ({ label: (c.icon ? c.icon + ' ' : '') + c.name, items: [] }));
     const other = { label: t('t.chUncategorized'), items: [] };
     list.forEach((c) => {
       const i = cats.findIndex((k) => k.id === c.categoryId);
@@ -80,7 +82,7 @@ const TChallenges = (() => {
     const body = list.length
       ? groups.filter((g) => g.items.length).map((g) => `
           <div class="t-card">
-            <div class="t-head" style="margin:0 0 10px"><h3 style="margin:0">${esc(g.label)}</h3></div>
+            <div class="t-head cat-head"><h3>${ICON.lines(15)} ${esc(g.label)}</h3></div>
             ${g.items.map(challengeRow).join('')}
           </div>`).join('')
       : `<div class="t-card empty">${t('t.chNone')}</div>`;
@@ -109,7 +111,7 @@ const TChallenges = (() => {
       : t('t.chAssignedAll');
     const bit = (icon, text) => `<i>${ICON[icon](14)}${esc(text)}</i>`;
     return `
-      <div class="lesson-row">
+      <div class="lesson-row challenge-row">
         <div class="info">
           <div class="t">${chem(c.title)}
             <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
