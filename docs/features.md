@@ -46,6 +46,9 @@ finished.
   The student types an answer and presses **Send answer**; **Next** stays shut until they
   have, and **Skip** stops at any question not yet answered. They can send an updated
   answer later. Kru CJ reads it for the teacher — the student never sees a score.
+  If the teacher ticked **This question uses the whiteboard** on it, there is **no text
+  box**: the student answers on the whiteboard, and sending the board is the answer that
+  unlocks **Next**.
 - **Whiteboard** 🖊️: on any question the teacher switched it on for, a **Whiteboard**
   button at the **bottom-left of the screen** opens a white board (on a challenge, where
   every question is on one page, it follows the question being worked on and says which) to write working on (pen, eraser, four colours, three sizes,

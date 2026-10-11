@@ -108,3 +108,11 @@
 .story-answer-note { font-size: .88rem; font-weight: 600; color: var(--ink-soft); }
 .story-answer-note.is-sent { color: var(--grass-dark); }
 .story-q-gate { margin-top: 8px; font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+
+/* a storyboard question the teacher set to whiteboard: the board is the answer */
+.story-board-how {
+  display: flex; align-items: center; gap: 8px; margin: 0;
+  padding: 14px 16px; border-radius: 16px; background: #eef4ff; border: 3px dashed #c9dafc;
+  font-weight: 600; color: var(--ink);
+}
+.story-board-answer .btn .ic { vertical-align: -3px; }

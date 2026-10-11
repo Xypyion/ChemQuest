@@ -638,7 +638,7 @@ function renderStoryItem(it, i, total, moodOpts) {
       <textarea class="t-area sbq-ainote" rows="2" placeholder="${esc(t('t.chAiNotePh'))}">${esc(it.aiNote)}</textarea>
       <label class="check-row">
         <input type="checkbox" class="sbq-board" ${it.whiteboard ? 'checked' : ''}>
-        <span>${ICON.board(15)} ${t('t.wbToggle')} <span class="sub" style="color:var(--t-soft)">— ${t('t.wbToggleHint')}</span></span>
+        <span>${ICON.board(15)} ${t('t.wbToggle')} <span class="sub" style="color:var(--t-soft)">— ${t('t.storyQBoardHint')}</span></span>
       </label>
     </div>`;
   }

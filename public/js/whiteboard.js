@@ -304,5 +304,8 @@ const Whiteboard = (() => {
     el.setAttribute('aria-label', t('wb.open') + (docked.label ? ' — ' + docked.label : ''));
   }
 
-  return { open, close, setTool, setColor, setSize, undo, clearBoard, send, markSent, dock };
+  /** Has this question's board been sent (this visit, or an earlier one)? */
+  function isSent(key) { return sent.has(key); }
+
+  return { open, close, setTool, setColor, setSize, undo, clearBoard, send, markSent, isSent, dock };
 })();

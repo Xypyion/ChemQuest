@@ -172,8 +172,9 @@ function showStory() {
   const dots = `<div class="dots">${lesson.storyboard.map((s, i) =>
     `<i class="${i <= storyIndex ? 'on' : ''} ${s.type === 'video' ? 'vid' : ''}"></i>`).join('')}</div>`;
 
-  // A question step keeps Next shut until the student has sent an answer.
-  const blocked = step.type === 'question' && !storyAnswers[step.id];
+  // A question step keeps Next shut until the student has sent an answer —
+  // typed, or (on a whiteboard question) their board.
+  const blocked = step.type === 'question' && !storyAnswered(step);
   const nav = `
     <div class="row" style="justify-content:center;margin-top:14px;gap:10px">
       ${storyIndex > 0 ? `<button class="btn ghost" id="prevStep">${t('lesson.back')}</button>` : ''}
@@ -182,7 +183,29 @@ function showStory() {
     ${blocked ? `<div class="story-q-gate">${t('lesson.qAnswerToGoOn')}</div>` : ''}
     ${last ? '' : `<button class="btn ghost" style="margin-top:10px;font-size:.8rem;padding:8px 14px" id="skipStory">${t('lesson.skip')}</button>`}`;
 
-  if (step.type === 'question') {
+  if (step.type === 'question' && step.whiteboard) {
+    // The teacher chose the whiteboard: no text box — the board IS the answer.
+    const sentBoard = Whiteboard.isSent(storyBoardKey(step.id));
+    card.innerHTML = `
+      <div class="story-stage">
+        <div class="ruby-hero">${renderRuby('thinking', { size: 170, float: true })}</div>
+        ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="">` : ''}
+        <div class="speech top pop-in story-q">
+          <div class="speaker">${t('lesson.qKruAsks', { name: escapeHtml(speakerName('Kru CJ')) })}</div>
+          <div>${chemLinks(step.question)}</div>
+        </div>
+        <div class="story-answer story-board-answer">
+          <p class="story-board-how">${ICON.board(18)} ${t('lesson.qBoardHow')}</p>
+          <div class="story-answer-row">
+            <span class="story-answer-note ${sentBoard ? 'is-sent' : ''}">
+              ${sentBoard ? t('lesson.qSent') : t('lesson.qNotGraded')}</span>
+            <button class="btn secondary" id="openStoryBoardBtn">${ICON.board(18)} ${sentBoard ? t('lesson.qBoardAgain') : t('lesson.qBoardOpen')}</button>
+          </div>
+        </div>
+        ${dots}${nav}
+      </div>`;
+    document.getElementById('openStoryBoardBtn').onclick = () => openStoryBoard(step.id);
+  } else if (step.type === 'question') {
     const mine = storyAnswers[step.id];
     const draft = storyDrafts[step.id] != null ? storyDrafts[step.id] : (mine ? mine.answer : '');
     card.innerHTML = `
@@ -230,11 +253,11 @@ function showStory() {
   }
 
   Whiteboard.dock(step.type === 'question' && step.whiteboard
-    ? { key: `story:${LESSON_ID}:${step.id}`, open: () => openStoryBoard(step.id) }
+    ? { key: storyBoardKey(step.id), open: () => openStoryBoard(step.id) }
     : null);
 
   document.getElementById('nextStep').onclick = () => {
-    if (step.type === 'question' && !storyAnswers[step.id]) return;
+    if (step.type === 'question' && !storyAnswered(step)) return;
     if (last) goPhase(cur + 1);
     else { storyIndex++; showStory(); }
   };
@@ -245,7 +268,7 @@ function showStory() {
   // otherwise "Skip" would be the way around every question the teacher asks.
   if (skip) skip.onclick = () => {
     const steps = lesson.storyboard;
-    const next = steps.findIndex((s, i) => i > storyIndex && s.type === 'question' && !storyAnswers[s.id]);
+    const next = steps.findIndex((s, i) => i > storyIndex && s.type === 'question' && !storyAnswered(s));
     if (next !== -1) { storyIndex = next; showStory(); }
     else goPhase(cur + 1);
   };
@@ -278,15 +301,23 @@ async function sendStoryAnswer(step) {
   }
 }
 
-/** Open the whiteboard for a storyboard question. */
+function storyBoardKey(stepId) { return `story:${LESSON_ID}:${stepId}`; }
+
+/** Has the student answered this storyboard question — by text, or by board? */
+function storyAnswered(step) {
+  return step.whiteboard ? Whiteboard.isSent(storyBoardKey(step.id)) : !!storyAnswers[step.id];
+}
+
+/** Open the whiteboard for a storyboard question. Sending it answers the question. */
 function openStoryBoard(stepId) {
   const step = (lesson.storyboard || []).find((s) => s.id === stepId);
   if (!step) return;
   Whiteboard.open({
-    key: `story:${LESSON_ID}:${stepId}`,
+    key: storyBoardKey(stepId),
     question: step.question,
     payload: { kind: 'story', lessonId: LESSON_ID, questionId: stepId },
-    getAnswer: () => { const ta = document.getElementById('storyAnswer'); return ta ? ta.value : ''; },
+    // Re-draw the step so its note reads "sent" and Next opens.
+    onSent: () => { if (lesson.storyboard[storyIndex] && lesson.storyboard[storyIndex].id === stepId) showStory(); },
   });
 }
 

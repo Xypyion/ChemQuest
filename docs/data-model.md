@@ -384,7 +384,8 @@ new comparison going through `norm()` rather than comparing raw strings.
   `{ id, question, image, expected, aiNote, whiteboard }`. `id` is stable across
   saves (answers are stored against it). `expected` (the teacher's แนวคำตอบ) and
   `aiNote` are teacher-only — `lessons.routes.js buildSteps` never sends them.
-  The student must answer before **Next** works.
+  The student must answer before **Next** works. With `whiteboard: true` there is no
+  text box: the answer is the board (a `whiteboards` row, key `story:<lessonId>:<id>`).
 
 Any web address in a line, a question or a challenge description is rendered
 as a link that opens in a new tab (`chemLinks()` in `public/js/api.js`).

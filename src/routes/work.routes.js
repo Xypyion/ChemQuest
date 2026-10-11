@@ -394,7 +394,10 @@ function levelRows(user) {
     const p = (user.progress || {})[l.id] || {};
     const post = p.post || {};
     const storyQs = (l.storyboard || []).filter((s) => s.type === 'question');
-    const answered = db.filter('storyAnswers', (a) => a.userId === user.id && a.lessonId === l.id).length;
+    // A whiteboard question is answered by its board, not by text.
+    const answered = storyQs.filter((s) => (s.whiteboard
+      ? db.find('whiteboards', (w) => w.userId === user.id && w.key === `story:${l.id}:${s.id}`)
+      : db.find('storyAnswers', (a) => a.userId === user.id && a.lessonId === l.id && a.stepId === s.id))).length;
     return {
       id: l.id,
       title: l.title,
@@ -628,6 +631,9 @@ teacherRouter.get('/story', (req, res) => {
       whiteboard: !!s.whiteboard,
       answers: answers.filter((a) => a.lessonId === l.id && a.stepId === s.id)
         .sort((a, b) => (a.userName || '').localeCompare(b.userName || '')),
+      // On a whiteboard question the board IS the answer.
+      boards: db.filter('whiteboards', (w) => w.key === `story:${l.id}:${s.id}`)
+        .sort((a, b) => (a.userName || '').localeCompare(b.userName || '')).map(boardMeta),
     })),
   })).filter((l) => l.questions.length);
   res.json({ lessons: out, aiEnabled: config.aiEnabled() });

@@ -526,22 +526,28 @@ const TLogs = (() => {
         <h3 style="margin-top:0">${esc(l.icon)} ${chem(l.title)}</h3>
         ${l.questions.map((q, i) => {
           const counts = { strong: 0, mixed: 0, struggling: 0 };
-          q.answers.forEach((a) => { if (a.ai && counts[a.ai.level] != null) counts[a.ai.level]++; });
+          // A whiteboard question is answered on the board; a typed one in text.
+          const items = q.whiteboard ? (q.boards || []) : q.answers;
+          items.forEach((a) => { if (a.ai && counts[a.ai.level] != null) counts[a.ai.level]++; });
           return `
             <details class="lg-sq" ${i === 0 ? 'open' : ''}>
               <summary>
                 <span class="lg-sq-n">${i + 1}</span>
                 <span class="lg-sq-text">${chemLinks(q.question)}</span>
-                <span class="lg-count">${q.answers.length}</span>
+                ${q.whiteboard ? `<span class="lg-kind">${ICON.board(13)} ${esc(t('wb.open'))}</span>` : ''}
+                <span class="lg-count">${items.length}</span>
                 ${aiMix(counts)}
               </summary>
               ${q.expected ? `<div class="grade-guide">${ICON.question(13)} ${esc(t('lg.expected'))}: ${esc(q.expected)}</div>` : ''}
-              ${q.answers.length ? q.answers.map((a) => storyAnswerCard(a, true)).join('') : `<p class="lg-muted">${esc(t('lg.noAnswersYet'))}</p>`}
+              ${items.length
+                ? items.map((a) => (q.whiteboard ? boardCard(a, true) : storyAnswerCard(a, true))).join('')
+                : `<p class="lg-muted">${esc(t('lg.noAnswersYet'))}</p>`}
             </details>`;
         }).join('')}
       </div>`).join('')
       : `<div class="t-card empty">${esc(t('lg.noStoryQs'))}</div>`;
     host.innerHTML = `${head(t('lg.storySub'))}${tabs()}${body}`;
+    loadImages();
   }
 
   /* ------------------------- class view: boards -------------------------- */
@@ -592,6 +598,7 @@ const TLogs = (() => {
     } else {
       if (record) lists.push(record.whiteboards);
       if (boardsData) lists.push(boardsData);
+      if (storyData) storyData.forEach((l) => l.questions.forEach((q) => lists.push(q.boards || [])));
     }
     lists.forEach((arr) => arr.forEach((x) => { if (x.id === id) { x.ai = ai; x.aiError = null; } }));
   }
