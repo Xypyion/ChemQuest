@@ -117,6 +117,8 @@ studentRouter.get('/:id', (req, res) => {
     checks: checksFor(c, req.user),
     aiEnabled: config.aiEnabled(),
     maxChecks: marking.MAX_CHECKS,
+    // Whiteboards already sent on this challenge, so their buttons read "sent".
+    sentBoards: db.filter('whiteboards', (w) => w.userId === req.user.id && w.challengeId === c.id).map((w) => w.key),
   });
 });
 
@@ -280,7 +282,6 @@ teacherRouter.get('/pending', (req, res) => {
       userName: s.userName,
       userAvatar: (user && user.avatar) || s.userAvatar || '',
       title: s.challengeTitle || c.title,
-      difficulty: (user && user.difficulty) || '',
       autoPoints: s.autoEarned || 0,
       autoOf: (s.results || []).filter((r) => r.auto).length,
       autoCorrect: (s.results || []).filter((r) => r.auto && r.correct === true).length,

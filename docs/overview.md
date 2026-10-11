@@ -10,7 +10,7 @@ served from the same Node.js process.
   (Meadow → Ember Canyon → Sky Summit). Each level opens a **level board** listing its
   activities: the **storyboard** (+ video), the **pre-test**, an **assignments** feed,
   the **challenges** the teacher assigned them, and a teacher-gated **post-test**.
-- **Teachers** build levels (storyboard, images, videos, per-difficulty quizzes), decide
+- **Teachers** build levels (storyboard, images, videos, pre/post-test questions), decide
   whether the storyboard or the pre-test comes first, create a separate post-test, build
   and assign **challenges**, control when each level unlocks, post assignments, review
   student work and private questions, and manage student accounts.

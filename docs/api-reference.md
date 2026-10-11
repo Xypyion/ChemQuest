@@ -12,7 +12,7 @@ Roles: **public** (no token), **student**, **teacher**.
 
 | Method | Path | Role | Body | Notes |
 |--------|------|------|------|-------|
-| POST | `/api/auth/signup` | public | `{ name, email, password, difficulty }` | Creates a **student**. `password` ≥ 6 chars; `difficulty` ∈ easy/medium/hard. Returns `{ token, user }`. |
+| POST | `/api/auth/signup` | public | `{ name, email, password }` | Creates a **student**. `password` ≥ 6 chars. Returns `{ token, user }`. (There is no difficulty any more.) |
 | POST | `/api/auth/login` | public | `{ email, password }` | Works for students and the teacher. Email is case-insensitive. Returns `{ token, user }`. |
 | GET | `/api/auth/me` | any | — | Returns the current `{ user }`. |
 | GET | `/api/auth/profile` | any | — | The account plus the summary Settings shows: `{ user, avatars, stats }`. `avatars` is the whitelist the picker offers; `stats` is `{ points, coins, certificates, levelsDone, levelsTotal, joinedAt }`. `levelsDone` is counted with `game.levelDone`, so it agrees with the map. |
@@ -87,7 +87,7 @@ the two level activities the student must do first.
     { "type": "line", "character": "Kru CJ", "mood": "happy", "text": "…", "image": "" },
     { "type": "video", "url": "https://youtu.be/…", "title": "…" }
   ],
-  "quizzes": {                    // pre-test, per difficulty
+  "quizzes": {                    // pre-test: ONE set; medium/hard are merged into easy on save
     "easy":   [{ "question": "…", "choices": ["…"], "correctIndex": 1, "explanation": "…" }],
     "medium": [ … ],
     "hard":   [ … ]
@@ -103,8 +103,8 @@ the two level activities the student must do first.
 
 | Method | Path | Body | Notes |
 |--------|------|------|-------|
-| GET | `/api/teacher/students` | — | Roster with points, difficulty, certificates, levels completed. |
-| PUT | `/api/teacher/students/:id` | `{ name?, difficulty?, points? }` | Edit; `points` sets an absolute ranking via a bonus adjustment. |
+| GET | `/api/teacher/students` | — | Roster with points, certificates, levels completed. |
+| PUT | `/api/teacher/students/:id` | `{ name?, points? }` | Edit; `points` sets an absolute ranking via a bonus adjustment. |
 | POST | `/api/teacher/students/:id/password` | `{ password }` | Reset password (≥ 6 chars). |
 | DELETE | `/api/teacher/students/:id` | — | Delete the account. |
 
@@ -360,6 +360,41 @@ Paid for out of the Daily Quest coin wallet: 3 free questions a day, then 50
 coins each (`src/tutorCredit.js`). A failed or refused reply is refunded.
 `402 INSUFFICIENT_COINS` when they cannot pay; `429` when the model provider
 rate-limits.
+
+## Student work (student) — `/api/work`
+
+Work that is read but never graded: answers to **storyboard questions** and
+**whiteboards** (a picture of the student's scratch working). All require a
+**student** token. Saving is instant; Kru CJ's analysis is a second call the
+page fires without waiting, and its result is **only ever returned to the
+teacher**.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/work/story/:lessonId` | — | `{ answers: { stepId: {id, answer, updatedAt} }, boards: { key: {id, updatedAt} } }` — what I already sent on this level. |
+| POST | `/api/work/story/:lessonId/:stepId` | `{ answer, lang }` | Answer (or re-answer) one storyboard question. Same lock rules as the level; `403 STORY_LOCKED` while the storyboard is the second activity. A re-send keeps the old answer in `history` and clears the analysis. Returns `{ id, needsAnalysis }` — `needsAnalysis` is false when no AI key is set. |
+| POST | `/api/work/story-answer/:id/analyze` | `{ lang }` | Kru CJ reads my answer for the teacher. Counts against `AI_DIAGNOSE_LIMIT`. Returns `{ ok }` only. |
+| POST | `/api/work/whiteboard` | `{ kind, lessonId?, challengeId?, questionId, image, answer?, lang }` | Send a board. `kind` ∈ `challenge` / `pre` / `post` / `story`. `image` is a PNG/JPEG/WebP data URL (≤ ~1.8 MB). The question must have its whiteboard switched on (`400 NO_WHITEBOARD`). One board per student per question — a resend replaces it. |
+| POST | `/api/work/whiteboard/:id/analyze` | `{ lang }` | Kru CJ reads the board (a multimodal call) for the teacher. |
+
+## Student Logs (teacher) — `/api/teacher/logs`
+
+All require a **teacher** token.
+
+| Method | Path | Body | Notes |
+|--------|------|------|-------|
+| GET | `/api/teacher/logs` | — | One row per student: levels done, pre/post-test and challenge averages, counts, Kru CJ's level mix, last active. |
+| GET | `/api/teacher/logs/student/:id` | — | One student's whole record: levels, story answers (+ analyses), whiteboards (**no images**), written test answers, challenges, quests, battles/duels, Kru CJ conversations, board/Lab activity, Kru CJ's profile, and a typed `timeline` (`{at, type, p}` — the browser builds the sentence from `lg.ev.<type>` so it is bilingual). |
+| GET | `/api/teacher/logs/story` | — | Every storyboard question with every student's answer. |
+| GET | `/api/teacher/logs/whiteboards` | — | Every board, newest first, no images. |
+| GET | `/api/teacher/logs/whiteboard/:id/image` | — | `{ image }` — one board's picture, fetched lazily. |
+| POST | `/api/teacher/logs/story-answer/:id/analyze` | `{ lang }` | Run / re-run Kru CJ on one answer (teacher's `mark` allowance). |
+| POST | `/api/teacher/logs/whiteboard/:id/analyze` | `{ lang }` | Run / re-run Kru CJ on one board. |
+| POST | `/api/teacher/logs/student/:id/summary` | `{ lang }` | Kru CJ writes an overall profile of the student from their whole record; stored in `studentInsights`. The student's name is not sent to the model. |
+
+Error codes on the analyse routes: `AI_DISABLED`, `AI_DAILY_LIMIT`, `AI_BUSY`,
+`AI_BAD_KEY`, `AI_FAILED`, and `ANSWER_CHANGED` / `BOARD_CHANGED` when the
+student re-sent while the model was reading.
 
 ## Leaderboard — `/api/leaderboard`
 

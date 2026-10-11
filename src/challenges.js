@@ -121,6 +121,10 @@ function normalizeQuestion(raw, allowSim) {
     rubric: trimmed(raw.rubric, MAX_RUBRIC),
     aiNote: trimmed(raw.aiNote, MAX_AI_NOTE),
     aiMark: !!raw.aiMark,
+    // "This question uses the whiteboard": the student gets a scratch board to
+    // work on and can send it in for Kru CJ to read (src/aiDiagnosis.js). It
+    // never affects the mark.
+    whiteboard: type !== 'simulation' && !!raw.whiteboard,
   };
 
   if (type === 'mcq' || type === 'multi') {
@@ -406,6 +410,7 @@ function sanitizeQuestion(q) {
   // A BOOLEAN, deliberately — the player needs to know whether to draw the
   // "Check my answer" button, and must never be told what the teacher expects.
   out.canCheck = isAiMarkable(q);
+  out.whiteboard = !!q.whiteboard;
   if (q.type === 'mcq' || q.type === 'multi') out.choices = q.choices || [];
   if (q.type === 'table') {
     out.table = {

@@ -83,6 +83,9 @@ app.use('/api/battles', battleRoutes.studentRouter);                // students 
 app.use('/api/teacher/battles', battleRoutes.teacherRouter);        // teacher sets stakes & question banks
 app.use('/api/lab', require('./src/routes/lab.routes'));             // the Lab: games, coins, the element collection
 app.use('/api/teacher/ai', require('./src/routes/ai.routes'));       // AI writes questions
+const workRoutes = require('./src/routes/work.routes');
+app.use('/api/work', workRoutes.studentRouter);                      // storyboard answers + whiteboards
+app.use('/api/teacher/logs', workRoutes.teacherRouter);              // Student Logs
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
 app.use('/api/posts', require('./src/routes/posts.routes'));

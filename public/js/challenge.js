@@ -44,6 +44,7 @@ async function start() {
     CHECKS = data.checks || {};
     AI_ENABLED = !!data.aiEnabled;
     MAX_CHECKS = data.maxChecks || 2;
+    (data.sentBoards || []).forEach((k) => Whiteboard.markSent(k));
     reviewing = !!mySubmission;
     document.getElementById('chTitlePill').textContent = (challenge.icon || '🧩') + ' ' + challenge.title;
     render();
@@ -76,7 +77,7 @@ function render() {
       <div class="ch-head-info">
         <h1>${escapeHtml(challenge.title)}</h1>
         ${category ? `<div class="ch-cat">${escapeHtml((category.icon || '📂') + ' ' + category.name)}</div>` : ''}
-        ${challenge.description ? `<p class="ch-instructions">${escapeHtml(challenge.description)}</p>` : ''}
+        ${challenge.description ? `<p class="ch-instructions">${chemLinks(challenge.description)}</p>` : ''}
         <div class="ch-head-meta">
           <span>${t('ch.meta', { q: challenge.questions.length, s: challenge.questions.length === 1 ? '' : 's', p: challenge.maxPoints })}</span>
           ${challenge.dueAt ? `<span>${t('ch.due', { time: fmtWhen(challenge.dueAt) })}</span>` : ''}
@@ -87,6 +88,7 @@ function render() {
   const body = reviewing ? resultHtml() : formHtml();
   stage.innerHTML = head + body;
 
+  dockBoard();
   if (!reviewing) {
     const btn = document.getElementById('chSubmit');
     if (btn) btn.onclick = () => submit(false);
@@ -114,7 +116,7 @@ function questionHtml(q, n, sub) {
     const inner = (q.sub || []).map((sq, i) => questionHtml(sq, i + 1, true)).join('');
     return `
       <section class="ch-q sim">
-        ${q.question ? `<div class="ch-q-text">${chem(q.question)}</div>` : ''}
+        ${q.question ? `<div class="ch-q-text">${chemLinks(q.question)}</div>` : ''}
         <div class="ch-sim-hint">🧪 ${t('ch.simHint')}</div>
         ${simFrameHtml(q.sim)}
         ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
@@ -126,7 +128,7 @@ function questionHtml(q, n, sub) {
     ? `<span class="ch-q-n sub">${t('ch.qLabel', { n })}</span>`
     : `<span class="ch-q-n">${t('ch.qLabel', { n })}</span>`;
   return `
-    <section class="ch-q" data-qid="${escapeHtml(q.id)}" data-qtype="${q.type}">
+    <section class="ch-q" data-qid="${escapeHtml(q.id)}" data-qtype="${q.type}"${q.whiteboard && !reviewing ? ` data-wb-label="${escapeHtml(t('ch.qLabel', { n }))}"` : ''}>
       <div class="ch-q-head">
         ${label}
         <span class="ch-q-head-right">
@@ -134,7 +136,7 @@ function questionHtml(q, n, sub) {
           <span class="ch-q-pts">${t('ch.pts', { n: q.points })}</span>
         </span>
       </div>
-      <div class="ch-q-text">${chem(q.question)}</div>
+      <div class="ch-q-text">${chemLinks(q.question)}</div>
       ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
       ${answerHtml(q)}
       ${checkRow(q)}
@@ -150,6 +152,63 @@ function askRuby(qid) {
     questionId: qid,
     questionLabel: q.question,
     getDraft: () => {
+      const answers = collectAnswers();
+      return qid in answers ? myAnswerText(q, answers[qid]) : '';
+    },
+  });
+}
+
+/* -------------------------------- whiteboard ------------------------------- *
+ * The teacher switched the scratch board on for this question. What the student
+ * sends is read by Kru CJ for the TEACHER — it never changes the mark.
+ * The key matches the server's `whiteboards.key`, so a board sent on an earlier
+ * visit shows as sent.
+ * ------------------------------------------------------------------------- */
+function boardKey(qid) { return `challenge:${CHALLENGE_ID}:${qid}`; }
+
+/**
+ * Point the bottom-left whiteboard button at the question the student is on.
+ * Every question is on one page here, so "on" means the one they are typing
+ * in while it is on screen, or else the whiteboard question nearest the middle
+ * of the screen. The
+ * button's label names it, so it is never a guess which board opens.
+ */
+function dockBoard() {
+  const cards = reviewing ? [] : [...document.querySelectorAll('.ch-q[data-wb-label]')];
+  if (!cards.length) { Whiteboard.dock(null); return; }
+  const onScreen = (el) => { const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < window.innerHeight; };
+  let pick = cards.find((el) => el.contains(document.activeElement) && onScreen(el));
+  if (!pick) {
+    const mid = window.innerHeight / 2;
+    let best = Infinity;
+    cards.forEach((el) => {
+      const r = el.getBoundingClientRect();
+      const d = Math.abs((r.top + r.bottom) / 2 - mid);
+      if (d < best) { best = d; pick = el; }
+    });
+  }
+  const qid = pick.dataset.qid;
+  Whiteboard.dock({ key: boardKey(qid), label: pick.dataset.wbLabel, open: () => openBoard(qid) });
+}
+
+let dockQueued = false;
+function queueDock() {
+  if (dockQueued) return;
+  dockQueued = true;
+  setTimeout(() => { dockQueued = false; dockBoard(); }, 60);
+}
+window.addEventListener('scroll', queueDock, { passive: true });
+window.addEventListener('resize', queueDock);
+document.addEventListener('focusin', queueDock);
+
+function openBoard(qid) {
+  const q = flatten(challenge.questions).find((x) => x.id === qid);
+  if (!q) return;
+  Whiteboard.open({
+    key: boardKey(qid),
+    question: q.question,
+    payload: { kind: 'challenge', challengeId: CHALLENGE_ID, questionId: qid },
+    getAnswer: () => {
       const answers = collectAnswers();
       return qid in answers ? myAnswerText(q, answers[qid]) : '';
     },

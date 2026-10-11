@@ -144,6 +144,10 @@ function aiLimits() {
     // every student, checking their own written answer while they work. The
     // real guard is the per-question cap in aiMarking.js; this is the bill.
     check: num(process.env.AI_CHECK_LIMIT, 30),
+    // every student, having a storyboard answer or a whiteboard read for their
+    // teacher. Past the cap the work is still saved; the teacher can run the
+    // analysis later from Student Logs.
+    diagnose: num(process.env.AI_DIAGNOSE_LIMIT, 40),
   };
 }
 

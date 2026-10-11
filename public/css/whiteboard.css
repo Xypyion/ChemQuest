@@ -1,0 +1,101 @@
+/* The online whiteboard (js/whiteboard.js) — the student's scratch board.
+   Sits on the student design system: --ink, --radius, chunky .btn. */
+
+/* ---- the one button that opens it: fixed at the bottom-left ----
+   Bottom-left because Kru CJ owns the bottom-right (the quiz mascot and the
+   tutor panel). Under the chemistry keys (z 90), which dock to the bottom of a
+   phone while typing, so it never sits on top of the keys. */
+.wb-dock {
+  position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 85;
+  display: inline-flex; align-items: center; gap: 10px;
+  font: inherit; color: #fff; background: var(--brand-blue, #1355d4);
+  border: 0; border-radius: 999px; padding: 11px 18px 11px 14px; cursor: pointer;
+  box-shadow: 0 6px 0 var(--brand-blue-dark, #0f43a8), 0 12px 24px rgba(19, 85, 212, .28);
+  transition: transform .06s, filter .15s;
+}
+.wb-dock:hover { filter: brightness(1.06); }
+.wb-dock:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--brand-blue-dark, #0f43a8); }
+.wb-dock:focus-visible { outline: 3px solid var(--sun, #ffd23f); outline-offset: 3px; }
+.wb-dock[hidden] { display: none; }
+.wb-dock-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: left; }
+.wb-dock-text b { font-weight: 800; font-size: .95rem; }
+.wb-dock-text small { font-size: .74rem; font-weight: 600; opacity: .85; }
+.wb-dock.is-sent { background: #14895a; box-shadow: 0 6px 0 #0d6a45, 0 12px 24px rgba(20, 137, 90, .25); }
+@media (max-width: 640px) {
+  .wb-dock { left: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding: 10px 15px 10px 12px; }
+}
+
+/* ---- the board ---- */
+body.wb-locked { overflow: hidden; }
+
+.wb-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(30, 24, 60, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.wb-panel {
+  width: min(1180px, 100%); max-height: 100%;
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card, #fff); color: var(--ink, #3a3357);
+  border-radius: var(--radius, 22px); box-shadow: var(--shadow-soft);
+  padding: 16px 18px; overflow: auto;
+}
+.wb-head { display: flex; gap: 12px; align-items: flex-start; }
+.wb-head-text { flex: 1; min-width: 0; }
+.wb-head h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+.wb-question {
+  margin-top: 6px; font-size: .92rem; color: var(--ink-soft, #6b6488);
+  max-height: 4.6em; overflow: auto; overflow-wrap: anywhere;
+}
+.wb-x {
+  flex: none; width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  background: #f0eef8; color: var(--ink); display: grid; place-items: center;
+}
+
+.wb-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.wb-group { display: flex; gap: 6px; align-items: center; }
+.wb-tool {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: inherit; font-size: .85rem; font-weight: 600; color: var(--ink);
+  background: #f4f2fb; border: 2px solid transparent; border-radius: 12px;
+  padding: 6px 11px; cursor: pointer;
+}
+.wb-tool[aria-pressed="true"] { border-color: var(--brand-blue, #1355d4); background: #eef4ff; }
+.wb-swatch {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  background: var(--sw); border: 3px solid #fff; box-shadow: 0 0 0 2px #d9d5ea;
+}
+.wb-swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--ink); }
+.wb-size {
+  width: 34px; height: 34px; border-radius: 10px; cursor: pointer;
+  background: #f4f2fb; border: 2px solid transparent; display: grid; place-items: center;
+}
+.wb-size i { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: var(--ink); }
+.wb-size[aria-pressed="true"] { border-color: var(--brand-blue, #1355d4); background: #eef4ff; }
+
+/* The canvas ELEMENT keeps the board's 1200:750 shape at every size. Letting
+   CSS letterbox the drawing inside a differently-shaped box (object-fit) puts
+   the ink somewhere other than under the pen, because pointer positions are
+   measured against the element. So the width is capped by the height the
+   screen leaves free, and the height follows from the ratio. */
+.wb-canvas-wrap { --wb-room: 250px; display: flex; justify-content: center; }
+.wb-canvas {
+  display: block; width: min(100%, calc((100vh - var(--wb-room)) * 1.6)); height: auto; aspect-ratio: 1200 / 750;
+  border: 2px solid #e2def0; border-radius: 14px; box-sizing: border-box;
+  touch-action: none; cursor: crosshair; background: #fff;
+}
+
+.wb-foot { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.wb-note { margin: 0; flex: 1 1 280px; font-size: .82rem; color: var(--ink-soft, #6b6488); }
+.wb-foot-acts { display: flex; gap: 10px; }
+
+@media (max-width: 640px) {
+  .wb-overlay { padding: 0; align-items: stretch; }
+  .wb-panel { border-radius: 0; padding: 12px; }
+  .wb-tool { padding: 6px 9px; }
+  .wb-canvas-wrap { --wb-room: 300px; }
+  .wb-foot-acts { width: 100%; }
+  .wb-foot-acts .btn { flex: 1; }
+}
+

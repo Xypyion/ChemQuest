@@ -412,3 +412,8 @@ sub {
   filter: drop-shadow(0 6px 5px rgba(40, 30, 70, .24));
   user-select: none;
 }
+
+/* Links a teacher pasted into a storyboard or a question become real links
+   that open a new tab (chemLinks() in js/api.js). */
+a.ext-link { color: var(--brand-blue, #1355d4); text-decoration: underline; overflow-wrap: anywhere; font-weight: 600; }
+a.ext-link:hover { color: var(--brand-blue-dark, #0f43a8); }

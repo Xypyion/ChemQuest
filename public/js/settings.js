@@ -43,7 +43,6 @@ function render() {
           <h2 class="set-hero-name" id="heroName">${escapeHtml(u.name)}</h2>
           <p class="set-hero-mail">${escapeHtml(u.email)}</p>
           <div class="set-chips">
-            <span class="pill ${escapeHtml(u.difficulty)}">${escapeHtml(tDiff(u.difficulty))}</span>
             <span class="pill points">${ICON.star(14)} ${s.points} ${escapeHtml(t('nav.pts'))}</span>
             <span class="pill">${ICON.coin(14)} ${s.coins} ${escapeHtml(t('nav.coins'))}</span>
             <span class="pill">${ICON.certificates(14)} ${s.certificates}</span>
@@ -98,15 +97,6 @@ function render() {
       </section>
 
       <section class="set-card pop-in">
-        <h2 class="set-h">${ICON.lock(19)} <span data-i18n="set.diffTitle">Difficulty</span></h2>
-        <p class="set-note" data-i18n="set.diffNote">Your teacher sets this. It decides which set of questions your quizzes use — ask them if you would like to move up or down.</p>
-        <div class="set-diff-row">
-          ${['easy', 'medium', 'hard'].map((d) => `
-            <span class="pill ${d} set-diff${d === u.difficulty ? ' on' : ''}">${escapeHtml(tDiff(d))}</span>`).join('')}
-        </div>
-
-        <hr class="set-rule" />
-
         <h2 class="set-h">${ICON.logout(19)} <span data-i18n="set.sessionTitle">This device</span></h2>
         <p class="set-note" data-i18n="set.sessionNote">Logging out clears your account from this computer. Always do this on a shared school machine.</p>
         <div class="set-actions">

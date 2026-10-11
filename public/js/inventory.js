@@ -43,7 +43,6 @@ mountLangSwitch();
             score: latest.score,
           })}</div>
         </div>
-        <span class="pill ${latest.difficulty}">${tDiff(latest.difficulty)}</span>
       </div>` : '';
 
     // Badge grid — one tile per level.

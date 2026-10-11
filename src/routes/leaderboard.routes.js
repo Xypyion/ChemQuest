@@ -14,7 +14,6 @@ router.get('/', authMiddleware, (req, res) => {
         id: u.id,
         name: u.name,
         avatar: u.avatar || '🧑‍🎓',
-        difficulty: u.difficulty,
         points: u.points || 0,
         levelsCompleted: Object.values(progress).filter((p) => p.passed).length,
         certificates: (u.certificates || []).length,

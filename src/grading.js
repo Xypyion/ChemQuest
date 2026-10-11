@@ -27,7 +27,7 @@ function finalizeAttempt(user, lesson, mode, earned, max) {
 
   if (mode === 'post') {
     const passed = max === 0 ? true : game.isPass(earned, max);
-    const score = game.computeScore({ correct: earned, total: max, difficulty: user.difficulty });
+    const score = game.computeScore({ correct: earned, total: max });
     const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
     const prior = entry.post || { attempts: 0, bestScore: 0 };
     entry.post = {
@@ -50,8 +50,8 @@ function finalizeAttempt(user, lesson, mode, earned, max) {
   const passed = max === 0 ? true : game.isPass(earned, max);
   const score =
     max === 0
-      ? Math.round(0.8 * game.MAX_LESSON_POINTS * game.multiplierFor(user.difficulty))
-      : game.computeScore({ correct: earned, total: max, difficulty: user.difficulty });
+      ? Math.round(0.8 * game.MAX_LESSON_POINTS)
+      : game.computeScore({ correct: earned, total: max });
 
   const prior = progress[lesson.id] || { attempts: 0, bestScore: 0 };
   const bestScore = Math.max(prior.bestScore || 0, score);
@@ -79,7 +79,6 @@ function finalizeAttempt(user, lesson, mode, earned, max) {
       title: lesson.title,
       icon: lesson.icon || '🧪',
       score: bestScore,
-      difficulty: user.difficulty,
       dateEarned: new Date().toISOString(),
     };
     user.certificates = user.certificates || [];

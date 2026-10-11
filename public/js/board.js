@@ -26,9 +26,6 @@ async function init() {
   try {
     lesson = (await API.get('/api/lessons/' + encodeURIComponent(LESSON_ID))).lesson;
     document.getElementById('lessonTitlePill').textContent = lesson.icon + ' ' + lesson.title;
-    const dp = document.getElementById('diffPill');
-    dp.className = 'pill ' + lesson.difficulty;
-    dp.textContent = tDiff(lesson.difficulty);
     loadChallenges();
     render();
   } catch (e) { boardEl.innerHTML = errBox(e.message); }

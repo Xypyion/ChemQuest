@@ -3,7 +3,7 @@
 ## Language (ไทย / English)
 
 - One accessible toggle (`EN | ไทย`) switches the **entire UI**: menus, buttons, labels,
-  placeholders, toasts, difficulty names, and dates.
+  placeholders, toasts, and dates.
 - The choice persists in `localStorage` and is mirrored onto `<html lang>` for screen
   readers. The **Mali** web font renders Thai glyphs in the same cartoony style.
 
@@ -39,8 +39,21 @@ finished.
 ### Lessons & quizzes
 - **Storyboard** narrated by Kru CJ with moods/expressions, optional images, and a YouTube
   video the teacher can place anywhere in the sequence.
+- **Links are clickable.** Any web address the teacher writes in a storyboard line, a
+  storyboard question, a challenge's instructions or question, or an assignment-board post
+  opens in a new tab — students no longer copy and paste it.
+- **Storyboard questions** (not graded): Kru CJ asks a question in the middle of the story.
+  The student types an answer and presses **Send answer**; **Next** stays shut until they
+  have, and **Skip** stops at any question not yet answered. They can send an updated
+  answer later. Kru CJ reads it for the teacher — the student never sees a score.
+- **Whiteboard** 🖊️: on any question the teacher switched it on for, a **Whiteboard**
+  button at the **bottom-left of the screen** opens a white board (on a challenge, where
+  every question is on one page, it follows the question being worked on and says which) to write working on (pen, eraser, four colours, three sizes,
+  undo, clear; mouse, finger or stylus). **Send to my teacher** saves a picture of it,
+  and Kru CJ reads the working for the teacher. It never changes the score. Available on
+  pre/post-test questions, challenge questions and storyboard questions.
 - **Pre-test:** instant per-question feedback with explanations; questions match the
-  student's chosen difficulty. Passing (≥60%) earns a **certificate**.
+  same for every student. Passing (≥60%) earns a **certificate**.
 - **Timed quizzes:** when the teacher sets a timer it counts down on screen; on timeout the
   latest answers are saved and graded automatically.
 - **Post-test:** a separate quiz the teacher opens; earns points (no certificate) and, when
@@ -113,7 +126,7 @@ Reached from the account chip at the right of the topbar (the avatar stays
 visible on narrow screens, so it is reachable on a phone). Four cards, each
 saving independently:
 
-- **Profile summary** — avatar, name, email, difficulty, points, coins,
+- **Profile summary** — avatar, name, email, points, coins,
   certificates earned, and levels finished out of the total.
 - **How you appear** — edit the display name (≤ 40 chars) and pick an avatar
   from a 24-emoji set. This is the name and face shown on the leaderboard, in
@@ -121,9 +134,7 @@ saving independently:
   forever at whatever signup derived from the student's name.
 - **Password** — change it with the current password as confirmation. The
   teacher's reset is still there for a forgotten one.
-- **Difficulty + this device** — difficulty is shown but **read-only**: it
-  selects which question bank a graded quiz draws from, so it stays the
-  teacher's. Log out sits here, with a note to use it on shared machines.
+- **This device** — Log out, with a note to use it on shared machines.
 
 - **Certificates** collected in a personal inventory.
 - **Leaderboard** with a top-3 podium; highlights the highest and lowest scorers.
@@ -150,7 +161,7 @@ saving independently:
 - **Storyboard editor:** ordered list of dialogue lines (character + mood + text + optional
   image by URL or upload) and videos, reorderable with ↑ ↓.
 - **Pre-test builder:** questions, answer choices, correct answer, explanation — a separate
-  set for **each difficulty** (easy / medium / hard).
+  one set for the whole class.
 - **Post-test builder:** a second question set, built the same way, kept locked until opened.
 - **Timers:** independent time limits for the pre-test and the post-test.
 
@@ -215,9 +226,36 @@ In both the **Daily Quests** editor and each **Coin Battles** bank, a
 - Stoichiometry only — that is the whole scope of the battle arena, and quests
   draw on the same skills.
 
+### Storyboard questions & the whiteboard switch
+- **＋ Add question** in the storyboard editor adds a question step. The teacher writes the
+  question, optionally an image, the **expected answer** (แนวคำตอบ — students never see it)
+  and a note to Kru CJ, and can tick **This question uses the whiteboard**.
+- The same **This question uses the whiteboard** tick is on every pre/post-test question and
+  every challenge question.
+
+### 📋 Student Logs
+A menu of its own. Everything each student has done, in one place:
+- **Students** tab — the class at a glance: levels done, pre-test / post-test / challenge
+  averages, how many storyboard answers and whiteboards, Kru CJ's read, last active.
+- **One student** — profile and sign-ins; tiles for points, coins, levels, averages,
+  certificates; per-level table (storyboard read, story questions answered, pre-test and
+  post-test with tries and pass); their storyboard answers and whiteboards **with Kru CJ's
+  analysis of each**; written test answers; challenges with marks and Kru CJ's diagnosis;
+  quests; battles and duels; every conversation with Kru CJ; board posts and Lab games;
+  and a dated **activity timeline** of all of it.
+- **Kru CJ's profile** — one button asks Kru CJ to read the whole record and write a short
+  profile: overall level, trend, strengths, weaknesses, repeated patterns, engagement and
+  three next steps.
+- **Storyboard answers** tab — every storyboard question with the whole class's answers.
+- **Whiteboards** tab — every board sent, newest first, with the picture (click to open full
+  size or download) next to Kru CJ's reading: the method, the steps on the board, each
+  mistake, and the final answer.
+- Analysis runs automatically when the student sends; if it could not (no AI key, daily
+  limit, a busy model), the teacher presses **Analyse with Kru CJ** on that item.
+
 ### Student management
-- View roster with difficulty, levels completed, certificates, and points.
-- Rename, change difficulty, adjust ranking (points), **reset password**, or delete accounts.
+- View roster with levels completed, certificates, and points.
+- Rename, adjust ranking (points), **reset password**, or delete accounts.
 
 ### Reorder levels
 - Move any level earlier/later on the map.
@@ -227,8 +265,7 @@ In both the **Daily Quests** editor and each **Coin Battles** bank, a
 | Item | Rule |
 |------|------|
 | Pass threshold | ≥ 60% correct |
-| Score | `round(accuracy × 100 × difficultyMultiplier)` |
-| Difficulty multiplier | easy ×1.0, medium ×1.25, hard ×1.5 |
+| Score | `round(accuracy × 100)` — no difficulty multiplier (scores earned before it was removed keep theirs) |
 | Points total | best pre-test + best post-test (per level) + teacher bonus |
 | Certificate | granted on first pre-test pass of a level |
 | Next level unlock | previous level's post-test passed **and** access gate open |

@@ -50,24 +50,14 @@ function lockMessage(gate) {
   }
 }
 
-/** Pick the question set for a difficulty, falling back if it's empty. */
-function quizFor(lesson, difficulty) {
-  const q = lesson.quizzes || {};
-  const order = [difficulty, 'medium', 'easy', 'hard'];
-  for (const key of order) {
-    if (Array.isArray(q[key]) && q[key].length) return q[key];
-  }
-  return [];
+/** The pre-test questions — one set for everyone (see game.questionSet). */
+function quizFor(lesson) {
+  return game.questionSet(lesson.quizzes);
 }
 
-/** Pick the post-test question set for a difficulty, falling back if empty. */
-function postQuizFor(lesson, difficulty) {
-  const q = (lesson.postTest && lesson.postTest.quizzes) || {};
-  const order = [difficulty, 'medium', 'easy', 'hard'];
-  for (const key of order) {
-    if (Array.isArray(q[key]) && q[key].length) return q[key];
-  }
-  return [];
+/** The post-test questions — one set for everyone. */
+function postQuizFor(lesson) {
+  return game.questionSet(lesson.postTest && lesson.postTest.quizzes);
 }
 
 /** Small summary of the post-test for the level board. */
@@ -75,7 +65,7 @@ function postTestSummary(lesson, user) {
   const p = ((user.progress || {})[lesson.id] || {}).post || {};
   return {
     open: !!(lesson.postTest && lesson.postTest.open),
-    questionCount: postQuizFor(lesson, user.difficulty).length,
+    questionCount: postQuizFor(lesson).length,
     timeLimit: (lesson.postTest && lesson.postTest.timeLimit) || 0,
     done: !!p.attempts,
     bestScore: p.bestScore || 0,
@@ -86,11 +76,14 @@ function postTestSummary(lesson, user) {
 
 /** Build the ordered storyboard steps (lines + inline videos) for a learner. */
 function buildSteps(lesson) {
-  const steps = (lesson.storyboard || []).map((it) =>
-    it.type === 'video'
-      ? { type: 'video', url: it.url, title: it.title }
-      : { type: 'line', character: it.character || 'Kru CJ', mood: it.mood || 'happy', text: it.text || '', image: it.image || null }
-  );
+  const steps = (lesson.storyboard || []).map((it) => {
+    if (it.type === 'video') return { type: 'video', url: it.url, title: it.title };
+    // `expected` and `aiNote` are the teacher's — never sent to a student.
+    if (it.type === 'question') {
+      return { type: 'question', id: it.id, question: it.question || '', image: it.image || null, whiteboard: !!it.whiteboard };
+    }
+    return { type: 'line', character: it.character || 'Kru CJ', mood: it.mood || 'happy', text: it.text || '', image: it.image || null };
+  });
   // Legacy lessons kept videos in a separate `media` array — append them at the end.
   if (!steps.some((s) => s.type === 'video') && Array.isArray(lesson.media)) {
     lesson.media.forEach((m) => steps.push({ type: 'video', url: m.url, title: m.title }));
@@ -108,6 +101,7 @@ function sanitizeQuestion(q, i) {
     question: q.question,
     points: q.points || 1,
     image: q.image || null,
+    whiteboard: !!q.whiteboard,
   };
   // Written questions have no choices — the student types a free answer.
   if (type === 'mcq') base.choices = q.choices || [];
@@ -165,7 +159,6 @@ function submitForGrading(user, lesson, mode, questions, answers) {
     lessonTitle: lesson.title,
     lessonIcon: lesson.icon || '🧪',
     mode,
-    difficulty: user.difficulty,
     total,
     mcqCorrect,
     mcqTotal,
@@ -217,7 +210,7 @@ router.get('/', (req, res) => {
       terrain: lesson.terrain,
       icon: lesson.icon,
       order: lesson.order,
-      questionCount: quizFor(lesson, req.user.difficulty).length,
+      questionCount: quizFor(lesson).length,
       storyboardCount: (lesson.storyboard || []).filter((s) => s.type !== 'video').length,
       hasVideo: (lesson.storyboard || []).some((s) => s.type === 'video') || (lesson.media || []).length > 0,
       timeLimit: lesson.timeLimit || 0,
@@ -236,7 +229,6 @@ router.get('/', (req, res) => {
   });
 
   res.json({
-    difficulty: req.user.difficulty,
     points: req.user.points || 0,
     lessons: list,
   });
@@ -252,7 +244,7 @@ router.get('/:id', (req, res) => {
   if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
 
   const lesson = lessons[idx];
-  const questions = quizFor(lesson, req.user.difficulty);
+  const questions = quizFor(lesson);
   const entry = (req.user.progress || {})[lesson.id] || {};
   // The storyboard and the pre-test are two separate activities; the teacher's
   // chosen order decides which one is still locked. Locked content is stripped
@@ -267,7 +259,6 @@ router.get('/:id', (req, res) => {
       icon: lesson.icon,
       timeLimit: lesson.timeLimit || 0,
       storyboard: act.storyLocked ? [] : buildSteps(lesson),
-      difficulty: req.user.difficulty,
       questions: act.preLocked ? [] : questions.map(sanitizeQuestion),
       postTest: postTestSummary(lesson, req.user),
       activities: act,
@@ -335,13 +326,12 @@ function openPostTest(req, res) {
 router.get('/:id/posttest', (req, res) => {
   const lesson = openPostTest(req, res);
   if (!lesson) return;
-  const questions = postQuizFor(lesson, req.user.difficulty);
+  const questions = postQuizFor(lesson);
   res.json({
     lesson: {
       id: lesson.id,
       title: lesson.title,
       icon: lesson.icon,
-      difficulty: req.user.difficulty,
       timeLimit: (lesson.postTest && lesson.postTest.timeLimit) || 0,
       questions: questions.map(sanitizeQuestion),
     },
@@ -352,7 +342,7 @@ router.get('/:id/posttest', (req, res) => {
 router.post('/:id/posttest/check', (req, res) => {
   const lesson = openPostTest(req, res);
   if (!lesson) return;
-  const questions = postQuizFor(lesson, req.user.difficulty);
+  const questions = postQuizFor(lesson);
   const { questionIndex, answer } = req.body || {};
   const q = questions[questionIndex];
   if (!q) return res.status(400).json({ error: 'Unknown question.' });
@@ -368,7 +358,7 @@ router.post('/:id/posttest/check', (req, res) => {
 router.post('/:id/posttest/complete', (req, res) => {
   const lesson = openPostTest(req, res);
   if (!lesson) return;
-  const questions = postQuizFor(lesson, req.user.difficulty);
+  const questions = postQuizFor(lesson);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
   const total = questions.length;
 
@@ -383,7 +373,7 @@ router.post('/:id/posttest/complete', (req, res) => {
   const max = sumPoints(questions);
 
   const passed = max === 0 ? true : game.isPass(earned, max);
-  const score = game.computeScore({ correct: earned, total: max, difficulty: req.user.difficulty });
+  const score = game.computeScore({ correct: earned, total: max });
 
   const progress = (req.user.progress = req.user.progress || {});
   const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
@@ -422,7 +412,7 @@ router.post('/:id/check', (req, res) => {
   const lesson = db.findById('lessons', req.params.id);
   if (!lesson) return res.status(404).json({ error: 'That level does not exist.' });
   if (preTestLocked(lesson, req.user)) return res.status(403).json({ error: 'PRETEST_LOCKED' });
-  const questions = quizFor(lesson, req.user.difficulty);
+  const questions = quizFor(lesson);
   const { questionIndex, answer } = req.body || {};
   const q = questions[questionIndex];
   if (!q) return res.status(400).json({ error: 'Unknown question.' });
@@ -447,7 +437,7 @@ router.post('/:id/complete', (req, res) => {
   if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
   if (preTestLocked(lesson, req.user)) return res.status(403).json({ error: 'PRETEST_LOCKED' });
 
-  const questions = quizFor(lesson, req.user.difficulty);
+  const questions = quizFor(lesson);
   const answers = Array.isArray(req.body && req.body.answers) ? req.body.answers : [];
   const total = questions.length;
 
@@ -475,8 +465,8 @@ router.post('/:id/complete', (req, res) => {
   const passed = total === 0 ? true : game.isPass(correct, total);
   const score =
     total === 0
-      ? Math.round(0.8 * game.MAX_LESSON_POINTS * game.multiplierFor(req.user.difficulty))
-      : game.computeScore({ correct, total, difficulty: req.user.difficulty });
+      ? Math.round(0.8 * game.MAX_LESSON_POINTS)
+      : game.computeScore({ correct, total });
 
   const prior = progress[lesson.id] || { attempts: 0, bestScore: 0 };
   const bestScore = Math.max(prior.bestScore || 0, score);
@@ -500,7 +490,6 @@ router.post('/:id/complete', (req, res) => {
       title: lesson.title,
       icon: lesson.icon || '🧪',
       score: bestScore,
-      difficulty: req.user.difficulty,
       dateEarned: new Date().toISOString(),
     };
     req.user.certificates = req.user.certificates || [];
@@ -531,3 +520,9 @@ router.get('/me/certificates', (req, res) => {
 });
 
 module.exports = router;
+// Shared with work.routes.js, so a storyboard answer or a whiteboard obeys the
+// same lock rules as the level it belongs to.
+module.exports.orderedLessons = orderedLessons;
+module.exports.unlockInfo = unlockInfo;
+module.exports.quizFor = quizFor;
+module.exports.postQuizFor = postQuizFor;

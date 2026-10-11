@@ -248,7 +248,7 @@ const TChallenges = (() => {
   function blankQuestion(type) {
     return {
       _id: uid(), type: type || 'mcq', question: '', image: '', points: 1, explanation: '',
-      rubric: '', aiNote: '', aiMark: false,
+      rubric: '', aiNote: '', aiMark: false, whiteboard: false,
       choices: ['', ''], correctIndex: 0, correctIndexes: [],
       accepted: [], caseSensitive: false,
       table: { columns: ['', ''], rows: [{ cells: [{ text: '', blank: false, answer: '' }, { text: '', blank: true, answer: '' }] }] },
@@ -267,6 +267,7 @@ const TChallenges = (() => {
     b.rubric = q.rubric || '';
     b.aiNote = q.aiNote || '';
     b.aiMark = !!q.aiMark;
+    b.whiteboard = !!q.whiteboard;
     if (q.choices && q.choices.length) b.choices = q.choices.slice();
     b.correctIndex = q.correctIndex || 0;
     b.correctIndexes = (q.correctIndexes || []).slice();
@@ -415,6 +416,15 @@ const TChallenges = (() => {
       </label>
       <div class="t-hint">${t('t.chAiMarkHint')}</div>`;
 
+    /* "This question uses the whiteboard": the student gets a scratch board
+       and can send their working in for Kru CJ to read for you. */
+    const boardRow = q.type === 'simulation' ? '' : `
+      <label class="q-aimark-row q-board-row">
+        <input type="checkbox" class="q-board" ${q.whiteboard ? 'checked' : ''}>
+        <span>${ICON.board(15)} ${t('t.wbToggle')}</span>
+      </label>
+      <div class="t-hint">${t('t.wbToggleHint')}</div>`;
+
     return `
       <div class="builder-item qcard ${q.type === 'simulation' ? 'simcard' : ''}" data-qid="${q._id}" data-qtype="${q.type}">
         <div class="builder-head">${parentId ? '↳ ' : ''}${t('t.question', { n: i + 1 })} · ${TYPE_LABEL[q.type]()}</div>
@@ -426,6 +436,7 @@ const TChallenges = (() => {
         ${pointsRow}
         ${explainRow}
         ${rubricRow}
+        ${boardRow}
       </div>`;
   }
 
@@ -566,6 +577,8 @@ const TChallenges = (() => {
     if (note) q.aiNote = note.value;
     const aim = el.querySelector(':scope > .q-aimark-row .q-aimark');
     if (aim) q.aiMark = aim.checked;
+    const wb = el.querySelector(':scope > .q-board-row .q-board');
+    if (wb) q.whiteboard = wb.checked;
     const imgUrl = el.querySelector(':scope > .row > .q-image-url');
     const imgData = el.querySelector(':scope > .q-image-data');
     if (imgUrl || imgData) {
@@ -717,6 +730,7 @@ const TChallenges = (() => {
       id: q._id, type: q.type, question: q.question, image: q.image || '',
       points: q.points == null ? 1 : q.points, explanation: q.explanation || '',
       rubric: q.rubric || '', aiNote: q.aiNote || '', aiMark: !!q.aiMark,
+      whiteboard: !!q.whiteboard,
     };
     if (q.type === 'mcq') { base.choices = q.choices; base.correctIndex = q.correctIndex; }
     else if (q.type === 'multi') { base.choices = q.choices; base.correctIndexes = q.correctIndexes || []; }

@@ -172,6 +172,18 @@ const ICON = (() => {
        icon (a lesson row, an empty state) rather than the logo. */
     flask: make('<path d="M9.3 1.9h5.4a1 1 0 0 1 0 2h-.5v5.4l5.5 9.2a2.4 2.4 0 0 1-2 3.6H6.3a2.4 2.4 0 0 1-2-3.6l5.5-9.2V3.9h-.5a1 1 0 1 1 0-2Zm.9 9.7-1.7 2.9h7l-1.7-2.9V3.9h-3.6v7.7Z"/>'),
 
+    /* a whiteboard on an easel, two lines of working cut out — the scratch board */
+    board: make('<path fill-rule="evenodd" d="M3.6 2.8h16.8A1.6 1.6 0 0 1 22 4.4v11.2a1.6 1.6 0 0 1-1.6 1.6h-6.9l2.4 3.6a1.1 1.1 0 0 1-1.8 1.2L12 18.6l-2.1 3.4a1.1 1.1 0 0 1-1.8-1.2l2.4-3.6H3.6A1.6 1.6 0 0 1 2 15.6V4.4a1.6 1.6 0 0 1 1.6-1.6Zm3 4.4a1.1 1.1 0 0 0 0 2.2h7.6a1.1 1.1 0 0 0 0-2.2H6.6Zm0 4a1.1 1.1 0 0 0 0 2.2h4.8a1.1 1.1 0 0 0 0-2.2H6.6Z"/>'),
+
+    /* a tilted rubber block with its worn tip cut out — the whiteboard eraser */
+    eraser: make('<path fill-rule="evenodd" d="M14.5 2.9a2.1 2.1 0 0 1 3 0l4.6 4.6a2.1 2.1 0 0 1 0 3l-9.4 9.4h7.1a1.1 1.1 0 0 1 0 2.2H8.9a2.1 2.1 0 0 1-1.5-.6l-4.5-4.5a2.1 2.1 0 0 1 0-3L14.5 2.9ZM8.1 12.4l-3.6 3.6 4.1 4.1h3.3l1.6-1.6-5.4-6.1Z"/>'),
+
+    /* a hooked arrow turning back — undo the last stroke */
+    undo: make('<path d="M9.8 3.2a1.2 1.2 0 0 1 0 1.7L7.6 7.1H14a7.1 7.1 0 1 1 0 14.2h-3.4a1.2 1.2 0 1 1 0-2.4H14a4.7 4.7 0 1 0 0-9.4H7.6l2.2 2.2a1.2 1.2 0 0 1-1.7 1.7L3.9 9.2a1.2 1.2 0 0 1 0-1.7l4.2-4.3a1.2 1.2 0 0 1 1.7 0Z"/>'),
+
+    /* a clipboard of notes — Student Logs */
+    logs: make('<path fill-rule="evenodd" d="M9 1.8h6a1.5 1.5 0 0 1 1.5 1.5v.7h2A2.5 2.5 0 0 1 21 6.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-13A2.5 2.5 0 0 1 5.5 4h2v-.7A1.5 1.5 0 0 1 9 1.8Zm-1 8.2a1.1 1.1 0 0 0 0 2.2h8a1.1 1.1 0 0 0 0-2.2H8Zm0 4.2a1.1 1.1 0 0 0 0 2.2h5a1.1 1.1 0 0 0 0-2.2H8Z"/>'),
+
     /* The StoiVenture mark: a flask of pink reagent inside an electron orbit.
        Three deliberate breaks from the house style above.
 

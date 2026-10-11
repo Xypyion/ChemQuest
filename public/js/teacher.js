@@ -7,7 +7,7 @@ if (me) document.getElementById('teacherName').textContent = me.name;
 mountLangSwitch(document.getElementById('langHost'));
 
 const MOODS = ['happy', 'excited', 'thinking', 'wave', 'cheer', 'sad'];
-const DIFFS = ['easy', 'medium', 'hard'];
+const DIFFS = ['easy', 'medium', 'hard'];   // the STORED quiz keys only — counting questions; no student difficulty
 const MAX_IMG_BYTES = 800 * 1024;
 
 let LESSONS = [];
@@ -21,7 +21,10 @@ let CH_PENDING = [];                          // challenge written answers
 let GRADEBOOK = { columns: [], rows: [] };    // spreadsheet-style gradebook
 let view = 'lessons';
 let draft = null;
-let curDiff = { pre: 'easy', post: 'easy' }; // active difficulty tab per quiz zone
+/* There is no student difficulty any more: each test is ONE question list. The
+   draft keeps the stored { easy, medium, hard } shape and works in `easy`;
+   editLesson merges any medium/hard questions into it so none are lost. */
+const QSET = 'easy';
 let boardLessonId = null;                    // lesson whose assignment board is open
 let preview = null;                          // in-console "play as student" preview state
 
@@ -50,7 +53,6 @@ async function reload() {
     userName: s.userName,
     userAvatar: s.userAvatar || '',
     title: s.lessonTitle || '',
-    difficulty: s.difficulty || '',
     autoPoints: s.mcqPoints || 0,
     autoCorrect: s.mcqCorrect || 0,
     autoOf: s.mcqTotal || 0,
@@ -81,7 +83,7 @@ const NAV_BADGE = {
 const NAV_KEY = {
   lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
   battles: 't.navBattles', tomark: 't.navToMark', gradebook: 't.navGradebook',
-  students: 't.navStudents', preview: 't.playAsStudent',
+  students: 't.navStudents', logs: 't.navLogs', preview: 't.playAsStudent',
 };
 function paintNav() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((btn) => {
@@ -102,6 +104,7 @@ function setView(v) {
   if (window.TChallenges) TChallenges.reset();
   if (window.TQuests) TQuests.reset();
   if (window.TBattles) TBattles.reset();
+  if (typeof TLogs !== 'undefined') TLogs.reset();   // a top-level const is not on window
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
   document.getElementById('side').classList.remove('open');
   render();
@@ -114,6 +117,7 @@ function render() {
   if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
   if (view === 'battles') return TBattles.render(viewEl);
+  if (view === 'logs') return TLogs.render(viewEl);
   if (view === 'tomark') return renderToMark();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();
@@ -253,8 +257,9 @@ function renderLessons() {
     const qCount = DIFFS.reduce((n, d) => n + ((l.quizzes && l.quizzes[d]) || []).length, 0);
     const pt = l.postTest || {};
     const ptCount = DIFFS.reduce((n, d) => n + ((pt.quizzes && pt.quizzes[d]) || []).length, 0);
-    const lines = (l.storyboard || []).filter((s) => s.type !== 'video').length;
+    const lines = (l.storyboard || []).filter((s) => s.type !== 'video' && s.type !== 'question').length;
     const vids = (l.storyboard || []).filter((s) => s.type === 'video').length;
+    const storyQs = (l.storyboard || []).filter((s) => s.type === 'question').length;
     const gate = gateMode(l);
     const gateIcon = gate === 'locked' ? 'lock' : gate === 'scheduled' ? 'calendar' : 'unlock';
 
@@ -271,6 +276,7 @@ function renderLessons() {
         <div class="lr-meta">
           ${metaBit('lines', `${lines} ${t('t.lines')}`)}
           ${metaBit('video', `${vids} ${vids === 1 ? t('t.videos') : t('t.videosPlural')}`)}
+          ${storyQs ? metaBit('chat', `${storyQs} ${t('t.storyQCount')}`) : ''}
           ${metaBit('question', `${qCount} ${t('t.questions')}`)}
           ${metaBit('pen', `${ptCount} ${t('t.postQ')}`)}
           ${metaBit('timer', fmtTimer(l.timeLimit))}
@@ -443,9 +449,13 @@ async function saveCriteria() {
 }
 
 /* ============================ LESSON EDITOR ============================ */
-function blankQuestion() { return { _id: uid(), type: 'mcq', question: '', choices: ['', ''], correctIndex: 0, points: 1, explanation: '' }; }
+function blankQuestion() { return { _id: uid(), type: 'mcq', question: '', choices: ['', ''], correctIndex: 0, points: 1, explanation: '', whiteboard: false }; }
 function blankLine() { return { type: 'line', character: mascotName(), mood: 'happy', text: '', image: '' }; }
 function blankVideo() { return { type: 'video', url: '', title: '' }; }
+/* A question asked in the middle of the story. Not graded: the student answers,
+   Kru CJ reads it for you, and it lands in Student Logs. The id is kept across
+   saves because each student's answer is stored against it. */
+function blankStoryQuestion() { return { type: 'question', id: uid(), question: '', image: '', expected: '', aiNote: '', whiteboard: false }; }
 
 function newLesson() {
   draft = {
@@ -457,7 +467,6 @@ function newLesson() {
     quizzes: { easy: [blankQuestion()], medium: [], hard: [] },
     postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
   };
-  curDiff = { pre: 'easy', post: 'easy' };
   render();
 }
 async function editLesson(id) {
@@ -469,28 +478,34 @@ async function editLesson(id) {
       terrain: lesson.terrain || 'plain', icon: lesson.icon || '🧪', order: lesson.order,
       timeLimit: lesson.timeLimit || 0,
       flow: lesson.flow === 'test-first' ? 'test-first' : 'story-first',
-      storyboard: (lesson.storyboard || []).map((it) => it.type === 'video'
-        ? { type: 'video', url: it.url || '', title: it.title || '' }
-        : { type: 'line', character: it.character || mascotName(), mood: it.mood || 'happy', text: it.text || '', image: it.image || '' }),
-      quizzes: {
-        easy: mapInQ(lesson.quizzes && lesson.quizzes.easy),
-        medium: mapInQ(lesson.quizzes && lesson.quizzes.medium),
-        hard: mapInQ(lesson.quizzes && lesson.quizzes.hard),
-      },
+      storyboard: (lesson.storyboard || []).map((it) => {
+        if (it.type === 'video') return { type: 'video', url: it.url || '', title: it.title || '' };
+        if (it.type === 'question') {
+          return { type: 'question', id: it.id || uid(), question: it.question || '', image: it.image || '',
+            expected: it.expected || '', aiNote: it.aiNote || '', whiteboard: !!it.whiteboard };
+        }
+        return { type: 'line', character: it.character || mascotName(), mood: it.mood || 'happy', text: it.text || '', image: it.image || '' };
+      }),
+      quizzes: { easy: mapInQ(oneSet(lesson.quizzes)), medium: [], hard: [] },
       postTest: {
         open: !!pt.open,
         timeLimit: pt.timeLimit || 0,
-        quizzes: {
-          easy: mapInQ(pt.quizzes && pt.quizzes.easy),
-          medium: mapInQ(pt.quizzes && pt.quizzes.medium),
-          hard: mapInQ(pt.quizzes && pt.quizzes.hard),
-        },
+        quizzes: { easy: mapInQ(oneSet(pt.quizzes)), medium: [], hard: [] },
       },
     };
     if (!draft.storyboard.length) draft.storyboard = [blankLine()];
-    curDiff = { pre: 'easy', post: 'easy' };
     render();
   } catch (e) { toast(e.message, 'bad'); }
+}
+/** A test's one question list: easy + medium + hard, as src/game.js questionSet does. */
+function oneSet(quizzes) {
+  const q = quizzes || {};
+  const seen = new Set();
+  return ['easy', 'medium', 'hard'].flatMap((k) => q[k] || []).filter((x) => {
+    if (x.id && seen.has(x.id)) return false;
+    if (x.id) seen.add(x.id);
+    return true;
+  });
 }
 function mapInQ(arr) {
   return (arr || []).map((q) => ({
@@ -501,6 +516,7 @@ function mapInQ(arr) {
     correctIndex: q.correctIndex || 0,
     points: q.points || 1,
     explanation: q.explanation || '',
+    whiteboard: !!q.whiteboard,
   }));
 }
 
@@ -509,12 +525,9 @@ function zoneQuizzes(zone) { return zone === 'post' ? draft.postTest.quizzes : d
 function renderQuizSection(zone) {
   const d = draft;
   const quizzes = zoneQuizzes(zone);
-  const diff = curDiff[zone];
   const timeVal = zone === 'post' ? (d.postTest.timeLimit || 0) : (d.timeLimit || 0);
-  const tabs = DIFFS.map((dd) =>
-    `<button class="${dd === diff ? 'active' : ''}" onclick="switchDiff('${zone}','${dd}')">${dd}<span class="cnt">${quizzes[dd].length}</span></button>`).join('');
-  const questions = quizzes[diff].map((q, i) => renderQuestionCard(q, i, zone)).join('') ||
-    `<p class="sub" style="color:var(--t-soft)">${t('t.noQuestions', { diff })}</p>`;
+  const questions = quizzes[QSET].map((q, i) => renderQuestionCard(q, i, zone)).join('') ||
+    `<p class="sub" style="color:var(--t-soft)">${t('t.noQuestions')}</p>`;
   const openToggle = zone === 'post' && d.id ? `
     <button class="tbtn ${d.postTest.open ? 'green' : 'ghost'} sm" style="margin-bottom:8px"
             onclick="togglePostTestFromEditor()">
@@ -527,9 +540,7 @@ function renderQuizSection(zone) {
       ${zone === 'post' ? `<div class="sub" style="color:var(--t-soft);margin-bottom:6px">${t('t.postTestHint')}</div>${openToggle}` : ''}
       <label class="t-label">${t('t.timerLabel')}</label>
       <input id="f-timelimit-${zone}" class="t-input" type="number" min="0" max="3600" value="${timeVal}" style="max-width:240px">
-      <div class="sub" style="color:var(--t-soft);margin:10px 0 4px">${t('t.diffHint')}</div>
-      <div class="diff-tabs">${tabs}</div>
-      <div id="quizList-${zone}">${questions}</div>
+      <div id="quizList-${zone}" style="margin-top:10px">${questions}</div>
       <button class="tbtn blue sm" style="margin-top:12px" onclick="addQuestion('${zone}')">${t('t.addQuestion')}</button>
     </div>`;
 }
@@ -566,6 +577,7 @@ function renderEditor() {
         <div class="row" style="gap:8px">
           <button class="tbtn blue sm" onclick="addLine()">${t('t.addLine')}</button>
           <button class="tbtn indigo sm" onclick="addVideo()">${t('t.addVideo')}</button>
+          <button class="tbtn sm" onclick="addStoryQuestion()">${ICON.question(14)} ${t('t.addStoryQ')}</button>
         </div></div>
       <div class="sub" style="color:var(--t-soft);margin-bottom:4px">${t('t.sbHint')}</div>
       <div id="sbList">${story}</div>
@@ -601,6 +613,35 @@ function renderStoryItem(it, i, total, moodOpts) {
       <button class="tbtn ghost sm" onclick="moveStoryItem(${i},'down')" ${i === total - 1 ? 'disabled' : ''}>${ICON.down(14)}</button>
       <button class="tbtn danger sm" onclick="removeStoryItem(${i})">${ICON.close(13)}</button>
     </div>`;
+
+  if (it.type === 'question') {
+    const isDataQ = (it.image || '').startsWith('data:');
+    const previewQ = it.image
+      ? `<div class="sb-img-preview"><img src="${esc(it.image)}" alt="preview"><button class="tbtn danger sm" onclick="removeLineImage(${i})">${t('t.removeImage')}</button></div>` : '';
+    return `
+    <div class="builder-item sbq" data-sb data-type="question" data-sid="${esc(it.id)}">
+      <div class="builder-head">${t('t.stepQuestion', { n: i + 1 })}</div>${reorder}
+      <div class="t-hint">${t('t.storyQHint')}</div>
+      <label class="t-label">${t('t.storyQText')}</label>
+      <textarea class="t-area sbq-text" data-chem placeholder="${esc(t('t.storyQTextPh'))}">${esc(it.question)}</textarea>
+      <label class="t-label">${t('t.image')}</label>
+      ${previewQ}
+      <input type="hidden" class="sb-image-data" value="${esc(it.image)}">
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input class="t-input sb-image-url" style="flex:1;min-width:160px" value="${isDataQ ? '' : esc(it.image)}" placeholder="${esc(t('t.imageUrlPh'))}">
+        <label class="tbtn ghost sm" style="cursor:pointer">${t('t.upload')}<input type="file" accept="image/*" style="display:none" onchange="uploadLineImage(${i}, this)"></label>
+      </div>
+      <label class="t-label">${t('t.storyQExpected')}</label>
+      <div class="t-hint">${t('t.storyQExpectedHint')}</div>
+      <textarea class="t-area sbq-expected" rows="3" placeholder="${esc(t('t.chRubricPh'))}">${esc(it.expected)}</textarea>
+      <label class="t-label">${t('t.chAiNote')}</label>
+      <textarea class="t-area sbq-ainote" rows="2" placeholder="${esc(t('t.chAiNotePh'))}">${esc(it.aiNote)}</textarea>
+      <label class="check-row">
+        <input type="checkbox" class="sbq-board" ${it.whiteboard ? 'checked' : ''}>
+        <span>${ICON.board(15)} ${t('t.wbToggle')} <span class="sub" style="color:var(--t-soft)">— ${t('t.wbToggleHint')}</span></span>
+      </label>
+    </div>`;
+  }
 
   if (it.type === 'video') {
     return `
@@ -683,13 +724,17 @@ function renderQuestionCard(q, i, zone) {
       <input type="text" class="t-input q-text" value="${esc(q.question)}" placeholder="${esc(t('t.questionPh'))}">
       ${bodyHtml}
       ${pointsRow}
+      <label class="check-row q-board-row">
+        <input type="checkbox" class="q-board" ${q.whiteboard ? 'checked' : ''}>
+        <span>${ICON.board(15)} ${t('t.wbToggle')} <span class="sub" style="color:var(--t-soft)">— ${t('t.wbToggleHint')}</span></span>
+      </label>
     </div>`;
 }
 
 /** Switch a question between multiple-choice and written. */
 function setQuestionType(zone, qid, type) {
   syncDraft();
-  const q = zoneQuizzes(zone)[curDiff[zone]].find((x) => x._id === qid);
+  const q = zoneQuizzes(zone)[QSET].find((x) => x._id === qid);
   if (!q || q.type === type) return;
   q.type = type === 'written' ? 'written' : 'mcq';
   if (q.type === 'mcq' && (!q.choices || q.choices.length < 2)) q.choices = ['', ''];
@@ -700,7 +745,7 @@ function setQuestionType(zone, qid, type) {
 function readQuizList(zone) {
   const ql = document.getElementById('quizList-' + zone);
   if (!ql) return;
-  zoneQuizzes(zone)[curDiff[zone]] = [...ql.querySelectorAll('.qcard')].map((cardEl) => {
+  zoneQuizzes(zone)[QSET] = [...ql.querySelectorAll('.qcard')].map((cardEl) => {
     const type = cardEl.dataset.qtype === 'written' ? 'written' : 'mcq';
     const explainEl = cardEl.querySelector('.q-explain');
     const pointsEl = cardEl.querySelector('.q-points');
@@ -710,6 +755,7 @@ function readQuizList(zone) {
       question: cardEl.querySelector('.q-text').value,
       points: pointsEl ? Math.max(1, Math.min(100, parseInt(pointsEl.value, 10) || 1)) : 1,
       explanation: explainEl ? explainEl.value : '',
+      whiteboard: !!(cardEl.querySelector('.q-board') || {}).checked,
     };
     if (type === 'written') { base.choices = []; base.correctIndex = 0; return base; }
     base.choices = [...cardEl.querySelectorAll('.q-choice')].map((i) => i.value);
@@ -734,6 +780,19 @@ function syncDraft() {
     draft.storyboard = [...sb.querySelectorAll('[data-sb]')].map((r) => {
       if (r.dataset.type === 'video') {
         return { type: 'video', url: r.querySelector('.vd-url').value, title: r.querySelector('.vd-title').value };
+      }
+      if (r.dataset.type === 'question') {
+        const typedQ = (r.querySelector('.sb-image-url').value || '').trim();
+        const dataQ = r.querySelector('.sb-image-data').value || '';
+        return {
+          type: 'question',
+          id: r.dataset.sid,
+          question: r.querySelector('.sbq-text').value,
+          image: typedQ || (dataQ.startsWith('data:') ? dataQ : ''),
+          expected: r.querySelector('.sbq-expected').value,
+          aiNote: r.querySelector('.sbq-ainote').value,
+          whiteboard: r.querySelector('.sbq-board').checked,
+        };
       }
       const typed = (r.querySelector('.sb-image-url').value || '').trim();
       const data = r.querySelector('.sb-image-data').value || '';
@@ -762,6 +821,7 @@ function markCorrect(radio) {
 /* storyboard handlers */
 function addLine() { syncDraft(); draft.storyboard.push(blankLine()); render(); }
 function addVideo() { syncDraft(); draft.storyboard.push(blankVideo()); render(); }
+function addStoryQuestion() { syncDraft(); draft.storyboard.push(blankStoryQuestion()); render(); }
 function removeStoryItem(i) { syncDraft(); draft.storyboard.splice(i, 1); if (!draft.storyboard.length) draft.storyboard.push(blankLine()); render(); }
 function moveStoryItem(i, dir) {
   syncDraft();
@@ -781,13 +841,12 @@ function uploadLineImage(i, input) {
 }
 
 /* quiz handlers (zone = 'pre' | 'post') */
-function switchDiff(zone, d) { syncDraft(); curDiff[zone] = d; render(); }
-function addQuestion(zone) { syncDraft(); zoneQuizzes(zone)[curDiff[zone]].push(blankQuestion()); render(); }
-function removeQuestion(zone, qid) { syncDraft(); const z = zoneQuizzes(zone); z[curDiff[zone]] = z[curDiff[zone]].filter((q) => q._id !== qid); render(); }
-function addChoice(zone, qid) { syncDraft(); const q = zoneQuizzes(zone)[curDiff[zone]].find((x) => x._id === qid); if (q && q.choices.length < 6) q.choices.push(''); render(); }
+function addQuestion(zone) { syncDraft(); zoneQuizzes(zone)[QSET].push(blankQuestion()); render(); }
+function removeQuestion(zone, qid) { syncDraft(); const z = zoneQuizzes(zone); z[QSET] = z[QSET].filter((q) => q._id !== qid); render(); }
+function addChoice(zone, qid) { syncDraft(); const q = zoneQuizzes(zone)[QSET].find((x) => x._id === qid); if (q && q.choices.length < 6) q.choices.push(''); render(); }
 function removeChoice(zone, qid, idx) {
   syncDraft();
-  const q = zoneQuizzes(zone)[curDiff[zone]].find((x) => x._id === qid);
+  const q = zoneQuizzes(zone)[QSET].find((x) => x._id === qid);
   if (q && q.choices.length > 2) { q.choices.splice(idx, 1); if (q.correctIndex >= q.choices.length) q.correctIndex = 0; }
   render();
 }
@@ -810,13 +869,17 @@ async function saveLesson() {
   const mapQ = (arr) => arr
     .filter((q) => q.question.trim() && (q.type === 'written' || (q.choices || []).filter((c) => c.trim()).length >= 2))
     .map((q) => q.type === 'written'
-      ? { id: q._id, type: 'written', question: q.question, points: q.points || 1, explanation: q.explanation }
-      : { id: q._id, type: 'mcq', question: q.question, choices: q.choices, correctIndex: q.correctIndex, points: q.points || 1, explanation: q.explanation });
+      ? { id: q._id, type: 'written', question: q.question, points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard }
+      : { id: q._id, type: 'mcq', question: q.question, choices: q.choices, correctIndex: q.correctIndex, points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard });
   const payload = {
     title: draft.title, description: draft.description, terrain: draft.terrain, icon: draft.icon,
     timeLimit: draft.timeLimit || 0,
     flow: draft.flow === 'test-first' ? 'test-first' : 'story-first',
-    storyboard: draft.storyboard.filter((it) => it.type === 'video' ? it.url.trim() : (it.text.trim() || it.image)),
+    storyboard: draft.storyboard.filter((it) => {
+      if (it.type === 'video') return it.url.trim();
+      if (it.type === 'question') return it.question.trim() || it.image;
+      return it.text.trim() || it.image;
+    }),
     quizzes: { easy: mapQ(draft.quizzes.easy), medium: mapQ(draft.quizzes.medium), hard: mapQ(draft.quizzes.hard) },
     postTest: {
       timeLimit: draft.postTest.timeLimit || 0,
@@ -857,7 +920,7 @@ function filteredStudents() {
 function studentRowsHtml() {
   const list = filteredStudents();
   if (!list.length) {
-    return `<tr><td colspan="6" class="empty">${esc(STUDENTS.length ? t('t.noStudentMatch') : t('t.noStudents'))}</td></tr>`;
+    return `<tr><td colspan="5" class="empty">${esc(STUDENTS.length ? t('t.noStudentMatch') : t('t.noStudents'))}</td></tr>`;
   }
   return list.map((s) => `
     <tr>
@@ -868,7 +931,6 @@ function studentRowsHtml() {
           <span class="st-mail">${esc(s.email)}</span>
         </span>
       </td>
-      <td><span class="t-pill ${esc(s.difficulty || '')}">${esc(tDiff(s.difficulty))}</span></td>
       <td class="num">${s.levelsCompleted}</td>
       <td class="num">${s.certificates}</td>
       <td class="num"><b>${s.points}</b></td>
@@ -899,7 +961,6 @@ function renderStudents() {
       <table class="t-table">
         <thead><tr>
           <th>${esc(t('t.thName'))}</th>
-          <th>${esc(t('t.thDiff'))}</th>
           <th class="num">${esc(t('t.thLevels'))}</th>
           <th class="num">${esc(t('t.thCerts'))}</th>
           <th class="num">${esc(t('t.thPoints'))}</th>
@@ -913,8 +974,6 @@ function editStudent(id) {
   const s = STUDENTS.find((x) => x.id === id);
   openModal(`<h3>${t('t.editStudent')}</h3>
     <label class="t-label">${t('t.name')}</label><input id="es-name" class="t-input" value="${esc(s.name)}">
-    <label class="t-label">${t('t.difficulty')}</label>
-    <select id="es-diff" class="t-select">${DIFFS.map((d) => `<option value="${d}" ${d === s.difficulty ? 'selected' : ''}>${d}</option>`).join('')}</select>
     <label class="t-label">${t('t.points')}</label>
     <input id="es-points" class="t-input" type="number" min="0" value="${s.points}">
     <div class="editor-actions" style="border:none;padding-top:14px">
@@ -924,7 +983,6 @@ function editStudent(id) {
 async function saveStudent(id) {
   const body = {
     name: document.getElementById('es-name').value,
-    difficulty: document.getElementById('es-diff').value,
     points: Number(document.getElementById('es-points').value),
   };
   try { await API.put('/api/teacher/students/' + id, body); closeModal(); await reload(); render(); toast(t('t.studentUpdated'), 'good'); }
@@ -965,19 +1023,13 @@ async function doDeleteStudent(id) {
 }
 
 /* ====================== PLAY-AS-STUDENT PREVIEW (read-only) ====================== */
-let previewDiff = 'easy';
-
-/** Pick the question set for a difficulty, mirroring the student fallback. */
+/** The pre-test exactly as a student gets it — one set for everyone. */
 function previewQuizSet(lesson) {
-  const q = lesson.quizzes || {};
-  for (const key of [preview.difficulty, 'medium', 'easy', 'hard']) if ((q[key] || []).length) return q[key];
-  return [];
+  return oneSet(lesson.quizzes);
 }
 
 function renderPreviewPicker() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'preview'));
-  const diffTabs = DIFFS.map((d) =>
-    `<button class="${d === previewDiff ? 'active' : ''}" onclick="setPreviewDiff('${d}')">${tDiff(d)}</button>`).join('');
   const rows = LESSONS.length ? LESSONS.map((l, i) => {
     const qCount = DIFFS.reduce((n, d) => n + ((l.quizzes && l.quizzes[d]) || []).length, 0);
     return `
@@ -992,19 +1044,12 @@ function renderPreviewPicker() {
   }).join('') : `<div class="empty">${t('t.noLevels')}</div>`;
   viewEl.innerHTML = `
     <div class="t-head"><div><h1>${t('t.previewTitle')}</h1><div class="sub">${t('t.previewPickSub')}</div></div></div>
-    <div class="t-card">
-      <label class="t-label">${t('t.previewAsDiff')}</label>
-      <div class="diff-tabs">${diffTabs}</div>
-      <div style="margin-top:8px">${rows}</div>
-    </div>`;
+    <div class="t-card">${rows}</div>`;
 }
-function setPreviewDiff(d) { previewDiff = d; render(); }
 
 /** The activities a preview walks through, in the teacher's chosen order. */
-function previewOrder(lesson, difficulty) {
-  const q = lesson.quizzes || {};
-  let quiz = [];
-  for (const key of [difficulty, 'medium', 'easy', 'hard']) { if ((q[key] || []).length) { quiz = q[key]; break; } }
+function previewOrder(lesson) {
+  const quiz = oneSet(lesson.quizzes);
   const base = lesson.flow === 'test-first' ? ['quiz', 'story'] : ['story', 'quiz'];
   return base.filter((p) => (p === 'story' ? (lesson.storyboard || []).length > 0 : quiz.length > 0));
 }
@@ -1020,8 +1065,8 @@ function pvAdvance(phase) {
 function startPreview(id) {
   const lesson = LESSONS.find((l) => l.id === id);
   if (!lesson) return;
-  const order = previewOrder(lesson, previewDiff);
-  preview = { lessonId: id, difficulty: previewDiff, order, phase: order[0] || 'done', storyIndex: 0, quizIndex: 0 };
+  const order = previewOrder(lesson);
+  preview = { lessonId: id, order, phase: order[0] || 'done', storyIndex: 0, quizIndex: 0 };
   render();
 }
 function exitPreview() { preview = null; view = 'preview'; render(); }
@@ -1038,7 +1083,7 @@ function renderPreview() {
       <div><h1>${esc(lesson.icon || '🧪')} ${esc(lesson.title)}</h1><div class="sub">${t('t.previewSub')}</div></div>
       <button class="tbtn ghost" onclick="exitPreview()">${t('t.previewExit')}</button>
     </div>
-    <div class="tp-banner">${ICON.play(15)} ${t('t.previewBanner')} · <b>${tDiff(preview.difficulty)}</b></div>
+    <div class="tp-banner">${ICON.play(15)} ${t('t.previewBanner')}</div>
     <div class="t-card tp-stage">${inner}</div>`;
 }
 
@@ -1049,7 +1094,15 @@ function previewStoryHtml(lesson) {
   const after = preview.order[preview.order.indexOf('story') + 1];
   const nextLabel = last ? (after === 'quiz' ? t('t.previewStartQuiz') : t('t.previewFinish')) : t('lesson.next');
   let body;
-  if (step.type === 'video') {
+  if (step.type === 'question') {
+    body = `
+      <div class="tp-ruby">${renderRuby('thinking', { size: 150 })}</div>
+      ${step.image ? `<img class="tp-img" src="${esc(step.image)}" alt="">` : ''}
+      <div class="tp-speech"><div class="tp-speaker">${esc(t('t.previewStoryQ'))}</div><div>${chemLinks(step.question || '')}</div></div>
+      <textarea class="t-area" disabled placeholder="${esc(t('lesson.qAnswerPh'))}"></textarea>
+      ${step.whiteboard ? `<div class="tp-written-note">${ICON.board(14)} ${esc(t('t.wbToggle'))}</div>` : ''}
+      ${step.expected ? `<div class="grade-guide">${ICON.question(13)} ${esc(step.expected)}</div>` : ''}`;
+  } else if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
     body = embed
       ? `${step.title ? `<div class="tp-vtitle">${ICON.video(14)} ${esc(step.title)}</div>` : ''}<div class="tp-video"><iframe src="${embed}" allowfullscreen loading="lazy"></iframe></div>`
@@ -1058,7 +1111,7 @@ function previewStoryHtml(lesson) {
     body = `
       <div class="tp-ruby">${renderRuby(step.mood || 'happy', { size: 150 })}</div>
       ${step.image ? `<img class="tp-img" src="${esc(step.image)}" alt="">` : ''}
-      <div class="tp-speech"><div class="tp-speaker">${esc(speakerName(step.character))}</div><div>${esc(step.text || '')}</div></div>`;
+      <div class="tp-speech"><div class="tp-speaker">${esc(speakerName(step.character))}</div><div>${chemLinks(step.text || '')}</div></div>`;
   }
   return `
     <div class="tp-story">${body}
@@ -1250,7 +1303,6 @@ function markCard(s) {
           <div class="grade-where">
             <span class="mark-src src-${esc(s.source)}">${esc(where)}</span>
             <span>${escChem(s.title)}</span>
-            ${s.difficulty ? `<span>${esc(tDiff(s.difficulty))}</span>` : ''}
           </div>
         </div>
         <span class="grade-auto">${esc(t('t.markAutoAlready', { p: s.autoPoints }))}</span>

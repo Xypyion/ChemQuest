@@ -197,14 +197,13 @@ function mountNav() {
 
   /* Pages that sit INSIDE a level (the level board, the lesson player, the
      challenge player) carry context in the stats slot instead of coins and
-     points: which level you are in, and at what difficulty. The slot is the
+     points: which level you are in. The slot is the
      same box either way, so the destinations do not move between the map and
      a level — which is exactly what they used to do, because those three
      pages hand-wrote a topbar of their own with no destinations in it at all. */
   const ctx = document.body.dataset.navContext;
   const stats = ctx === 'level' ? `
-      <span class="pill" id="lessonTitlePill">…</span>
-      <span class="pill" id="diffPill"></span>`
+      <span class="pill" id="lessonTitlePill">…</span>`
     : ctx === 'challenge' ? `
       <span class="pill" id="chTitlePill">…</span>
       <span class="pill" id="chTimerPill" hidden></span>`
@@ -354,6 +353,43 @@ function isCoefficient(body, i) {
  */
 function chem(text) {
   return subscriptFormulas(escapeHtml(text == null ? '' : String(text)));
+}
+
+/* A link a teacher pastes into a storyboard used to be dead text: students had
+   to copy it and paste it into the address bar. chemLinks() is chem() plus
+   clickable links that open in a new tab.
+
+   The URL is cut out of the RAW text first, so chem() never sees it — a link
+   such as ".../Co2..." must not grow a <sub> in the middle — and only http(s)
+   and www. addresses become links, so "javascript:" can never be one. ASCII
+   only, so Thai written straight after a link is not swallowed into it. */
+const LINK_RE = /\b(?:https?:\/\/|www\.)[A-Za-z0-9\-._~:/?#[\]@!$&()*+,;=%]+/gi;
+
+function linkHtml(url) {
+  // A sentence often ends right after a link: "see https://x.org." — the
+  // full stop belongs to the sentence, and so does an unmatched ")".
+  let tail = '';
+  while (/[.,;:!?'")\]]$/.test(url)) {
+    const last = url.slice(-1);
+    if (last === ')' && (url.match(/\(/g) || []).length >= (url.match(/\)/g) || []).length) break;
+    tail = last + tail;
+    url = url.slice(0, -1);
+  }
+  const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+  return `<a class="ext-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>${escapeHtml(tail)}`;
+}
+
+/** chem(), plus every web address turned into a link that opens a new tab. */
+function chemLinks(text) {
+  const s = text == null ? '' : String(text);
+  let out = '';
+  let last = 0;
+  s.replace(LINK_RE, (m, offset) => {
+    out += chem(s.slice(last, offset)) + linkHtml(m);
+    last = offset + m.length;
+    return m;
+  });
+  return out + chem(s.slice(last));
 }
 
 /* chem() is for DISPLAY: it produces <sub> markup. The two below are for INPUT

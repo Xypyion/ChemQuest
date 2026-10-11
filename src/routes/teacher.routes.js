@@ -26,6 +26,8 @@ function normalizeQuestion(q) {
     question: (q.question || '').toString().trim(),
     points: Math.min(points, 100),
     explanation: (q.explanation || '').toString().trim(),
+    // Offer the student a scratch whiteboard on this question (never graded).
+    whiteboard: !!q.whiteboard,
   };
   // Written (ข้อเขียน) questions have no choices — the student types a free
   // answer that the teacher grades by hand later. Multiple-choice questions
@@ -47,7 +49,16 @@ function isUsableQuestion(q) {
 // Cap inline (data-URL) storyboard images so the JSON store stays reasonable.
 const MAX_IMAGE_CHARS = 800 * 1024; // ~800KB of base64
 
-/** Ordered storyboard: a mix of spoken "line" steps and "video" steps. */
+/**
+ * Ordered storyboard: a mix of spoken "line" steps, "video" steps and
+ * "question" steps.
+ *
+ * A question step is NOT graded. The student answers it in the middle of the
+ * story, Kru CJ reads the answer for the teacher (src/aiDiagnosis.js), and both
+ * land in Student Logs. It keeps a stable `id` because each student's answer is
+ * stored against it (`storyAnswers.stepId`) — re-saving the level must not
+ * orphan the answers already given, so the editor sends the id back.
+ */
 function normalizeStoryboard(arr) {
   if (!Array.isArray(arr)) return [];
   return arr
@@ -55,6 +66,21 @@ function normalizeStoryboard(arr) {
       it = it || {};
       if (it.type === 'video') {
         return { type: 'video', url: (it.url || '').toString().trim(), title: (it.title || '').toString().trim() };
+      }
+      if (it.type === 'question') {
+        let image = (it.image || '').toString();
+        if (image.length > MAX_IMAGE_CHARS) image = '';
+        return {
+          type: 'question',
+          id: (it.id || '').toString().slice(0, 80) || crypto.randomUUID(),
+          question: (it.question || '').toString().trim().slice(0, 4000),
+          image,
+          // The answer the teacher hopes for, and their instruction to Kru CJ.
+          // Teacher-only: lessons.routes.js buildSteps never sends either.
+          expected: (it.expected || '').toString().trim().slice(0, 2000),
+          aiNote: (it.aiNote || '').toString().trim().slice(0, 800),
+          whiteboard: !!it.whiteboard,
+        };
       }
       let image = (it.image || '').toString();
       if (image.length > MAX_IMAGE_CHARS) image = ''; // drop oversized uploads
@@ -66,7 +92,11 @@ function normalizeStoryboard(arr) {
         image,
       };
     })
-    .filter((it) => (it.type === 'video' ? it.url : it.text.trim() || it.image));
+    .filter((it) => {
+      if (it.type === 'video') return it.url;
+      if (it.type === 'question') return it.question || it.image;
+      return it.text.trim() || it.image;
+    });
 }
 
 function normalizeLesson(body, existing) {
@@ -88,12 +118,15 @@ function normalizeLesson(body, existing) {
   if (!Number.isFinite(timeLimit) || timeLimit < 0) timeLimit = 0;
   lesson.timeLimit = Math.min(timeLimit, 3600);
 
-  const qz = body.quizzes || {};
-  lesson.quizzes = {
-    easy: (qz.easy || []).map(normalizeQuestion).filter(isUsableQuestion),
-    medium: (qz.medium || []).map(normalizeQuestion).filter(isUsableQuestion),
-    hard: (qz.hard || []).map(normalizeQuestion).filter(isUsableQuestion),
-  };
+  // One question set per test (there is no student difficulty any more). Any
+  // easy/medium/hard sets the body still carries are merged, never dropped,
+  // and the result lives in `easy` — see game.questionSet.
+  const oneSet = (qz) => ({
+    easy: game.questionSet(qz).map(normalizeQuestion).filter(isUsableQuestion),
+    medium: [],
+    hard: [],
+  });
+  lesson.quizzes = oneSet(body.quizzes);
 
   // Post-test: built separately from the pre-test, locked until the teacher
   // opens it. Keep the current open/closed state when re-saving the lesson.
@@ -104,11 +137,7 @@ function normalizeLesson(body, existing) {
   lesson.postTest = {
     open: !!(lesson.postTest && lesson.postTest.open),
     timeLimit: Math.min(ptTime, 3600),
-    quizzes: {
-      easy: (ptq.easy || []).map(normalizeQuestion).filter(isUsableQuestion),
-      medium: (ptq.medium || []).map(normalizeQuestion).filter(isUsableQuestion),
-      hard: (ptq.hard || []).map(normalizeQuestion).filter(isUsableQuestion),
-    },
+    quizzes: oneSet(ptq),
   };
 
   // Per-level access gate (managed via its own endpoint; default to auto).
@@ -226,7 +255,6 @@ function studentSummary(u) {
     id: u.id,
     name: u.name,
     email: u.email,
-    difficulty: u.difficulty,
     points: u.points || 0,
     earnedPoints: u.earnedPoints || 0,
     bonusPoints: u.bonusPoints || 0,
@@ -251,7 +279,6 @@ router.put('/students/:id', (req, res) => {
 
   const body = req.body || {};
   if (typeof body.name === 'string' && body.name.trim()) user.name = body.name.trim();
-  if (['easy', 'medium', 'hard'].includes(body.difficulty)) user.difficulty = body.difficulty;
 
   // "Update ranking" — set an absolute point total via a bonus adjustment.
   if (body.points !== undefined && body.points !== null && !Number.isNaN(Number(body.points))) {
@@ -294,7 +321,7 @@ function gradebookRows() {
   return db
     .filter('users', (u) => u.role === 'student')
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-    .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar || '🧑‍🎓', difficulty: u.difficulty, grades: u.grades || {} }));
+    .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar || '🧑‍🎓', grades: u.grades || {} }));
 }
 
 router.get('/gradebook', (req, res) => {
@@ -403,7 +430,6 @@ function submissionView(s) {
     lessonTitle: s.lessonTitle,
     lessonIcon: s.lessonIcon || '🧪',
     mode: s.mode,
-    difficulty: s.difficulty,
     total: s.total,
     mcqCorrect: s.mcqCorrect,
     mcqTotal: s.mcqTotal,

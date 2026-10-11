@@ -25,8 +25,9 @@ const credit = require('./tutorCredit');
  *   review   - a student having their own duel question checked
  *   mark     - a teacher marking a class set against their rubric
  *   check    - a student checking their own written answer while working
+ *   diagnose - a storyboard answer or a whiteboard read for the teacher
  */
-const PURPOSES = ['generate', 'review', 'mark', 'check'];
+const PURPOSES = ['generate', 'review', 'mark', 'check', 'diagnose'];
 
 /** This person's counter, reset when the school day rolled over. */
 function counterOf(user) {

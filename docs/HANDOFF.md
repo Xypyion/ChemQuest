@@ -62,7 +62,8 @@ Two audiences, one server:
 verified end-to-end.
 
 Implemented features:
-- Sign up / log in (JWT), difficulty choice (easy/medium/hard).
+- Sign up / log in (JWT). **No student difficulty** — easy/medium/hard levels were
+  removed: one question set per test, no score multiplier (see `src/game.js`).
 - Adventure map: the teacher's levels, in order, on a clean board. It used to
   paint terrain bands, hills, rivers with bridges, scenery props, a trail and a
   finish gate; all of that was removed so the board shows the levels only.
@@ -76,6 +77,14 @@ Implemented features:
   question, Kru CJ checks it is on topic, solvable, correctly keyed and
   classroom-appropriate, and only then can it be sent to a classmate — who is
   the one who answers it.
+- **Storyboard questions** (ungraded) and the **whiteboard** — see
+  [features.md](features.md). A storyboard step can be a question; any pre/post-test,
+  challenge or storyboard question can switch on a scratch board the student sends in.
+  Kru CJ reads both **for the teacher** (`src/aiDiagnosis.js`, routes in
+  `src/routes/work.routes.js`); nothing he writes there reaches a student.
+- **📋 Student Logs** (teacher console): each student's whole record — scores, every
+  piece of work, Kru CJ's analyses, an activity timeline, and an AI profile on request.
+- **Clickable links** in storyboards, challenge text and board posts (`chemLinks()`).
 - **Level board hub** (`level.html`): tabs 🏠 Board · 📒 Assignments · 🧩 Challenges;
   the board menu lists Storyboard · Pre-test · Assignments · Challenges · Post-test.
 - **Storyboards**: dialogue lines (moods, optional images) + inline YouTube video
@@ -131,7 +140,7 @@ Implemented features:
   take a balance below zero. Guard rails: one open battle at a time, a cooldown
   per opponent, a daily limit, and the arena has an off switch.
 - **Leaderboard** (podium + full ranking), **certificate inventory**.
-- **Teacher console**: lesson CRUD + storyboard builder, per-difficulty quiz
+- **Teacher console**: lesson CRUD + storyboard builder, quiz
   builder (MCQ + written, per-question points), post-test open/close, per-level
   **access gate** (auto / locked / scheduled), assignment board view, writing
   grading, gradebook, student management incl. **password reset**, and a
@@ -222,6 +231,7 @@ chemquest/
 │       ├── posts.routes.js        # assignment board: posts, files, comments, likes, questions, ratings
 │       ├── challenges.routes.js   # challenges: student router + teacher router (CRUD, assign, mark)
 │       ├── quests.routes.js       # daily quests: student router + teacher router, coin payouts
+│       ├── work.routes.js         # storyboard answers + whiteboards (student) and Student Logs (teacher)
 │       └── leaderboard.routes.js  # ranked students
 └── public/                   # front-end (served statically; no build)
     ├── index.html            # welcome / login / signup
@@ -256,6 +266,8 @@ chemquest/
         ├── teacher-quests.js # teacher console: the ⚔️ Daily Quests section
         ├── teacher-battles.js# teacher console: the 🤺 Coin Battles section
         ├── teacher-challenges.js  # teacher console: the 🧩 Challenges section
+        ├── teacher-logs.js   # teacher console: the 📋 Student Logs section
+        ├── whiteboard.js     # the student's scratch whiteboard (shared by every player)
         └── teacher.js        # the rest of the teacher console (single file)
 ```
 
@@ -291,17 +303,19 @@ Browser (HTML/CSS/JS)                Express (server.js)                 data/db
 
 Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 `gradebook`, `challenges`, `challengeCategories`, `challengeSubmissions`,
-`quests`, `questSubmissions`, `battles`, `battleQuestions`, `battleSettings`**. Full field-by-field detail is in
+`quests`, `questSubmissions`, `battles`, `battleQuestions`, `battleSettings`,
+`storyAnswers`, `whiteboards`, `studentInsights`**. Full field-by-field detail is in
 [`data-model.md`](data-model.md); the essentials:
 
 - **user**: `{ id, role:'student'|'teacher', name, email(lowercased),
-  passwordHash, difficulty, avatar, progress{}, certificates[], earnedPoints,
+  passwordHash, avatar, progress{}, certificates[], earnedPoints,
   bonusPoints, points, grades{colId:score} }`
   - `progress[lessonId] = { attempts, bestScore, passed (pre-test), storyDone,
     post:{ attempts, bestScore, passed, awaitingGrading }, ... }`
 - **lesson**: `{ id, order, title, description, terrain:'plain'|'mountain'|'snow',
   icon, timeLimit, flow:'story-first'|'test-first', storyboard[],
-  quizzes{easy,medium,hard}, postTest{ open, timeLimit, quizzes{} },
+  quizzes{easy,medium,hard} (ONE set — game.questionSet merges the three keys;
+  saves write it all to `easy`), postTest{ open, timeLimit, quizzes{} },
   gate{ mode:'auto'|'locked'|'scheduled', openAt }, ratingCriteria[{id,label}] }`
   - **storyboard step**: `{type:'line', character, mood, text, image}` or
     `{type:'video', url, title}`.
@@ -371,9 +385,9 @@ Collections in `data/db.json`: **`users`, `lessons`, `posts`, `submissions`,
 - **Post-test: one attempt only.** Once submitted, the server blocks re-open and
   re-submit (`openPostTest` returns `ALREADY_SUBMITTED`); the board shows a
   non-clickable "done"/"awaiting grading" state.
-- **Scoring** (`game.js`): `computeScore = round(ratio × 100 × difficultyMult)`,
-  where `ratio = earnedPoints / totalPoints` and difficulty multipliers are
-  easy 1.0 / medium 1.25 / hard 1.5. Pass = ratio ≥ 0.6.
+- **Scoring** (`game.js`): `computeScore = round(ratio × 100)`, where
+  `ratio = earnedPoints / totalPoints`. Pass = ratio ≥ 0.6. (The old easy/medium/
+  hard multiplier is gone; points already earned under it are left as they are.)
 - **Points**: every question has `points` (default 1). A correct MCQ earns its
   points; a written answer is teacher-graded 0..points. Because the default is 1,
   older content behaves exactly as a "correct-count / total" quiz.

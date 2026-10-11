@@ -12,7 +12,6 @@ const {
 
 const router = express.Router();
 
-const DIFFICULTIES = ['easy', 'medium', 'hard'];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* The avatar set. One list, used by BOTH the signup auto-pick and the picker
@@ -38,18 +37,14 @@ const NAME_MAX = 40;
 
 /** POST /api/auth/signup — create a new student account. */
 router.post('/signup', (req, res) => {
-  let { name, email, password, difficulty } = req.body || {};
+  let { name, email, password } = req.body || {};
   name = (name || '').trim();
   email = (email || '').trim().toLowerCase();
-  difficulty = (difficulty || '').trim().toLowerCase();
 
   if (!name) return res.status(400).json({ error: 'Please enter your name.' });
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Please enter a valid email.' });
   if (!password || password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });
-  }
-  if (!DIFFICULTIES.includes(difficulty)) {
-    return res.status(400).json({ error: 'Please choose a difficulty: easy, medium or hard.' });
   }
   if (db.find('users', (u) => u.email === email)) {
     return res.status(409).json({ error: 'That email is already registered.' });
@@ -61,7 +56,6 @@ router.post('/signup', (req, res) => {
     name,
     email,
     passwordHash: hashPassword(password),
-    difficulty,
     progress: {},
     certificates: [],
     earnedPoints: 0,
@@ -86,6 +80,15 @@ router.post('/login', (req, res) => {
   if (!user || !verifyPassword(password || '', user.passwordHash)) {
     return res.status(401).json({ error: 'Wrong email or password.' });
   }
+  // Student Logs shows when each student signs in. Last 30 only, so the
+  // user document stays small.
+  if (user.role === 'student') {
+    const now = new Date().toISOString();
+    user.lastLoginAt = now;
+    user.loginCount = (user.loginCount || 0) + 1;
+    user.logins = [...(Array.isArray(user.logins) ? user.logins : []), now].slice(-30);
+    db.save();
+  }
   const token = signToken(user);
   res.json({ token, user: publicUser(user) });
 });
@@ -103,9 +106,8 @@ router.get('/me', authMiddleware, (req, res) => {
 
    All three take authMiddleware but NOT requireRole('student'): the teacher
    is a user with a password too, and locking them out of changing it would
-   be strange. What stays teacher-only is `difficulty` — it selects which
-   question bank a quiz draws from, so a student who could set it would be
-   choosing how hard their own graded test is. Settings shows it read-only. */
+   be strange. (There used to be a read-only `difficulty` here too; student
+   difficulty levels were removed — see src/game.js.) */
 
 /** GET /api/auth/profile — the account plus the progress summary Settings shows. */
 router.get('/profile', authMiddleware, (req, res) => {

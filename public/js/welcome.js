@@ -1,5 +1,5 @@
 // Login ("Laboratory Entry") page: mascot + entry card, with the sign-up flow
-// (name / email / password / difficulty) reachable via "Create new account".
+// (name / email / password) reachable via "Create new account".
 
 mountLangSwitch(document.getElementById('langHost'));
 document.title = t('welcome.title');
@@ -11,8 +11,6 @@ document.title = t('welcome.title');
     location.href = u.role === 'teacher' ? '/teacher.html' : '/dashboard.html';
   }
 })();
-
-let difficulty = 'easy';
 
 /* ---------- switch between the login and sign-up cards ---------- */
 function showSignup() {
@@ -34,15 +32,6 @@ document.getElementById('toLogin').addEventListener('click', showLogin);
 // console (🔑). Point the student there honestly rather than faking a reset.
 document.getElementById('forgotLink').addEventListener('click', () => {
   toast(t('welcome.forgotHint'), 'good');
-});
-
-// Difficulty cards (sign-up)
-document.getElementById('diffGrid').addEventListener('click', (e) => {
-  const card = e.target.closest('.diff');
-  if (!card) return;
-  document.querySelectorAll('.diff').forEach((d) => d.classList.remove('sel'));
-  card.classList.add('sel');
-  difficulty = card.dataset.diff;
 });
 
 // Redirect helper
@@ -91,7 +80,6 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
       name: document.getElementById('suName').value,
       email: document.getElementById('suEmail').value,
       password: document.getElementById('suPassword').value,
-      difficulty,
     });
     API.setSession(token, user);
     confetti();

@@ -112,7 +112,7 @@ const Feed = (() => {
         <span class="c-av">${avatarHtml(c.author.avatar, 26)}</span>
         <div class="c-body">
           <div class="c-name">${escapeHtml(c.author.name)}${c.author.role === 'teacher' ? ` <span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}</div>
-          <div class="c-text">${escapeHtml(c.text)}</div>
+          <div class="c-text">${chemLinks(c.text)}</div>
         </div>
         ${(opts.teacher || c.author.id === API.user().id) ? `<button class="c-del" aria-label="${t('common.delete')}" onclick="Feed.delComment('${p.id}','${c.id}')">🗑</button>` : ''}
       </div>`).join('');
@@ -151,7 +151,7 @@ const Feed = (() => {
           <span class="ph-time">${fmtTime(p.createdAt)}</span>
           ${p.canDelete ? `<button class="ph-del" aria-label="${t('common.delete')}" onclick="Feed.delPost('${p.id}')">🗑</button>` : ''}
         </div>
-        ${p.text ? `<div class="post-text">${escapeHtml(p.text)}</div>` : ''}
+        ${p.text ? `<div class="post-text">${chemLinks(p.text)}</div>` : ''}
         ${atts ? `<div class="att-grid">${atts}</div>` : ''}
         <div class="post-actions">
           <button class="like-btn ${p.likedByMe ? 'liked' : ''}" aria-pressed="${p.likedByMe}" onclick="Feed.like('${p.id}')">

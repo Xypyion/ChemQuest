@@ -1,22 +1,46 @@
 /**
- * Shared game rules: scoring, difficulty multipliers, and point bookkeeping.
+ * Shared game rules: scoring, the question set, and point bookkeeping.
  * Kept in one place so the lesson routes, teacher tools and leaderboard all
  * agree on how points are calculated.
+ *
+ * THERE IS NO STUDENT DIFFICULTY ANY MORE. Students used to pick easy / medium
+ * / hard at signup; it chose one of three question sets and multiplied the
+ * score (x1 / x1.25 / x1.5). Both are gone: every student takes the same test
+ * and a score is simply its percentage. Scores earned before the change keep
+ * whatever multiplier they were earned with — nothing is recalculated.
+ *
+ * Lessons still STORE `quizzes: { easy, medium, hard }` (and the same under
+ * `postTest`), because that is the shape every existing database holds. The
+ * one set is `questionSet()` below — all three concatenated — and the teacher
+ * editor saves everything into `easy`. Merging rather than picking one is what
+ * guarantees no question a teacher already wrote disappears.
  */
 
-const DIFFICULTY_MULTIPLIER = { easy: 1, medium: 1.25, hard: 1.5 };
-const MAX_LESSON_POINTS = 100; // before the difficulty multiplier
+const MAX_LESSON_POINTS = 100;
 const PASS_RATIO = 0.6; // need 60% correct to earn a certificate
 
-function multiplierFor(difficulty) {
-  return DIFFICULTY_MULTIPLIER[difficulty] || 1;
+/** Kept so older callers still work: every attempt now scores at x1. */
+function multiplierFor() {
+  return 1;
 }
 
-/** Points awarded for an attempt, scaled by accuracy and difficulty. */
-function computeScore({ correct, total, difficulty }) {
+/** The one question set of a pre/post-test: easy + medium + hard, de-duplicated. */
+function questionSet(quizzes) {
+  const q = quizzes || {};
+  const seen = new Set();
+  const out = [];
+  ['easy', 'medium', 'hard'].forEach((k) => (Array.isArray(q[k]) ? q[k] : []).forEach((x) => {
+    if (!x || (x.id && seen.has(x.id))) return;
+    if (x.id) seen.add(x.id);
+    out.push(x);
+  }));
+  return out;
+}
+
+/** Points awarded for an attempt: the percentage correct, out of 100. */
+function computeScore({ correct, total }) {
   if (!total) return 0;
-  const ratio = correct / total;
-  return Math.round(ratio * MAX_LESSON_POINTS * multiplierFor(difficulty));
+  return Math.round((correct / total) * MAX_LESSON_POINTS);
 }
 
 function isPass(correct, total) {
@@ -24,7 +48,7 @@ function isPass(correct, total) {
   return correct / total >= PASS_RATIO;
 }
 
-/** Does this level have a post-test built (any difficulty)? */
+/** Does this level have a post-test built (in any of its stored sets)? */
 function hasPostTest(lesson) {
   const q = lesson && lesson.postTest && lesson.postTest.quizzes;
   return !!(q && ((q.easy || []).length || (q.medium || []).length || (q.hard || []).length));
@@ -62,7 +86,7 @@ function hasStory(lesson) {
   return !!(lesson && (lesson.storyboard || []).length);
 }
 
-/** Does this level have a pre-test built (any difficulty)? */
+/** Does this level have a pre-test built (in any of its stored sets)? */
 function hasPreTest(lesson) {
   const q = (lesson && lesson.quizzes) || {};
   return !!((q.easy || []).length || (q.medium || []).length || (q.hard || []).length);
@@ -121,10 +145,10 @@ function recalcPoints(user) {
 
 module.exports = {
   FLOWS,
-  DIFFICULTY_MULTIPLIER,
   MAX_LESSON_POINTS,
   PASS_RATIO,
   multiplierFor,
+  questionSet,
   computeScore,
   isPass,
   hasPostTest,

@@ -56,8 +56,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
         <div class="who">
           <div class="n">${escapeHtml(s.name)} ${isMe ? `<span class="you-tag">${t('lb.you')}</span>` : ''}</div>
           <div class="s">
-            <span class="pill ${s.difficulty}" style="padding:1px 8px;font-size:.7rem">${tDiff(s.difficulty)}</span>
-            · ${t('lb.levels', { n: s.levelsCompleted, s: s.levelsCompleted === 1 ? '' : 's' })} · ${s.certificates} 🎖️
+            ${t('lb.levels', { n: s.levelsCompleted, s: s.levelsCompleted === 1 ? '' : 's' })} · ${s.certificates} 🎖️
             ${isLowest ? `<span class="cheer-tag">${t('lb.cheer')}</span>` : ''}
           </div>
         </div>

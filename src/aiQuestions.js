@@ -252,13 +252,20 @@ function isTransient(err) {
  * Twice, not a loop: a teacher waiting on a page needs an answer or an honest
  * failure, not four minutes of silence.
  */
-async function askJson({ system, prompt, schema, maxTokens }) {
+async function askJson({ system, prompt, schema, maxTokens, images }) {
   const model = config.aiModel();
+
+  // A whiteboard is a picture of a student's working, so the model has to see
+  // it. `images` is [{ data: base64 without the data: prefix, mimeType }].
+  const content = [{ type: 'text', text: prompt }];
+  (images || []).forEach((img) => {
+    content.push({ type: 'image', data: img.data, mime_type: img.mimeType || 'image/png' });
+  });
 
   const send = (withThinking) => getClient().interactions.create({
     model,
     system_instruction: system,
-    input: [{ type: 'user_input', content: [{ type: 'text', text: prompt }] }],
+    input: [{ type: 'user_input', content }],
     // A teacher's question bank and a child's writing. Keep our copy, not Google's.
     store: false,
     response_format: { type: 'text', mime_type: 'application/json', schema },

@@ -38,6 +38,12 @@ let quizDeadline = 0;
 let quizTimerId = null;
 let timeExpired = false;
 
+// Storyboard questions: stepId -> { id, answer } for the ones this student has
+// already sent. A question step holds the Next button until it is answered.
+let storyAnswers = {};
+let storyDrafts = {};   // stepId -> text typed but not sent yet
+const WB_KIND = MODE === 'post' ? 'post' : MODE === 'story' ? 'story' : 'pre';
+
 start();
 
 async function start() {
@@ -50,9 +56,6 @@ async function start() {
     lesson = data.lesson;
     document.getElementById('lessonTitlePill').textContent =
       lesson.icon + ' ' + lesson.title + (MODE === 'post' ? ' · 🧾' : '');
-    const dp = document.getElementById('diffPill');
-    dp.className = 'pill ' + lesson.difficulty;
-    dp.textContent = tDiff(lesson.difficulty);
 
     const act = lesson.activities || {};
     if (MODE === 'story') {
@@ -68,6 +71,14 @@ async function start() {
       phases = ['quiz', 'result'];
     }
     answers = new Array((lesson.questions || []).length).fill(null);
+
+    // What this student already sent: storyboard answers, and which
+    // whiteboards on this level are in (so their buttons read "sent").
+    try {
+      const mine = await API.get('/api/work/story/' + encodeURIComponent(LESSON_ID));
+      storyAnswers = mine.answers || {};
+      Object.keys(mine.boards || {}).forEach((k) => Whiteboard.markSent(k));
+    } catch { storyAnswers = {}; }
 
     goPhase(0);
   } catch (err) {
@@ -105,6 +116,7 @@ async function goPhase(idx) {
   cur = idx;
   renderSteps();
   removeQuizRuby();
+  Whiteboard.dock(null);   // each question shows it again if it uses the whiteboard
   const key = phases[idx];
   if (key !== 'quiz') stopQuizTimer();
   if (key === 'story') { storyIndex = Math.min(storyIndex, lesson.storyboard.length - 1); showStory(); }
@@ -160,14 +172,42 @@ function showStory() {
   const dots = `<div class="dots">${lesson.storyboard.map((s, i) =>
     `<i class="${i <= storyIndex ? 'on' : ''} ${s.type === 'video' ? 'vid' : ''}"></i>`).join('')}</div>`;
 
+  // A question step keeps Next shut until the student has sent an answer.
+  const blocked = step.type === 'question' && !storyAnswers[step.id];
   const nav = `
     <div class="row" style="justify-content:center;margin-top:14px;gap:10px">
       ${storyIndex > 0 ? `<button class="btn ghost" id="prevStep">${t('lesson.back')}</button>` : ''}
-      <button class="btn big green" id="nextStep">${last ? nextPhaseLabel() : t('lesson.next')}</button>
+      <button class="btn big green" id="nextStep" ${blocked ? 'disabled' : ''}>${last ? nextPhaseLabel() : t('lesson.next')}</button>
     </div>
+    ${blocked ? `<div class="story-q-gate">${t('lesson.qAnswerToGoOn')}</div>` : ''}
     ${last ? '' : `<button class="btn ghost" style="margin-top:10px;font-size:.8rem;padding:8px 14px" id="skipStory">${t('lesson.skip')}</button>`}`;
 
-  if (step.type === 'video') {
+  if (step.type === 'question') {
+    const mine = storyAnswers[step.id];
+    const draft = storyDrafts[step.id] != null ? storyDrafts[step.id] : (mine ? mine.answer : '');
+    card.innerHTML = `
+      <div class="story-stage">
+        <div class="ruby-hero">${renderRuby('thinking', { size: 170, float: true })}</div>
+        ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="">` : ''}
+        <div class="speech top pop-in story-q">
+          <div class="speaker">${t('lesson.qKruAsks', { name: escapeHtml(speakerName('Kru CJ')) })}</div>
+          <div>${chemLinks(step.question)}</div>
+        </div>
+        <div class="story-answer">
+          <textarea class="written-input" id="storyAnswer" rows="4"
+                    placeholder="${escapeHtml(t('lesson.qAnswerPh'))}">${escapeHtml(draft)}</textarea>
+          <div class="story-answer-row">
+            <span class="story-answer-note ${mine ? 'is-sent' : ''}" id="storyAnsNote">
+              ${mine ? t('lesson.qSent') : t('lesson.qNotGraded')}</span>
+            <button class="btn secondary" id="sendStoryAns">${mine ? t('lesson.qUpdate') : t('lesson.qSend')}</button>
+          </div>
+        </div>
+        ${dots}${nav}
+      </div>`;
+    const ta = document.getElementById('storyAnswer');
+    ta.addEventListener('input', () => { storyDrafts[step.id] = ta.value; });
+    document.getElementById('sendStoryAns').onclick = () => sendStoryAnswer(step);
+  } else if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
     const body = embed
       ? `${step.title ? `<div class="video-title">🎬 ${escapeHtml(step.title)}</div>` : ''}
@@ -183,20 +223,95 @@ function showStory() {
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="storyboard image">` : ''}
         <div class="speech top pop-in">
           <div class="speaker">${escapeHtml(speakerName(step.character))}</div>
-          <div>${chem(step.text)}</div>
+          <div>${chemLinks(step.text)}</div>
         </div>
         ${dots}${nav}
       </div>`;
   }
 
+  Whiteboard.dock(step.type === 'question' && step.whiteboard
+    ? { key: `story:${LESSON_ID}:${step.id}`, open: () => openStoryBoard(step.id) }
+    : null);
+
   document.getElementById('nextStep').onclick = () => {
+    if (step.type === 'question' && !storyAnswers[step.id]) return;
     if (last) goPhase(cur + 1);
     else { storyIndex++; showStory(); }
   };
   const prev = document.getElementById('prevStep');
   if (prev) prev.onclick = () => { storyIndex--; showStory(); };
   const skip = document.getElementById('skipStory');
-  if (skip) skip.onclick = () => goPhase(cur + 1);
+  // Skipping the story still stops at a question nobody has answered yet —
+  // otherwise "Skip" would be the way around every question the teacher asks.
+  if (skip) skip.onclick = () => {
+    const steps = lesson.storyboard;
+    const next = steps.findIndex((s, i) => i > storyIndex && s.type === 'question' && !storyAnswers[s.id]);
+    if (next !== -1) { storyIndex = next; showStory(); }
+    else goPhase(cur + 1);
+  };
+}
+
+/** Send (or re-send) the answer to one storyboard question. */
+async function sendStoryAnswer(step) {
+  const ta = document.getElementById('storyAnswer');
+  const btn = document.getElementById('sendStoryAns');
+  const answer = (ta.value || '').trim();
+  if (!answer) { toast(t('lesson.qEmpty'), 'bad'); ta.focus(); return; }
+  btn.disabled = true;
+  btn.textContent = t('lesson.qSending');
+  try {
+    const r = await API.post(
+      `/api/work/story/${encodeURIComponent(LESSON_ID)}/${encodeURIComponent(step.id)}`,
+      { answer, lang: getLang() });
+    storyAnswers[step.id] = { id: r.id, answer, updatedAt: r.updatedAt };
+    delete storyDrafts[step.id];
+    toast(t('lesson.qSentToast'), 'good');
+    // Kru CJ reads it for the teacher. Not awaited — the student moves on.
+    if (r.needsAnalysis) {
+      API.post(`/api/work/story-answer/${encodeURIComponent(r.id)}/analyze`, { lang: getLang() }).catch(() => {});
+    }
+    showStory();
+  } catch (e) {
+    toast(localizeErr(e.message), 'bad');
+    btn.disabled = false;
+    btn.textContent = storyAnswers[step.id] ? t('lesson.qUpdate') : t('lesson.qSend');
+  }
+}
+
+/** Open the whiteboard for a storyboard question. */
+function openStoryBoard(stepId) {
+  const step = (lesson.storyboard || []).find((s) => s.id === stepId);
+  if (!step) return;
+  Whiteboard.open({
+    key: `story:${LESSON_ID}:${stepId}`,
+    question: step.question,
+    payload: { kind: 'story', lessonId: LESSON_ID, questionId: stepId },
+    getAnswer: () => { const ta = document.getElementById('storyAnswer'); return ta ? ta.value : ''; },
+  });
+}
+
+/** Open the whiteboard for the pre/post-test question on screen. */
+function openQuizBoard(qid) {
+  const q = (lesson.questions || []).find((x) => x.id === qid);
+  if (!q) return;
+  const i = lesson.questions.indexOf(q);
+  Whiteboard.open({
+    key: `${WB_KIND}:${LESSON_ID}:${qid}`,
+    question: q.question,
+    payload: { kind: WB_KIND, lessonId: LESSON_ID, questionId: qid },
+    getAnswer: () => {
+      const a = answers[i];
+      if (a == null) return '';
+      return q.type === 'written' ? String(a) : String((q.choices || [])[a] || '');
+    },
+  });
+}
+
+/** Point the bottom-left whiteboard button at the quiz question on screen (or hide it). */
+function dockQuizBoard(q, n) {
+  Whiteboard.dock(q.whiteboard && q.id
+    ? { key: `${WB_KIND}:${LESSON_ID}:${q.id}`, label: t('lesson.question', { n, total: lesson.questions.length }), open: () => openQuizBoard(q.id) }
+    : null);
 }
 
 /* ------------------------------ QUIZ TIMER ---------------------------- */
@@ -246,6 +361,7 @@ function showQuiz() {
   const total = lesson.questions.length;
   const last = quizIndex === total - 1;
   const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+  dockQuizBoard(q, quizIndex + 1);   // written questions return below, so this covers both
 
   if (q.type === 'written') return showWrittenQuestion(q, total, last);
 
@@ -254,7 +370,7 @@ function showQuiz() {
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
-    <div class="q-text">${chem(q.question)}</div>
+    <div class="q-text">${chemLinks(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
     <div class="choices" id="choices">
       ${q.choices.map((c, i) => `
@@ -281,7 +397,7 @@ function showWrittenQuestion(q, total, last) {
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
       ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
     </div>
-    <div class="q-text">${chem(q.question)}</div>
+    <div class="q-text">${chemLinks(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
     <textarea class="written-input" id="writtenInput" rows="5" placeholder="${escapeHtml(t('lesson.writtenPlaceholder'))}">${escapeHtml(prev)}</textarea>
     <div class="written-note">✍️ ${t('lesson.writtenNote')}</div>
@@ -405,7 +521,7 @@ async function showResult() {
           <h3>${t('lesson.certTitle')}</h3>
           <div class="who">${escapeHtml(API.user().name)}</div>
           <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
-          <div class="meta">${cert.icon} ${tDiff(cert.difficulty)} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
+          <div class="meta">${cert.icon} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
         </div>
         ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">

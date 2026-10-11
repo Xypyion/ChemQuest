@@ -1,0 +1,154 @@
+/* Teacher Console — Student Logs (js/teacher-logs.js).
+   Built from the console's own tokens (--t-*). The AI level is carried by the
+   tinted LABEL, the same choice .ai-diag makes in teacher.css. */
+
+.lg-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; background: #eef0f8; border-radius: 12px; padding: 4px; margin: 0 0 14px; }
+.lg-tabs button {
+  display: inline-flex; align-items: center; gap: 7px; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .88rem; color: var(--t-soft); padding: 8px 14px; border-radius: 9px;
+}
+.lg-tabs button.active { background: #fff; color: var(--t-ink); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+.lg-toolbar { margin: 0 0 12px; }
+.lg-muted { color: var(--t-soft); font-size: .86rem; }
+.lg-foot { color: var(--t-soft); font-size: .82rem; margin: 10px 2px; }
+.lg-when { white-space: nowrap; color: var(--t-soft); font-size: .84rem; }
+.lg-click { cursor: pointer; }
+.lg-click:focus-visible td { background: #f3f6ff; outline: none; }
+
+/* ---- AI level label + mix ---- */
+.lg-level {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 2px 10px; border-radius: 999px; font-size: .76rem; font-weight: 800;
+}
+.lg-level::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.lg-level.lv-strong { color: #14804a; background: color-mix(in srgb, var(--good) 16%, transparent); }
+.lg-level.lv-mixed { color: var(--t-indigo); background: color-mix(in srgb, var(--t-blue) 15%, transparent); }
+.lg-level.lv-struggling { color: var(--t-danger); background: color-mix(in srgb, var(--t-danger) 13%, transparent); }
+.lg-mix { display: inline-flex; gap: 4px; }
+.lg-mix span { min-width: 24px; text-align: center; font-size: .76rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+.lg-mix .lv-strong { color: #14804a; background: color-mix(in srgb, var(--good) 16%, transparent); }
+.lg-mix .lv-mixed { color: var(--t-indigo); background: color-mix(in srgb, var(--t-blue) 15%, transparent); }
+.lg-mix .lv-struggling { color: var(--t-danger); background: color-mix(in srgb, var(--t-danger) 13%, transparent); }
+
+.lg-tag { display: inline-block; font-size: .74rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: #eeecf6; color: var(--t-soft); }
+.lg-tag.ok { background: #d8f5e3; color: #14804a; }
+.lg-tag.no { background: #ffe4e9; color: #c3304d; }
+.lg-tag.wait { background: #fff3d9; color: #a8630e; }
+.lg-kind { font-size: .74rem; font-weight: 700; padding: 2px 9px; border-radius: 6px; background: #eef0fa; color: var(--t-indigo); }
+.lg-warn { font-size: .76rem; font-weight: 700; color: #a8630e; }
+.lg-count { margin-left: auto; font-size: .78rem; font-weight: 800; color: var(--t-soft); background: #f1f2f9; padding: 1px 9px; border-radius: 999px; }
+
+/* ---- one student ---- */
+.lg-profile { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+.lg-profile .av { line-height: 0; }
+.lg-profile .av img { border-radius: 50%; }
+.lg-profile h2 { margin: 0 0 2px; font-size: 1.3rem; }
+.lg-profile-id > div { margin-top: 3px; }
+
+.lg-tiles, .lg-mini { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.lg-mini { margin: 0 0 10px; }
+.lg-tile { background: var(--t-card); border: 1px solid var(--t-line); border-radius: 12px; padding: 12px 14px; }
+.lg-tile-v { font-size: 1.35rem; font-weight: 800; color: var(--t-ink); font-variant-numeric: tabular-nums; }
+.lg-tile-l { font-size: .78rem; font-weight: 700; color: var(--t-soft); margin-top: 2px; }
+.lg-tile-s { font-size: .74rem; color: var(--t-soft); }
+
+.lg-insight { margin-bottom: 14px; }
+.lg-insight.empty-ins { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.lg-insight h3 { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 1.05rem; }
+.lg-insight-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.lg-insight-sum { font-size: .95rem; line-height: 1.6; margin: 10px 0 4px; }
+.lg-insight-grid { display: grid; gap: 2px; }
+.lg-trend { font-size: .76rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: #f1f2f9; color: var(--t-soft); }
+.lg-trend.tr-improving { background: #d8f5e3; color: #14804a; }
+.lg-trend.tr-declining { background: #ffe4e9; color: #c3304d; }
+
+.lg-sec { margin-bottom: 12px; padding: 0; }
+.lg-sec > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px;
+  padding: 16px 20px; font-weight: 800; font-size: 1rem; color: var(--t-ink);
+}
+.lg-sec > summary::-webkit-details-marker { display: none; }
+.lg-sec > summary::after { content: '▸'; color: var(--t-soft); transition: transform .15s; }
+.lg-sec[open] > summary::after { transform: rotate(90deg); }
+.lg-sec-body { padding: 0 20px 18px; }
+
+.lg-item { border: 1px solid var(--t-line); border-radius: 12px; padding: 12px 14px; margin-top: 10px; background: #fff; }
+.lg-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lg-item-head .av { line-height: 0; }
+.lg-item-head .av img { border-radius: 50%; }
+.lg-item-acts { margin-top: 10px; display: flex; gap: 8px; }
+.lg-q { margin-top: 8px; font-size: .9rem; color: var(--t-soft); display: flex; gap: 6px; align-items: flex-start; }
+.lg-q .ic { flex: none; margin-top: 3px; }
+.lg-answer {
+  margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--t-bg);
+  white-space: pre-wrap; overflow-wrap: anywhere; font-size: .93rem; line-height: 1.55;
+}
+.lg-final { margin-top: 6px; }
+.lg-written { margin-top: 10px; }
+.lg-hist { margin-top: 8px; font-size: .84rem; }
+.lg-hist summary { cursor: pointer; color: var(--t-soft); font-weight: 600; }
+.lg-hist-item { margin: 6px 0 0; padding: 6px 10px; border-radius: 8px; background: var(--t-bg); white-space: pre-wrap; }
+
+/* Kru CJ's reading — same shape as .ai-diag */
+.lg-ai { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--t-bg); border: 1px solid var(--t-line); }
+.lg-ai-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .8rem; font-weight: 800; color: var(--t-soft); text-transform: uppercase; letter-spacing: .03em; }
+.lg-ai-head .lg-level, .lg-ai-head .lg-warn { text-transform: none; letter-spacing: 0; }
+.lg-ai p { margin: 8px 0 0; font-size: .9rem; line-height: 1.55; }
+.lg-ai-at { margin-top: 8px; font-size: .74rem; color: var(--t-soft); }
+.lg-row { display: grid; grid-template-columns: 150px 1fr; gap: 10px; margin-top: 8px; font-size: .86rem; line-height: 1.5; }
+.lg-row > b { color: var(--t-soft); font-weight: 700; }
+.lg-bul { margin: 0; padding-left: 18px; }
+.lg-bul li + li { margin-top: 2px; }
+
+/* whiteboards */
+.lg-board-body { display: grid; grid-template-columns: minmax(220px, 360px) 1fr; gap: 14px; margin-top: 10px; align-items: start; }
+.lg-board-img {
+  display: block; width: 100%; padding: 0; border: 1px solid var(--t-line); border-radius: 10px;
+  background: #fafaff; cursor: zoom-in; overflow: hidden; aspect-ratio: 1200 / 750; position: relative;
+}
+.lg-board-img img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+/* fetched after the paint — show a quiet placeholder, never a broken-image box */
+.lg-board-img img:not([src]) { visibility: hidden; }
+.lg-board-img:has(img:not([src]))::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, #f3f4fb 30%, #fbfbff 50%, #f3f4fb 70%) 0 0 / 200% 100%;
+  animation: lg-shimmer 1.4s linear infinite;
+}
+@keyframes lg-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .lg-board-img:has(img:not([src]))::after { animation: none; } }
+.lg-board-ai .lg-ai { margin-top: 0; }
+img.lg-zoom { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--t-line); }
+
+/* class view: story questions */
+.lg-sq { border-top: 1px solid var(--t-line); padding: 12px 0; }
+.lg-sq:first-of-type { border-top: 0; }
+.lg-sq > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.lg-sq > summary::-webkit-details-marker { display: none; }
+.lg-sq-n { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: #eef0fa; color: var(--t-indigo); font-size: .82rem; font-weight: 800; }
+.lg-sq-text { flex: 1; min-width: 0; }
+
+/* lists, chat, timeline */
+.lg-list { list-style: none; margin: 0; padding: 0; }
+.lg-list li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--t-line); font-size: .88rem; }
+.lg-chat { display: grid; gap: 6px; margin-top: 8px; }
+.lg-chat > div { padding: 8px 12px; border-radius: 12px; font-size: .88rem; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 85%; }
+.lg-chat .me { background: #eef4ff; justify-self: end; }
+.lg-chat .bot { background: var(--t-bg); border: 1px solid var(--t-line); }
+
+.lg-tl { list-style: none; margin: 0; padding: 0; }
+.lg-tl-day { font-size: .78rem; font-weight: 800; color: var(--t-soft); text-transform: uppercase; letter-spacing: .04em; margin: 14px 0 4px; }
+.lg-tl-day:first-child { margin-top: 0; }
+.lg-tl-ev { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: .88rem; }
+.lg-tl-time { flex: none; width: 52px; color: var(--t-soft); font-variant-numeric: tabular-nums; font-size: .8rem; }
+.lg-tl-ico { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; background: #eef0fa; color: var(--t-indigo); }
+.lg-tl-ev.ev-login .lg-tl-ico { background: #f1f2f9; color: var(--t-soft); }
+.lg-tl-ev.ev-whiteboard .lg-tl-ico, .lg-tl-ev.ev-storyAnswer .lg-tl-ico { background: #e6f7f5; color: var(--t-accent-dark); }
+
+@media (max-width: 760px) {
+  .lg-board-body { grid-template-columns: 1fr; }
+  .lg-row { grid-template-columns: 1fr; gap: 2px; }
+  .lg-profile { align-items: flex-start; }
+  .lg-sec > summary { padding: 14px 16px; }
+  .lg-sec-body { padding: 0 16px 16px; }
+}

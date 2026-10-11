@@ -3,8 +3,9 @@
 All state lives in `data/db.json` (or Postgres when `DATABASE_URL` is set).
 Collections: `users`, `lessons`, `posts`, `submissions`, `gradebook`,
 `challenges`, `challengeCategories`, `challengeSubmissions`, `quests`,
-`questSubmissions`. Uploaded files live in `data/uploads/` and are referenced
-by URL.
+`questSubmissions`, `storyAnswers`, `whiteboards`, `studentInsights` (and the
+battle, duel, Lab and tutor collections described below). Uploaded files live
+in `data/uploads/` and are referenced by URL.
 
 ## Quest
 
@@ -204,7 +205,6 @@ plain counter with no coins involved.
   "name": "Somchai",
   "email": "somchai@skn.ac.th",      // stored lowercase; login is case-insensitive
   "passwordHash": "$2a$10$…",        // bcrypt; never sent to the client
-  "difficulty": "easy",              // easy | medium | hard (students)
   "avatar": "🦊",
   "progress": {                      // keyed by lesson id
     "<lessonId>": {
@@ -222,11 +222,14 @@ plain counter with no coins involved.
   },
   "certificates": [
     { "id": "…", "lessonId": "…", "title": "…", "icon": "🧪",
-      "score": 100, "difficulty": "easy", "dateEarned": "ISO" }
+      "score": 100, "dateEarned": "ISO" }
   ],
   "earnedPoints": 200,               // sum of best pre + best post scores
   "bonusPoints": 0,                  // teacher ranking adjustment
   "points": 200,                     // earnedPoints + bonusPoints
+  "lastLoginAt": "ISO",              // students only, set at login (Student Logs)
+  "loginCount": 12,
+  "logins": ["ISO", …],              // the last 30 sign-ins, for the timeline
   "createdAt": "ISO"
 }
 ```
@@ -252,7 +255,9 @@ plain counter with no coins involved.
     { "type": "video", "url": "https://youtu.be/…", "title": "…" }
   ],
 
-  "quizzes": {                       // PRE-test, per difficulty
+  "quizzes": {                       // PRE-test: ONE set. The three keys are what older
+                                     // data holds; game.questionSet() merges them and a
+                                     // teacher save writes everything into `easy`
     "easy":   [{ "id": "uuid", "question": "…",
                  "choices": ["…","…"], "correctIndex": 1, "explanation": "…" }],
     "medium": [ … ],
@@ -375,6 +380,74 @@ new comparison going through `norm()` rather than comparing raw strings.
   maps that to the current name at render time rather than rewriting the database.
   `text`, optional `image`.
 - **video** — `url` (any YouTube link/ID) and `title`.
+- **question** — an ungraded question in the middle of the story:
+  `{ id, question, image, expected, aiNote, whiteboard }`. `id` is stable across
+  saves (answers are stored against it). `expected` (the teacher's แนวคำตอบ) and
+  `aiNote` are teacher-only — `lessons.routes.js buildSteps` never sends them.
+  The student must answer before **Next** works.
+
+Any web address in a line, a question or a challenge description is rendered
+as a link that opens in a new tab (`chemLinks()` in `public/js/api.js`).
+
+### The `whiteboard` flag
+Pre/post-test questions, challenge questions (not the simulation parent) and
+storyboard questions take `whiteboard: true` — "this question uses the
+whiteboard". It never affects marking.
+
+## Story answer
+
+`storyAnswers`. One row per (student, storyboard question).
+
+```jsonc
+{
+  "id": "uuid", "userId": "uuid", "userName": "…", "userAvatar": "s3",
+  "lessonId": "uuid", "lessonTitle": "…", "stepId": "uuid",
+  "question": "…",               // snapshot of the question when answered
+  "answer": "…",
+  "history": [{ "answer": "…", "at": "ISO", "ai": { … } }],  // last 5 earlier answers
+  "sends": 2,
+  "ai": {                        // Kru CJ's reading, for the teacher only; null until run
+    "summary": "…", "level": "strong|mixed|struggling",
+    "understands": [], "gaps": [], "misconceptions": [], "nextStep": "…",
+    "onTask": true, "at": "ISO", "lang": "th"
+  },
+  "aiError": null,               // e.g. "AI_DAILY_LIMIT" when the analysis did not run
+  "createdAt": "ISO", "updatedAt": "ISO"
+}
+```
+
+## Whiteboard
+
+`whiteboards`. One row per (student, question) — `key` is
+`"<kind>:<lessonId|challengeId>:<questionId>"`, and a resend replaces the row.
+
+```jsonc
+{
+  "id": "uuid", "userId": "uuid", "userName": "…", "userAvatar": "…",
+  "kind": "challenge",           // challenge | pre | post | story
+  "key": "challenge:<cid>:<qid>", "questionId": "…",
+  "lessonId": "uuid", "challengeId": "uuid|null",
+  "title": "🧩 Moles practice", "question": "…",
+  "expected": "…",               // answer key / expected answer, for the model; never listed to the client
+  "answer": "…",                 // what was in the answer box when the board was sent
+  "image": "data:image/png;base64,…",   // the board itself (white background)
+  "ai": { "legible": true, "summary": "…", "level": "mixed", "method": "…",
+          "steps": [], "errors": [], "strengths": [], "reachedAnswer": "…", "nextStep": "…" },
+  "aiError": null, "sends": 1,
+  "createdAt": "ISO", "updatedAt": "ISO"
+}
+```
+
+Boards are pictures, so every list response leaves `image` out and the teacher
+console fetches them one at a time. They do still live in the database: on
+Postgres every document is loaded on each request (see the KNOWN-ISSUE doc),
+so the one-row-per-question rule is what keeps their total bounded.
+
+## Student insight
+
+`studentInsights`, `id` = the student's id. Kru CJ's overall profile, written
+on request from Student Logs: `{ overview, level, trend, strengths[],
+weaknesses[], patterns[], engagement, recommendations[], lang, at }`.
 
 ## Post (assignment board)
 
