@@ -52,6 +52,8 @@ function cardFor(c, user) {
     timeLimit: c.timeLimit || 0,
     allowRetake: !!c.allowRetake,
     questionCount: (c.questions || []).length,
+    // Lets the level hub badge a hands-on lab without pulling the questions.
+    hasSimulation: (c.questions || []).some((q) => q.type === 'simulation'),
     maxPoints: ch.maxPoints(c),
     status: !sub ? 'todo' : sub.status === 'graded' ? 'graded' : 'submitted',
     earned: sub && sub.status === 'graded' ? sub.earned : null,

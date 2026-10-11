@@ -1,10 +1,11 @@
 // Level board (hub): clicking a level on the map lands here first.
 // Tabs: 🏠 Board · 📒 Assignments · 🧩 Challenges.
 //
-// The board menu lists every activity of the level in the order the teacher
-// chose. The storyboard and the pre-test are two SEPARATE activities: the
-// teacher decides which one comes first (lesson.activities.flow) and the other
-// one stays locked until the first is finished.
+// The Board tab draws the level's activities as a short trail of nodes rather
+// than a list of rows, so a level reads as somewhere you move through. The
+// storyboard and the pre-test are two SEPARATE activities: the teacher decides
+// which one comes first (lesson.activities.flow) and the other one stays
+// locked until the first is finished. See THE HUB, below.
 
 guard('student');
 addClouds();
@@ -57,77 +58,197 @@ function setTab(which) {
   render();
 }
 
-/** One row of the board menu. `href` null = not clickable. */
-function menuItem({ emoji, title, sub, state, cls, href, onclick }) {
-  const action = href ? `onclick="location.href='${href}'"` : onclick ? `onclick="${onclick}"` : 'aria-disabled="true"';
+/* ---------------------------------------------------------------------------
+   THE HUB — one level's activities as a short trail of nodes.
+
+   Every node is the same shape (a disc, a name, and a line under it when it
+   has something to say) and its COLOUR carries the state: green done, gold
+   open, grey locked or not-built-yet. That is the grammar the course map
+   already uses for levels one layer up, so a node reads as a node in both
+   places — but the classes are this board's own, because the two layouts
+   solve different problems and need to change independently.
+
+   Nothing here decides anything. The order of the storyboard and the pre-test
+   is the teacher's (lesson.activities.flow), the locks come from the server's
+   activityState, and the post-test opens when the server says so.
+--------------------------------------------------------------------------- */
+
+/* These labels already carry their own emoji in both languages ("📖
+   Storyboard" / "📖 เนื้อเรื่อง"). The disc wants the emoji and the plate
+   wants the words, so split one string rather than keep a parallel set of
+   icon-less keys at parity forever. */
+function splitIcon(label) {
+  const m = /^(\P{L}+?)\s+(.+)$/u.exec(String(label));
+  return m ? { icon: m[1], text: m[2] } : { icon: '•', text: String(label) };
+}
+
+function stateWord(state) {
+  return state === 'empty' ? t('board.stateEmpty') : t('dash.state.' + state);
+}
+
+/**
+ * One node on the trail.
+ * state: 'done' | 'open' | 'locked' | 'empty'
+ * Without `go` the node is not pressable — clicking it explains itself
+ * instead of doing nothing, which is why `sub` doubles as the reason.
+ */
+function hubNode({ label, sub, state, size, go, count, tag, eyebrow, final, next }) {
+  const { icon, text } = splitIcon(label);
+  const cls = ['hub-node', 'is-' + state];
+  if (final) cls.push('is-final');
+  if (next) cls.push('is-next');
   return `
-    <button class="board-item ${cls || ''}" ${action}>
-      <span class="bi-emoji">${emoji}</span>
-      <span class="bi-text"><span class="bi-title">${title}</span><br><span class="bi-sub">${sub}</span></span>
-      ${state || ''}
+    <button class="${cls.join(' ')}" type="button" style="--size:${size || 78}px"
+            data-go="${escapeHtml(go || '')}" data-why="${escapeHtml(sub || '')}"
+            ${go ? '' : 'aria-disabled="true"'}
+            aria-label="${escapeHtml(text + ' — ' + stateWord(state))}">
+      ${eyebrow ? `<span class="hub-eyebrow">${escapeHtml(eyebrow)}</span>` : ''}
+      <span class="hub-disc">
+        <span class="hub-face">${icon}</span>
+        ${count ? `<span class="hub-count">${escapeHtml(String(count))}</span>` : ''}
+      </span>
+      <span class="hub-name">${escapeHtml(text)}</span>
+      ${sub ? `<span class="hub-sub">${escapeHtml(sub)}</span>` : ''}
+      ${tag ? `<span class="hub-tag">${escapeHtml(tag)}</span>` : ''}
     </button>`;
 }
 
-/** 📖 Storyboard — its own activity now. */
-function storyItem(act) {
-  const href = `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=story`;
+/** 📖 Storyboard. */
+function storyNode(act) {
   if (!act.hasStory) {
-    return menuItem({
-      emoji: '📖', title: t('board.storyboard'), sub: t('board.storyboardNone'),
-      state: `<span class="bi-state">—</span>`, cls: 'locked',
-    });
+    return { label: t('board.storyboard'), state: 'empty', sub: t('board.storyboardNone') };
   }
   if (act.storyLocked) {
-    return menuItem({
-      emoji: '📖', title: t('board.storyboard'), sub: t('board.storyboardLocked'),
-      state: `<span class="bi-state">🔒</span>`, cls: 'locked',
-    });
+    return { label: t('board.storyboard'), state: 'locked', sub: t('board.storyboardLocked') };
   }
-  return menuItem({
-    emoji: '📖', title: t('board.storyboard'),
-    sub: act.storyDone ? t('board.storyboardDone') : t('board.storyboardSub'),
-    state: act.storyDone ? `<span class="bi-state done">✓</span>` : `<span class="bi-state go">${t('board.play')}</span>`,
-    href,
-  });
+  return {
+    label: t('board.storyboard'),
+    state: act.storyDone ? 'done' : 'open',
+    sub: act.storyDone ? '' : t('board.storyboardSub'),
+    go: `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=story`,
+  };
 }
 
-/** ❓ Pre-test — its own activity now. */
-function preItem(act) {
-  const href = `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre`;
+/** ❓ Pre-test. */
+function preNode(act) {
   if (!act.hasPre) {
-    return menuItem({
-      emoji: '❓', title: t('board.preTest'), sub: t('board.preTestNone'),
-      state: `<span class="bi-state">—</span>`, cls: 'locked',
-    });
+    return { label: t('board.preTest'), state: 'empty', sub: t('board.preTestNone') };
   }
   if (act.preLocked) {
-    return menuItem({
-      emoji: '❓', title: t('board.preTest'), sub: t('board.preTestLocked'),
-      state: `<span class="bi-state">🔒</span>`, cls: 'locked',
+    return { label: t('board.preTest'), state: 'locked', sub: t('board.preTestLocked') };
+  }
+  return {
+    label: t('board.preTest'),
+    state: lesson.preDone ? 'done' : 'open',
+    sub: lesson.preDone ? t('board.preDone', { score: lesson.preBestScore }) : t('board.preTestSub'),
+    go: `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre`,
+  };
+}
+
+/** 🧩 Challenges — one node for however many the teacher wrote. */
+function challengeNode() {
+  const list = (challenges && challenges.challenges) || [];
+  const todo = list.filter((c) => c.status === 'todo').length;
+  if (!challenges) return { label: t('board.challenges'), state: 'empty', sub: t('common.loading') };
+  if (!list.length) return { label: t('board.challenges'), state: 'empty', sub: t('ch.none') };
+  return {
+    label: t('board.challenges'),
+    state: todo ? 'open' : 'done',
+    sub: t('ch.meta', {
+      q: list.reduce((n, c) => n + c.questionCount, 0),
+      s: list.reduce((n, c) => n + c.questionCount, 0) === 1 ? '' : 's',
+      p: list.reduce((n, c) => n + c.maxPoints, 0),
+    }),
+    count: todo || 0,
+    /* A simulation is the most involved thing a level can hold, and it is
+       otherwise invisible until you are three taps deep. */
+    tag: list.some((c) => c.hasSimulation) ? t('board.lab') : '',
+    go: 'tab:challenges',
+  };
+}
+
+/** 🧾 Post-test — one attempt, ever, so it does not look like the rest. */
+function finalNode(pt) {
+  const base = { label: t('board.postTest'), final: true, size: 108 };
+  if (pt.done) {
+    return Object.assign(base, {
+      state: 'done',
+      eyebrow: t('board.finalTag'),
+      sub: pt.awaitingGrading ? t('board.postTestAwaiting') : t('board.postTestDone', { score: pt.bestScore }),
     });
   }
-  return menuItem({
-    emoji: '❓', title: t('board.preTest'),
-    sub: lesson.preDone ? t('board.replay') : t('board.preTestSub'),
-    state: lesson.preDone
-      ? `<span class="bi-state done">${t('board.preDone', { score: lesson.preBestScore })}</span>`
-      : `<span class="bi-state go">${t('board.play')}</span>`,
-    href,
+  if (pt.open && pt.questionCount > 0) {
+    return Object.assign(base, {
+      state: 'open',
+      eyebrow: t('board.finalTag'),
+      sub: t('board.postTestOpenSub'),
+      go: `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post`,
+    });
+  }
+  return Object.assign(base, {
+    state: pt.open && pt.questionCount === 0 ? 'empty' : 'locked',
+    eyebrow: t('board.finalTag'),
+    sub: pt.open && pt.questionCount === 0 ? t('board.postTestNoQ') : t('board.postTestLockedSub'),
   });
 }
 
-/** 🧩 Challenges — sits directly under Assignments. */
-function challengesItem() {
-  const list = (challenges && challenges.challenges) || [];
-  const todo = list.filter((c) => c.status === 'todo').length;
-  const sub = !challenges ? t('common.loading')
-    : !list.length ? t('ch.none')
-      : todo ? t('ch.meta', { q: list.length, s: list.length === 1 ? '' : 's', p: list.reduce((n, c) => n + c.maxPoints, 0) })
-        : t('board.challengesSub');
-  return menuItem({
-    emoji: '🧩', title: t('board.challenges'), sub,
-    state: todo ? `<span class="bi-state go">${todo}</span>` : list.length ? `<span class="bi-state done">✓</span>` : '',
-    onclick: "setTab('challenges')",
+/** What Kru CJ says, and the face he says it with. */
+function hubGreeting(trail, final) {
+  if (final.state === 'done') return { mood: 'medal', line: t('board.sayDone') };
+  if (final.state === 'open') return { mood: 'grade', line: t('board.sayFinal') };
+  if (trail.some((n) => n.state === 'done')) return { mood: 'excited', line: t('board.sayGoing') };
+  return { mood: 'wave', line: t('board.sayStart') };
+}
+
+/** The whole board tab. */
+function hubView(act, pt) {
+  // The teacher's order, then the challenges everyone can reach.
+  const trail = act.flow === 'test-first'
+    ? [preNode(act), storyNode(act)]
+    : [storyNode(act), preNode(act)];
+  trail.push(challengeNode());
+
+  const final = finalNode(pt);
+  const say = hubGreeting(trail, final);
+
+  // Exactly one node pulses: the first thing actually waiting to be done.
+  const nextIdx = trail.findIndex((n) => n.state === 'open');
+  if (nextIdx >= 0) trail[nextIdx].next = true;
+  else if (final.state === 'open') final.next = true;
+
+  const aside = hubNode({
+    label: t('board.assignments'),
+    state: 'open',
+    sub: '',
+    go: 'tab:assignments',
+  });
+
+  return `
+    <div class="hub">
+      <div class="hub-say">
+        ${renderRuby(say.mood, { size: 92 })}
+        <p class="hub-bubble">${escapeHtml(say.line)}</p>
+      </div>
+      <div class="hub-trail" role="group" aria-label="${escapeHtml(t('board.trailAria'))}">
+        ${trail.map((n) => `<div class="hub-step">${hubNode(n)}</div>`).join('')}
+      </div>
+      <div class="hub-aside">${aside}</div>
+      <div class="hub-final">${hubNode(final)}</div>
+    </div>`;
+}
+
+/** Nodes carry their destination in data-go; a node with none says why not. */
+function wireHub(host) {
+  host.querySelectorAll('.hub-node').forEach((node) => {
+    node.addEventListener('click', () => {
+      const go = node.dataset.go;
+      if (!go) {
+        if (node.dataset.why) toast(node.dataset.why, 'bad');
+        return;
+      }
+      if (go.startsWith('tab:')) setTab(go.slice(4));
+      else location.href = go;
+    });
   });
 }
 
@@ -154,41 +275,7 @@ function render() {
 
   let body = '';
   if (tab === 'board') {
-    // 1 & 2) Storyboard + pre-test, in the order the teacher picked.
-    const first = act.flow === 'test-first' ? preItem(act) : storyItem(act);
-    const second = act.flow === 'test-first' ? storyItem(act) : preItem(act);
-
-    // 4) Post-test — one attempt only; not re-enterable once submitted.
-    const ptOpen = pt.open && pt.questionCount > 0;
-    const ptTaken = !!pt.done; // already submitted (graded or awaiting grading)
-    let ptSub, ptState, ptCls = '', ptClickable = false;
-    if (ptTaken) {
-      ptCls = 'taken';
-      if (pt.awaitingGrading) { ptSub = t('board.postTestAwaiting'); ptState = `<span class="bi-state done">⏳</span>`; }
-      else { ptSub = t('board.postTestDone', { score: pt.bestScore }); ptState = `<span class="bi-state done">✓</span>`; }
-    } else if (ptOpen) {
-      ptSub = t('board.postTestOpenSub'); ptState = `<span class="bi-state go">${t('board.go')}</span>`; ptClickable = true;
-    } else {
-      ptCls = 'locked';
-      ptSub = pt.questionCount === 0 && pt.open ? t('board.postTestNoQ') : t('board.postTestLockedSub');
-      ptState = `<span class="bi-state">🔒</span>`;
-    }
-
-    body = `
-      <div class="flow-note">🔀 ${act.flow === 'test-first' ? t('board.flowTestFirst') : t('board.flowStoryFirst')}</div>
-      <div class="board-menu">
-        ${first}
-        ${second}
-        ${menuItem({
-          emoji: '📒', title: t('board.assignments'), sub: t('board.assignmentsSub'),
-          onclick: "setTab('assignments')",
-        })}
-        ${challengesItem()}
-        ${menuItem({
-          emoji: '🧾', title: t('board.postTest'), sub: ptSub, state: ptState, cls: ptCls,
-          href: ptClickable ? `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=post` : null,
-        })}
-      </div>`;
+    body = hubView(act, pt);
   } else if (tab === 'assignments') {
     body = `<div id="feedHost"></div>`;
   } else {
@@ -196,6 +283,7 @@ function render() {
   }
 
   boardEl.innerHTML = hero + tabs + body;
+  if (tab === 'board') wireHub(boardEl);
   if (tab === 'assignments') {
     Feed.mount(document.getElementById('feedHost'), LESSON_ID, { teacher: false, title: lesson.title, icon: lesson.icon });
   }

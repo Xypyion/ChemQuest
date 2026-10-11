@@ -1,0 +1,204 @@
+/* The level hub — the small map of one level's activities.
+   js/board.js paints the nodes; this file is only about how they look.
+
+   It deliberately does NOT reuse css/map.css. The course map solves a
+   different problem (an arbitrary number of levels on a winding road) and its
+   classes are tuned for that; borrowing them here would tie two layouts
+   together that need to change independently. What IS borrowed is the
+   grammar, because a student should recognise a node as a node: bright fill,
+   dark ink, a chunky edge under the disc, and colour meaning state rather
+   than category. */
+
+.hub { position: relative; padding: 4px 0 10px; }
+
+/* ---------- Kru CJ's line above the map ---------- */
+.hub-say {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 auto 18px; max-width: 620px;
+}
+.hub-bubble {
+  position: relative; flex: 1; min-width: 0;
+  background: #fff; border-radius: 18px; padding: 12px 18px;
+  font-weight: 600; color: var(--ink); line-height: 1.45;
+  box-shadow: 0 5px 0 rgba(0,0,0,.10);
+}
+/* the tail, pointing back at him */
+.hub-bubble::before {
+  content: ''; position: absolute; left: -9px; top: 50%;
+  width: 18px; height: 18px; background: #fff;
+  transform: translateY(-50%) rotate(45deg); border-radius: 4px;
+}
+
+/* ---------- the trail ---------- */
+/* A straight road down the middle. The course map one layer up is the winding
+   one; a level holds four or five stops and reads better as a clean sequence
+   than as a zigzag — and a straight road stays correct whatever number of
+   stops a teacher's level actually has. */
+.hub-trail {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+.hub-step {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 15px 0;
+  width: 100%;
+}
+/* The road between this node and the one above it, sat behind the discs. */
+.hub-step + .hub-step::before {
+  content: '';
+  position: absolute; left: 50%; top: -18px;
+  width: 15px; height: 52px;
+  background: #f2ddb3;
+  border-left: 3px solid #d9bb87; border-right: 3px solid #d9bb87;
+  border-radius: 8px;
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+/* ---------- a node ---------- */
+.hub-node {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  width: 168px; padding: 0; border: none; background: none;
+  font-family: var(--font); cursor: pointer;
+}
+.hub-disc {
+  position: relative;
+  width: var(--size, 78px); height: var(--size, 78px);
+  border-radius: 50%;
+  background: var(--face);
+  box-shadow: 0 7px 0 var(--edge), 0 14px 18px -8px rgba(40,30,80,.35);
+  display: grid; place-items: center;
+  transition: transform .1s ease, box-shadow .1s ease, filter .15s ease;
+}
+/* the same top-left glint the course map's discs carry */
+.hub-disc::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(150deg, rgba(255,255,255,.42), rgba(255,255,255,0) 58%);
+  pointer-events: none;
+}
+.hub-face {
+  position: relative; z-index: 1; display: grid; place-items: center;
+  color: var(--ink); font-size: calc(var(--size, 78px) * .40); line-height: 1;
+}
+.hub-name {
+  max-width: 100%;
+  font-size: .84rem; font-weight: 800; line-height: 1.25; color: var(--ink);
+  background: #fff; border-radius: 10px; padding: 5px 12px;
+  box-shadow: 0 4px 0 rgba(0,0,0,.12);
+  text-align: center;
+}
+.hub-sub {
+  max-width: 100%; text-align: center;
+  font-size: .74rem; font-weight: 600; color: var(--ink-soft); line-height: 1.35;
+}
+
+.hub-node:hover .hub-disc { transform: translateY(-3px); filter: brightness(1.04); }
+.hub-node:active .hub-disc { transform: translateY(5px); box-shadow: 0 2px 0 var(--edge); }
+.hub-node:focus-visible { outline: none; }
+.hub-node:focus-visible .hub-disc { outline: 4px solid var(--secondary-dark); outline-offset: 5px; }
+
+/* --- states: the same three the course map uses, for the same reasons --- */
+.hub-node.is-done { --face: var(--grass); --edge: var(--grass-dark); }
+.hub-node.is-open { --face: var(--sun);   --edge: #dfa900; }
+.hub-node.is-locked { --face: #cdc7dc; --edge: #a9a1c0; cursor: not-allowed; }
+.hub-node.is-locked .hub-face { color: #4b4468; }
+.hub-node.is-locked .hub-name { color: var(--ink-soft); background: #f3f0fa; }
+.hub-node.is-locked:hover .hub-disc { transform: none; filter: none; }
+.hub-node.is-locked:active .hub-disc { transform: none; box-shadow: 0 7px 0 var(--edge); }
+/* nothing built here yet — present, but not a thing to press */
+.hub-node.is-empty { --face: #e6e1f0; --edge: #cbc4dc; cursor: default; }
+.hub-node.is-empty .hub-face { color: #6b6488; }
+.hub-node.is-empty .hub-name { color: var(--ink-soft); background: #f5f3fa; }
+.hub-node.is-empty:hover .hub-disc { transform: none; filter: none; }
+.hub-node.is-empty:active .hub-disc { transform: none; box-shadow: 0 7px 0 var(--edge); }
+
+/* the one to do next */
+.hub-node.is-next .hub-disc { animation: hub-beat 2.4s ease-in-out infinite; }
+.hub-node.is-next .hub-name { font-size: .9rem; }
+@keyframes hub-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.055); }
+}
+
+/* a count of what is waiting, on the shoulder of the disc */
+.hub-count {
+  position: absolute; top: -4px; right: -4px; z-index: 2;
+  min-width: 26px; height: 26px; padding: 0 7px;
+  border-radius: 999px; background: var(--primary); color: #fff;
+  font-size: .78rem; font-weight: 800; line-height: 26px; text-align: center;
+  box-shadow: 0 3px 0 var(--primary-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "there is a simulation in here" */
+.hub-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .7rem; font-weight: 800; color: #5b3fa8;
+  background: #f0e9ff; border-radius: 999px; padding: 3px 10px;
+}
+
+/* ---------- the assignment board, off to one side ---------- */
+/* It is never gated, so it does not belong on the road: a student stuck at a
+   locked node can still always post their work. */
+.hub-aside {
+  position: relative;
+  display: flex; justify-content: center;
+  margin-top: 4px; padding-top: 34px;
+}
+.hub-aside::before {
+  content: '';
+  position: absolute; left: 50%; top: 0; width: 0; height: 34px;
+  border-left: 4px dashed #cdbfa0;
+  transform: translateX(-50%);
+}
+
+/* ---------- the post-test ---------- */
+/* One attempt, ever — so it gets the only red on the board, its own headline
+   above the disc, and a bigger footprint than anything else here. */
+.hub-final {
+  position: relative;
+  display: flex; justify-content: center;
+  margin-top: 4px; padding-top: 46px;
+}
+/* the road arriving at the end of the level */
+.hub-final::before {
+  content: '';
+  position: absolute; left: 50%; top: 0;
+  width: 15px; height: 56px;
+  background: #f2ddb3;
+  border-left: 3px solid #d9bb87; border-right: 3px solid #d9bb87;
+  border-radius: 8px;
+  transform: translateX(-50%);
+  z-index: 0;
+}
+.hub-node.is-final { width: 210px; }
+.hub-node.is-final .hub-name { font-size: .95rem; }
+.hub-node.is-final.is-open { --face: var(--ruby); --edge: var(--ruby-dark); }
+/* Red needs light ink; every other state here is dark ink on a bright fill,
+   and this is the one deliberate exception. */
+.hub-node.is-final.is-open .hub-face { color: #fff; }
+
+.hub-eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 10px;
+  font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  border-radius: 999px; padding: 5px 14px;
+  background: #ffe8e4; color: #b3271c;
+}
+.hub-node.is-final.is-locked .hub-eyebrow,
+.hub-node.is-final.is-empty .hub-eyebrow { background: #efeaf7; color: var(--ink-soft); }
+.hub-node.is-final.is-done .hub-eyebrow { background: #e6f9ec; color: #1d8f43; }
+
+@media (max-width: 620px) {
+  .hub-node { width: 148px; }
+  .hub-node.is-final { width: 190px; }
+  .hub-name { font-size: .78rem; }
+  .hub-say { gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-node.is-next .hub-disc { animation: none; }
+}
