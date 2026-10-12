@@ -42,6 +42,11 @@ let timeExpired = false;
 // already sent. A question step holds the Next button until it is answered.
 let storyAnswers = {};
 let storyDrafts = {};   // stepId -> text typed but not sent yet
+
+// Resuming the storyboard: the step the server last saw, and whether the
+// "picking up where you left off" note is still showing.
+let savedStoryAt = -1;
+let resumedNote = false;
 const WB_KIND = MODE === 'post' ? 'post' : MODE === 'story' ? 'story' : 'pre';
 
 start();
@@ -80,6 +85,7 @@ async function start() {
       Object.keys(mine.boards || {}).forEach((k) => Whiteboard.markSent(k));
     } catch { storyAnswers = {}; }
 
+    if (MODE === 'story') resumeStory(act);
     goPhase(0);
   } catch (err) {
     card.innerHTML = errorBox(localizeErr(err.message));
@@ -166,8 +172,38 @@ async function showStoryDone() {
 }
 
 /* ----------------------------- STORYBOARD ----------------------------- */
+/**
+ * Open the storyboard where the student stopped last time. Never past a
+ * question they have not answered yet: if the teacher added one earlier in
+ * the story since, that is where they pick up.
+ */
+function resumeStory(act) {
+  const steps = lesson.storyboard;
+  savedStoryAt = Number.isInteger(act.storyAt) ? act.storyAt : 0;
+  let at = Math.min(Math.max(savedStoryAt, 0), steps.length - 1);
+  const gap = steps.findIndex((s, i) => i < at && s.type === 'question' && !storyAnswered(s));
+  if (gap !== -1) at = gap;
+  storyIndex = at;
+  resumedNote = at > 0;
+}
+
+/** Tell the server which step is on screen. Fire-and-forget; one call per change. */
+function saveStoryPosition() {
+  if (storyIndex === savedStoryAt) return;
+  savedStoryAt = storyIndex;
+  API.post(`/api/lessons/${encodeURIComponent(LESSON_ID)}/story-position`, { index: storyIndex })
+    .catch(() => { savedStoryAt = -1; });   // try again on the next step
+}
+
+function startStoryOver() {
+  resumedNote = false;
+  storyIndex = 0;
+  showStory();
+}
+
 function showStory() {
   const step = lesson.storyboard[storyIndex];
+  saveStoryPosition();
   const last = storyIndex === lesson.storyboard.length - 1;
   const dots = `<div class="dots">${lesson.storyboard.map((s, i) =>
     `<i class="${i <= storyIndex ? 'on' : ''} ${s.type === 'video' ? 'vid' : ''}"></i>`).join('')}</div>`;
@@ -182,12 +218,17 @@ function showStory() {
     </div>
     ${blocked ? `<div class="story-q-gate">${t('lesson.qAnswerToGoOn')}</div>` : ''}
     ${last ? '' : `<button class="btn ghost" style="margin-top:10px;font-size:.8rem;padding:8px 14px" id="skipStory">${t('lesson.skip')}</button>`}`;
+  const resume = resumedNote ? `
+    <div class="story-resume" role="status">
+      <span>${t('lesson.resumed', { n: storyIndex + 1, total: lesson.storyboard.length })}</span>
+      <button class="linkbtn" id="storyFromStart">${t('lesson.startOver')}</button>
+    </div>` : '';
 
   if (step.type === 'question' && step.whiteboard) {
     // The teacher chose the whiteboard: no text box — the board IS the answer.
     const sentBoard = Whiteboard.isSent(storyBoardKey(step.id));
     card.innerHTML = `
-      <div class="story-stage">
+      <div class="story-stage">${resume}
         <div class="ruby-hero">${renderRuby('thinking', { size: 170, float: true })}</div>
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="">` : ''}
         <div class="speech top pop-in story-q">
@@ -209,7 +250,7 @@ function showStory() {
     const mine = storyAnswers[step.id];
     const draft = storyDrafts[step.id] != null ? storyDrafts[step.id] : (mine ? mine.answer : '');
     card.innerHTML = `
-      <div class="story-stage">
+      <div class="story-stage">${resume}
         <div class="ruby-hero">${renderRuby('thinking', { size: 170, float: true })}</div>
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="">` : ''}
         <div class="speech top pop-in story-q">
@@ -236,12 +277,12 @@ function showStory() {
       ? `${step.title ? `<div class="video-title">🎬 ${escapeHtml(step.title)}</div>` : ''}
          <div class="video-frame"><iframe src="${embed}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`
       : `<p class="muted">${t('lesson.cantEmbed')}</p><a class="btn secondary" href="${encodeURI(step.url)}" target="_blank" rel="noopener">${t('lesson.openYoutube')}</a>`;
-    card.innerHTML = `<div class="center"><h2>${t('lesson.watch')}</h2>
+    card.innerHTML = `<div class="center">${resume}<h2>${t('lesson.watch')}</h2>
       <p class="muted">${t('lesson.watchSub')}</p>
       ${body}${dots}${nav}</div>`;
   } else {
     card.innerHTML = `
-      <div class="story-stage">
+      <div class="story-stage">${resume}
         <div class="ruby-hero">${renderRuby(step.mood || 'happy', { size: 190, float: true })}</div>
         ${step.image ? `<img class="story-img" src="${escapeHtml(step.image)}" alt="storyboard image">` : ''}
         <div class="speech top pop-in">
@@ -255,6 +296,11 @@ function showStory() {
   Whiteboard.dock(step.type === 'question' && step.whiteboard
     ? { key: storyBoardKey(step.id), open: () => openStoryBoard(step.id) }
     : null);
+
+  // The note is for the first step they land on; it goes once they move.
+  resumedNote = false;
+  const fromStart = document.getElementById('storyFromStart');
+  if (fromStart) fromStart.onclick = startStoryOver;
 
   document.getElementById('nextStep').onclick = () => {
     if (step.type === 'question' && !storyAnswered(step)) return;

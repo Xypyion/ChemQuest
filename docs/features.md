@@ -39,6 +39,11 @@ finished.
 ### Lessons & quizzes
 - **Storyboard** narrated by Kru CJ with moods/expressions, optional images, and a YouTube
   video the teacher can place anywhere in the sequence.
+- **The storyboard remembers where the student stopped.** Leaving half-way and coming
+  back — on any device — reopens it at that step, with a *Welcome back* note and a
+  *Start from the beginning* link; the level board says "Continue from step n of m".
+  It never reopens past a question the student has not answered yet. Finishing the
+  story clears the place, so reading it again starts at the beginning.
 - **Links are clickable.** Any web address the teacher writes in a storyboard line, a
   storyboard question, a challenge's instructions or question, or an assignment-board post
   opens in a new tab — students no longer copy and paste it.
@@ -155,6 +160,24 @@ saving independently:
 
 ## Teacher console
 
+### Level page
+**Lessons & Levels → a level** opens everything about that level on one page:
+- **Storyboard** — lines, videos and questions; how many students have read it to the
+  end and how many are part-way; *Edit storyboard* and *Story answers* (Student Logs).
+- **Pre-test** and **Post-test** — question counts, how many took and passed each, and
+  **Mark answers (n)** when written answers are waiting. Marking happens right there,
+  one card per student; *Edit questions* opens the editor at that test. The post-test
+  also opens and closes from its card.
+- **Assignment board** — post count and an **Open board** button (also on each level's
+  row in the list, as **Assignment board**). Back from the board returns to the level.
+- **Challenges in this level** — each one with its hand-in count and **Mark answers (n)**,
+  which opens its Responses screen; Back returns to the level.
+
+There is no separate "To mark" menu any more. The sidebar badge on **Lessons & Levels**
+counts test answers waiting, the one on **Challenges** counts challenge answers waiting,
+and a level's row shows an orange **n to mark** chip. The open level is kept in the
+address (`#level=<id>`), so a refresh or a language switch comes back to it.
+
 ### Level builder
 - Title, emoji icon, description.
 - **Order of activities:** choose whether students meet the **storyboard first**
@@ -197,6 +220,7 @@ saving independently:
   per question plus its points, and a row for every student who never handed in. Written
   with a UTF-8 byte-order mark so Excel opens Thai answers correctly.
 - Challenge scores can be imported into the **gradebook** as a column.
+- A challenge's Responses screen can also be reached from its level's page.
 
 ### Coin Battles 🤺
 - **Battle rules**: coins at stake and a time limit for each difficulty, how many

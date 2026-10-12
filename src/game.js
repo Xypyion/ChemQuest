@@ -115,6 +115,10 @@ function activityState(lesson, progressEntry) {
     storyDone,
     preAttempted,
     prePassed: !!p.passed,
+    // Where the student stopped reading, so the storyboard reopens there.
+    // Cleared when they finish it; see POST /api/lessons/:id/story-position.
+    storyAt: p.storyAt && Number.isInteger(p.storyAt.index) ? p.storyAt.index : 0,
+    storyLength: story ? lesson.storyboard.length : 0,
     storyLocked: gated && flow === 'test-first' && !preAttempted && !storyDone,
     preLocked: gated && flow === 'story-first' && !storyDone && !preAttempted,
   };

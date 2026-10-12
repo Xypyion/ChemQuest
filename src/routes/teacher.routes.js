@@ -167,6 +167,38 @@ router.get('/lessons/:id', (req, res) => {
   res.json({ lesson });
 });
 
+/**
+ * GET /api/teacher/lessons/:id/overview — how the class is getting on with one
+ * level, for the level page in the console: who has read the story, taken
+ * each test, and how busy its assignment board is. Counts only; the names
+ * live in Student Logs. The teacher's own test account is left out.
+ */
+router.get('/lessons/:id/overview', (req, res) => {
+  const lesson = db.findById('lessons', req.params.id);
+  if (!lesson) return res.status(404).json({ error: 'Level not found.' });
+  const students = db.filter('users', (u) => u.role === 'student' && !u.practice);
+  const out = {
+    students: students.length,
+    storyDone: 0, storyReading: 0,
+    preTaken: 0, prePassed: 0,
+    postTaken: 0, postPassed: 0,
+  };
+  students.forEach((u) => {
+    const p = (u.progress || {})[lesson.id] || {};
+    if (p.storyDone) out.storyDone += 1;
+    else if (p.storyAt && p.storyAt.index > 0) out.storyReading += 1;
+    if (p.attempts || p.awaitingGrading) out.preTaken += 1;
+    if (p.passed) out.prePassed += 1;
+    const post = p.post || {};
+    if (post.attempts || post.awaitingGrading) out.postTaken += 1;
+    if (post.passed) out.postPassed += 1;
+  });
+  const posts = db.filter('posts', (x) => x.lessonId === lesson.id);
+  out.posts = posts.length;
+  out.studentPosts = posts.filter((x) => !x.isAssignment).length;
+  res.json({ overview: out });
+});
+
 router.post('/lessons', (req, res) => {
   const lesson = normalizeLesson(req.body || {}, null);
   lesson.order = Number.isFinite(req.body && req.body.order) ? req.body.order : nextOrder();

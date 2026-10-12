@@ -121,7 +121,10 @@ function storyNode(act) {
   return {
     label: t('board.storyboard'),
     state: act.storyDone ? 'done' : 'open',
-    sub: act.storyDone ? '' : t('board.storyboardSub'),
+    // Half-way through: say where it will reopen, so "Storyboard" is not a restart.
+    sub: act.storyAt > 0 && act.storyAt < act.storyLength
+      ? t('board.storyboardContinue', { n: act.storyAt + 1, total: act.storyLength })
+      : act.storyDone ? '' : t('board.storyboardSub'),
     go: `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=story`,
   };
 }

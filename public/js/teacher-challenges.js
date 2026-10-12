@@ -31,8 +31,11 @@ const TChallenges = (() => {
   let responses = null;     // { challenge, responses[], missing[] }
   let simPreview = {};      // questionId -> bool (show the live preview?)
   let loaded = false;
+  // Set when Responses was opened from somewhere else (a level's page in
+  // teacher.js): Back goes there instead of to this section's list.
+  let backHook = null;
 
-  function reset() { mode = 'list'; draft = null; responses = null; loaded = false; }
+  function reset() { mode = 'list'; draft = null; responses = null; loaded = false; backHook = null; }
 
   /* ------------------------------- loading ------------------------------ */
 
@@ -1108,7 +1111,18 @@ const TChallenges = (() => {
     } catch (e) { toast(e.message, 'bad'); }
   }
 
-  function backToList() { responses = null; mode = 'list'; render(); }
+  function backToList() {
+    responses = null; mode = 'list';
+    if (backHook) { const go = backHook; backHook = null; go(); return; }
+    render();
+  }
+
+  /** Open one challenge's Responses into `el`; Back calls `onBack` instead of showing the list. */
+  async function openFrom(el, id, onBack) {
+    host = el;
+    backHook = onBack || null;
+    await openResponses(id);
+  }
 
   /* ------------------------------ CSV export ----------------------------- */
 
@@ -1200,7 +1214,7 @@ const TChallenges = (() => {
   };
   window.TC = api;
 
-  return { render, reset };
+  return { render, reset, openFrom };
 })();
 
 // `toLocalInput` (ISO → the value a datetime-local input wants) lives in teacher.js.

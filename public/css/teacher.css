@@ -799,3 +799,70 @@ details.qcard[open] > .qcard-sum { border-bottom: 1px solid var(--t-line); }
 .cat-head { margin: 0 0 10px; }
 .cat-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 1rem; color: var(--t-soft); }
 .cat-head h3 svg { color: var(--t-soft); }
+
+/* ============================ Level page ============================
+   Lessons & Levels -> one level: its storyboard, tests (with their marking),
+   assignment board and challenges. */
+.lr-open {
+  border: 0; background: none; padding: 0; margin: 0; cursor: pointer;
+  font-family: var(--font); color: var(--t-ink); text-align: left;
+}
+.lr-open:hover { color: var(--t-indigo); text-decoration: underline; text-underline-offset: 3px; }
+.lr-open:focus-visible { outline: 3px solid var(--t-blue); outline-offset: 2px; border-radius: 4px; }
+.chip-mark { background: #fff4e5; border-color: #ffd9a8; }
+.chip-mark .ic, .chip-mark b { color: #a85a00; }
+
+.lv-crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: .86rem; color: var(--t-soft); }
+.lv-crumbs button {
+  border: 0; background: none; padding: 0; cursor: pointer; font: inherit; font-weight: 600;
+  color: var(--t-blue);
+}
+.lv-crumbs button:hover { text-decoration: underline; }
+.lv-crumbs button:focus-visible { outline: 3px solid var(--t-blue); outline-offset: 2px; border-radius: 4px; }
+.lv-crumbs > span:last-child { color: var(--t-ink); font-weight: 600; }
+
+.lv-title { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.lv-icon {
+  width: 52px; height: 52px; flex: none; display: grid; place-items: center;
+  font-size: 1.7rem; background: #f1f2f9; border-radius: 14px;
+}
+.lv-gate { margin: -6px 0 18px; align-items: center; }
+.lv-class { display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; font-weight: 600; color: var(--t-soft); }
+.lv-class .ic { color: #a49ec2; }
+
+.lv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.lv-card {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--t-card); border: 1px solid var(--t-line); border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(40,30,90,.07); padding: 18px 20px;
+}
+.lv-card.has-work { border-color: #ffd9a8; background: #fffaf2; }
+.lv-card-head { display: flex; align-items: center; gap: 10px; }
+.lv-card-head h3 { margin: 0; font-size: 1.05rem; }
+.lv-card-head .t-badge { margin-left: auto; }
+.lv-card-ic {
+  width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+  border-radius: 10px; background: #eef1ff; color: var(--t-indigo);
+}
+.lv-state { font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: #eeecf6; color: var(--t-soft); }
+.lv-state.on { background: #d8f5e3; color: #14804a; }
+.lv-desc { margin: 0; font-size: .9rem; color: var(--t-soft); }
+.lv-stats { display: flex; gap: 16px; flex-wrap: wrap; font-size: .86rem; color: var(--t-soft); }
+.lv-stats b { color: var(--t-ink); font-size: 1rem; }
+.lv-card-acts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: auto; padding-top: 4px; }
+.lv-clear { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; font-weight: 600; color: #14804a; }
+
+.lv-chs { margin-top: 16px; }
+.lv-chs h3 { display: flex; align-items: center; gap: 8px; }
+.lv-ch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 0; border-top: 1px solid var(--t-line);
+}
+.lv-ch-info { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.lv-ch-title { font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lv-empty { margin: 4px 0 0; color: var(--t-soft); font-size: .9rem; }
+
+@media (max-width: 760px) {
+  .lv-grid { grid-template-columns: minmax(0, 1fr); }
+  .lv-ch-row { flex-direction: column; align-items: flex-start; }
+}

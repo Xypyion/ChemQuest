@@ -30,6 +30,7 @@ All require a **student** token.
 | GET | `/api/lessons` | — | The map: every level with `locked`, `lockReason`, `opensAt`, `completed`, `preDone`, `bestScore`, `postTest` summary. |
 | GET | `/api/lessons/:id` | — | Full level. Answers stripped, plus `activities` (see below). The storyboard is empty when `storyLocked`; the questions are empty when `preLocked`. `403` if the level is locked. |
 | POST | `/api/lessons/:id/story-complete` | — | Marks the storyboard as read (`progress.storyDone`). This is what unlocks the pre-test under `story-first`. `403` `STORY_LOCKED` if the storyboard is not open yet. |
+| POST | `/api/lessons/:id/story-position` | `{ index }` | The storyboard step on screen (0-based), so the story reopens there. Saved as `progress.storyAt`; cleared by `story-complete`. `400` for an index outside the storyboard, `403` `STORY_LOCKED`. |
 | POST | `/api/lessons/:id/check` | `{ questionIndex, answer }` | Instant feedback for one pre-test question. |
 | POST | `/api/lessons/:id/complete` | `{ answers: [...] }` | Grades the pre-test, awards a certificate on first pass, recalculates points. |
 | GET | `/api/lessons/:id/posttest` | — | Post-test questions. `403` unless the level is unlocked **and** the post-test is open. |
@@ -47,6 +48,8 @@ two separate activities and the teacher picks the order:
 { "flow": "story-first",   // story-first | test-first
   "hasStory": true, "hasPre": true,
   "storyDone": false, "preAttempted": false, "prePassed": false,
+  "storyAt": 3,            // step to reopen the storyboard at (0 = the start)
+  "storyLength": 7,
   "storyLocked": false,    // true → the storyboard is not open yet
   "preLocked": true }      // true → /check and /complete return 403 PRETEST_LOCKED
 ```
@@ -65,6 +68,7 @@ All require a **teacher** token.
 |--------|------|------|-------|
 | GET | `/api/teacher/lessons` | — | All lessons (full objects, including answers, post-test, gate). |
 | GET | `/api/teacher/lessons/:id` | — | One full lesson. |
+| GET | `/api/teacher/lessons/:id/overview` | — | Class counts for the level page: `{ students, storyDone, storyReading, preTaken, prePassed, postTaken, postPassed, posts, studentPosts }`. The teacher's test account is not counted. |
 | POST | `/api/teacher/lessons` | lesson | Create. |
 | PUT | `/api/teacher/lessons/:id` | lesson | Update (preserves post-test `open` state and gate). |
 | DELETE | `/api/teacher/lessons/:id` | — | Delete. |
