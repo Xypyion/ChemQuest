@@ -213,6 +213,7 @@ plain counter with no coins involved.
       "passed": true,                // pre-test passed
       "storyDone": true,             // the storyboard was read to the end
       "storyCompletedAt": "ISO",
+      "storyAt": { "index": 3, "at": "ISO" },  // where the storyboard reopens; removed when it is finished
       "completedAt": "ISO",
       "post": {                      // post-test progress (optional)
         "attempts": 1, "lastScore": 100, "bestScore": 100,

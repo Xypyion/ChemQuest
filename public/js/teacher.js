@@ -26,6 +26,11 @@ let draft = null;
    editLesson merges any medium/hard questions into it so none are lost. */
 const QSET = 'easy';
 let boardLessonId = null;                    // lesson whose assignment board is open
+/* The level page: one level's storyboard, tests, assignment board and
+   challenges in one place, with the marking for each test inside it. */
+let levelId = null;                          // level whose page is open
+let levelSub = null;                         // null | 'mark-pre' | 'mark-post' | 'challenge'
+let levelOverview = null;                    // { lessonId, data } class counts for that page
 let preview = null;                          // in-console "play as student" preview state
 
 const viewEl = document.getElementById('view');
@@ -38,7 +43,7 @@ const escChem = (s) => chem(s);
 
 init();
 async function init() {
-  try { await reload(); render(); }
+  try { await reload(); restoreHash(); render(); }
   catch (e) { viewEl.innerHTML = `<div class="t-card empty">${esc(e.message)}</div>`; }
 }
 async function reload() {
@@ -52,6 +57,8 @@ async function reload() {
     userId: s.userId,
     userName: s.userName,
     userAvatar: s.userAvatar || '',
+    mode: s.mode === 'pre' ? 'pre' : 'post',
+    lessonId: s.lessonId,
     title: s.lessonTitle || '',
     autoPoints: s.mcqPoints || 0,
     autoCorrect: s.mcqCorrect || 0,
@@ -74,15 +81,17 @@ async function reload() {
    is waiting. It used to be two functions that each rebuilt a button's
    innerHTML from a label alone, which wiped whatever icon was in the markup
    the moment a badge appeared. */
-/* ONE badge in the whole console, and it means one thing: work is waiting for
-   you. Challenges used to carry a second count of the same answers, so the two
-   numbers overlapped and neither was the total. */
+/* A badge means one thing: work is waiting for you in there. Marking lives
+   with what it marks - a test's answers on its level's page, a challenge's on
+   its Responses screen - so each section counts its own, and the two numbers
+   never overlap. (There used to be a separate "To mark" queue for both.) */
 const NAV_BADGE = {
-  tomark: () => POST_PENDING.length + CH_PENDING.length,
+  lessons: () => POST_PENDING.length,
+  challenges: () => CH_PENDING.length,
 };
 const NAV_KEY = {
   lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
-  battles: 't.navBattles', tomark: 't.navToMark', gradebook: 't.navGradebook',
+  battles: 't.navBattles', gradebook: 't.navGradebook',
   students: 't.navStudents', logs: 't.navLogs', preview: 't.playAsStudent',
 };
 function paintNav() {
@@ -101,24 +110,27 @@ function updateChallengeBadge() { paintNav(); }
 function updateGradingBadge() { paintNav(); }   // kept: called from other console files
 function setView(v) {
   view = v; draft = null; boardLessonId = null; preview = null;
-  if (window.TChallenges) TChallenges.reset();
-  if (window.TQuests) TQuests.reset();
-  if (window.TBattles) TBattles.reset();
-  if (typeof TLogs !== 'undefined') TLogs.reset();   // a top-level const is not on window
+  levelId = null; levelSub = null;
+  // These are top-level consts, which are not properties of window.
+  if (typeof TChallenges !== 'undefined') TChallenges.reset();
+  if (typeof TQuests !== 'undefined') TQuests.reset();
+  if (typeof TBattles !== 'undefined') TBattles.reset();
+  if (typeof TLogs !== 'undefined') TLogs.reset();
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === v));
   document.getElementById('side').classList.remove('open');
   render();
 }
 function render() {
+  syncHash();
   if (draft) return renderEditor();
   if (boardLessonId) return renderBoard();
   if (preview) return renderPreview();
+  if (view === 'lessons' && levelId) return renderLevel();
   if (view === 'preview') return renderPreviewPicker();
   if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
   if (view === 'battles') return TBattles.render(viewEl);
   if (view === 'logs') return TLogs.render(viewEl);
-  if (view === 'tomark') return renderToMark();
   if (view === 'gradebook') return renderGradebook();
   if (view === 'students') return renderStudents();
   return renderLessons();
@@ -263,13 +275,15 @@ function renderLessons() {
     const gate = gateMode(l);
     const gateIcon = gate === 'locked' ? 'lock' : gate === 'scheduled' ? 'calendar' : 'unlock';
 
+    const toMark = POST_PENDING.filter((s) => s.lessonId === l.id).length;
+
     return `
     <div class="lesson-row">
       <div class="lr-num">${i + 1}</div>
 
       <div class="lr-body">
         <div class="lr-title">
-          <span class="lr-name">${escChem(l.title)}</span>
+          <button class="lr-name lr-open" onclick="openLevel('${l.id}')">${escChem(l.title)}</button>
           <span class="lr-flow">${esc(l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory'))}</span>
         </div>
 
@@ -291,13 +305,17 @@ function renderLessons() {
                   title="${esc(pt.open ? t('t.closePostTest') : t('t.openPostTest'))}">
             ${ICON[pt.open ? 'unlock' : 'lock'](14)}<b>${esc(t('t.postTestShort'))}</b> ${esc(pt.open ? t('t.open') : t('t.closed'))}
           </button>
+          ${toMark ? `<button class="chip chip-mark" onclick="openLevel('${l.id}')">
+            ${ICON.pen(14)}<b>${esc(t('t.lvToMarkChip', { n: toMark }))}</b>
+          </button>` : ''}
         </div>
       </div>
 
       <div class="lr-acts" role="group" aria-label="${esc(t('t.rowActions', { title: l.title }))}">
-        <button class="tbtn sm" onclick="editLesson('${l.id}')">${ICON.pencil(15)} ${esc(t('t.edit'))}</button>
+        <button class="tbtn ghost sm" onclick="openBoard('${l.id}')">${ICON.people(15)} ${esc(t('t.lvBoardBtn'))}</button>
+        <button class="tbtn sm" onclick="openLevel('${l.id}')">${esc(t('t.lvOpen'))}</button>
         ${TMenu.html('lesson-' + l.id, [
-          { label: t('t.board'), action: `openBoard('${l.id}')`, icon: 'people' },
+          { label: t('t.edit'), action: `editLesson('${l.id}')`, icon: 'pencil' },
           { label: t('t.moveUp'), action: `moveLesson('${l.id}','up')`, icon: 'up', disabled: i === 0 },
           { label: t('t.moveDown'), action: `moveLesson('${l.id}','down')`, icon: 'down', disabled: i === LESSONS.length - 1 },
           { label: t('t.deleteLevel'), action: `confirmDeleteLesson('${l.id}')`, icon: 'trash', danger: true },
@@ -403,12 +421,15 @@ function openBoard(id) {
   boardCriteria = ((l && l.ratingCriteria) || []).map((c) => ({ id: c.id, label: c.label }));
   render();
 }
+/* Back from the board goes where the teacher came from: the level's page if
+   they opened it there, the list of levels if they opened it from a row. */
+function closeBoard() { boardLessonId = null; render(); }
 function renderBoard() {
   const l = LESSONS.find((x) => x.id === boardLessonId);
   viewEl.innerHTML = `
     <div class="t-head">
       <div><h1>${t('t.boardFor', { title: esc(l ? l.title : '') })}</h1><div class="sub">${t('t.boardSub')}</div></div>
-      <button class="tbtn ghost" onclick="setView('lessons')">${t('common.back')}</button>
+      <button class="tbtn ghost" onclick="closeBoard()">${t('common.back')}</button>
     </div>
     <div class="t-card" id="critCard"></div>
     <div id="tFeed"></div>`;
@@ -469,7 +490,7 @@ function newLesson() {
   };
   render();
 }
-async function editLesson(id) {
+async function editLesson(id, focus) {
   try {
     const { lesson } = await API.get('/api/teacher/lessons/' + id);
     const pt = lesson.postTest || {};
@@ -495,6 +516,9 @@ async function editLesson(id) {
     };
     if (!draft.storyboard.length) draft.storyboard = [blankLine()];
     render();
+    // Opened from a card on the level page: land on that part of the editor.
+    const target = focus && document.getElementById('ed-' + focus);
+    if (target) target.scrollIntoView({ block: 'start' });
   } catch (e) { toast(e.message, 'bad'); }
 }
 /** A test's one question list: easy + medium + hard, as src/game.js questionSet does. */
@@ -535,7 +559,7 @@ function renderQuizSection(zone) {
     </button>` : '';
 
   return `
-    <div class="t-card">
+    <div class="t-card" id="ed-${zone}">
       <h3 style="margin-top:0">${zone === 'post' ? t('t.postTest') : t('t.preTest')}</h3>
       ${zone === 'post' ? `<div class="sub" style="color:var(--t-soft);margin-bottom:6px">${t('t.postTestHint')}</div>${openToggle}` : ''}
       <label class="t-label">${t('t.timerLabel')}</label>
@@ -572,7 +596,7 @@ function renderEditor() {
       ${flowOption('test-first', t('t.flowTestFirst'), t('t.flowTestFirstDesc'), d.flow)}
     </div>
 
-    <div class="t-card">
+    <div class="t-card" id="ed-story">
       <div class="t-head" style="margin:0 0 4px"><h3 style="margin:0">${t('t.storyboard')}</h3>
         <div class="row" style="gap:8px">
           <button class="tbtn blue sm" onclick="addLine()">${t('t.addLine')}</button>
@@ -850,7 +874,7 @@ function removeChoice(zone, qid, idx) {
   if (q && q.choices.length > 2) { q.choices.splice(idx, 1); if (q.correctIndex >= q.choices.length) q.correctIndex = 0; }
   render();
 }
-function cancelEdit() { draft = null; render(); }
+function cancelEdit() { draft = null; render(); window.scrollTo({ top: 0 }); }
 
 async function togglePostTestFromEditor() {
   if (!draft || !draft.id) return;
@@ -891,7 +915,7 @@ async function saveLesson() {
     if (draft.id) await API.put('/api/teacher/lessons/' + draft.id, payload);
     else await API.post('/api/teacher/lessons', payload);
     toast(t('t.levelSaved'), 'good');
-    draft = null; await reload(); render();
+    draft = null; await reload(); render(); window.scrollTo({ top: 0 });
   } catch (e) { toast(e.message, 'bad'); }
 }
 
@@ -1219,81 +1243,275 @@ function restartPreview() {
   render();
 }
 
-/* ============================== TO MARK ==============================
+/* ============================= LEVEL PAGE =============================
 
-   Written work used to live in two places. Post-test answers were in "Writing
-   Grading"; challenge answers were three clicks deep inside Challenges ->
-   Responses. Both are the same job — read what a student wrote, give it a
-   number — but a teacher had to know which feature produced an answer before
-   they could find it, and two separate badges each claimed to be the count of
-   work outstanding.
+   Everything about one level, in one place: Lessons & Levels -> a level ->
+   its storyboard, pre-test, post-test, assignment board and challenges.
 
-   There is now ONE queue and ONE badge. `source` on each row is the only thing
-   that differs, and it decides which endpoint the marks are saved back to:
+   Marking used to be a separate "To mark" queue in the sidebar that mixed
+   every level's post-tests with every challenge. A teacher thinks "how did my
+   class do on Level 3's post-test?", not "what is in the queue?", so the
+   written answers now sit inside the test they belong to:
 
-     post      -> POST /api/teacher/submissions/:id/grade
-     challenge -> POST /api/teacher/challenges/responses/:id/grade
+     Level page -> Pre-test / Post-test card -> "Mark answers" -> the cards
+     Level page -> a challenge -> its Responses screen (same as Challenges)
 
-   The server does the shaping (`/api/teacher/challenges/pending` deliberately
-   answers in the same shape as `/api/teacher/submissions`) so this file renders
-   one card and does not care where the work came from.
+   Where the marks are saved is unchanged and decided by `source` on each card:
 
-   Marking a whole class set for one challenge at once — with Kru CJ's help —
-   still lives on that challenge's Responses screen. This queue is for clearing
-   what is outstanding; that screen is for working through one piece of work
-   across the class.                                                          */
+     post (pre- or post-test) -> POST /api/teacher/submissions/:id/grade
+     challenge                -> POST /api/teacher/challenges/responses/:id/grade
 
-let markFilter = 'all';                       // 'all' | 'post' | 'challenge'
+   The sidebar keeps the counts: Lessons & Levels shows the test answers
+   waiting, Challenges the challenge answers waiting.                       */
 
-/** Both sources, oldest first, as one list. */
-function toMarkList() {
-  const all = [...POST_PENDING, ...CH_PENDING];
-  all.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  return markFilter === 'all' ? all : all.filter((s) => s.source === markFilter);
+function openLevel(id) {
+  levelId = id;
+  levelSub = null;
+  boardLessonId = null;
+  draft = null;
+  render();
+  window.scrollTo({ top: 0 });
+  loadLevelOverview(id);
+}
+function closeLevel() { levelId = null; levelSub = null; render(); }
+function backToLevel() { levelSub = null; render(); window.scrollTo({ top: 0 }); }
+
+/** The class counts on the level page. Painted when they arrive; the page does not wait. */
+async function loadLevelOverview(id) {
+  try {
+    const r = await API.get(`/api/teacher/lessons/${encodeURIComponent(id)}/overview`);
+    levelOverview = { lessonId: id, data: r.overview };
+    if (levelId === id && !levelSub && !draft && !boardLessonId) renderLevel();
+  } catch { /* the page still works without the counts */ }
 }
 
-function setMarkFilter(f) { markFilter = f; renderToMark(); }
+/* The open level is kept in the address (#level=<id>) so switching language,
+   which reloads the page, or pressing refresh brings the teacher back to it. */
+function syncHash() {
+  const want = view === 'lessons' && levelId ? '#level=' + levelId : '';
+  if (location.hash !== want) {
+    history.replaceState(null, '', location.pathname + location.search + want);
+  }
+}
+function restoreHash() {
+  const m = /^#level=([\w-]+)$/.exec(location.hash);
+  if (m && LESSONS.some((l) => l.id === m[1])) {
+    levelId = m[1];
+    loadLevelOverview(levelId);
+  }
+}
 
-function renderToMark() {
-  document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'tomark'));
+/** Written answers waiting on one test of one level. */
+function pendingFor(lessonId, mode) {
+  return POST_PENDING.filter((s) => s.lessonId === lessonId && s.mode === mode);
+}
+function levelChallenges(lessonId) {
+  return CHALLENGES.filter((c) => c.lessonId === lessonId);
+}
 
-  const rows = toMarkList();
-  const nPost = POST_PENDING.length;
-  const nCh = CH_PENDING.length;
-  const total = nPost + nCh;
+function renderLevel() {
+  const l = LESSONS.find((x) => x.id === levelId);
+  if (!l) { levelId = null; levelSub = null; return renderLessons(); }
+  document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'lessons'));
+  if (levelSub === 'challenge') return TChallenges.render(viewEl);
+  if (levelSub === 'mark-pre') return renderLevelMarking(l, 'pre');
+  if (levelSub === 'mark-post') return renderLevelMarking(l, 'post');
 
-  const chip = (key, label, n) => `
-    <button class="mark-chip ${markFilter === key ? 'is-on' : ''}" type="button" onclick="setMarkFilter('${key}')">
-      ${esc(label)} <span>${n}</span>
-    </button>`;
+  const ov = levelOverview && levelOverview.lessonId === l.id ? levelOverview.data : null;
+  const story = l.storyboard || [];
+  const lines = story.filter((s) => s.type !== 'video' && s.type !== 'question').length;
+  const vids = story.filter((s) => s.type === 'video').length;
+  const storyQs = story.filter((s) => s.type === 'question').length;
+  const preQs = oneSet(l.quizzes);
+  const pt = l.postTest || {};
+  const postQs = oneSet(pt.quizzes);
+  const gate = gateMode(l);
+  const gateIcon = gate === 'locked' ? 'lock' : gate === 'scheduled' ? 'calendar' : 'unlock';
 
-  const body = !total
-    ? `<div class="t-card empty">${esc(t('t.markAllClear'))}</div>`
-    : (rows.length
-      ? rows.map(markCard).join('')
-      : `<div class="t-card empty">${esc(t('t.markNoneInFilter'))}</div>`);
+  const testCard = (mode) => {
+    const qs = mode === 'pre' ? preQs : postQs;
+    const written = qs.filter((q) => q.type === 'written').length;
+    const waiting = pendingFor(l.id, mode).length;
+    const taken = ov ? (mode === 'pre' ? ov.preTaken : ov.postTaken) : null;
+    const passed = ov ? (mode === 'pre' ? ov.prePassed : ov.postPassed) : null;
+    const markBtn = waiting
+      ? `<button class="tbtn sm" onclick="openLevelMarking('${mode}')">${ICON.pen(15)} ${esc(t('t.lvMarkN', { n: waiting }))}</button>`
+      : `<span class="lv-clear">${ICON.check(15)} ${esc(written ? t('t.lvNothingToMark') : t('t.lvAutoMarked'))}</span>`;
+    return `
+      <section class="lv-card ${waiting ? 'has-work' : ''}">
+        <div class="lv-card-head">
+          <span class="lv-card-ic">${ICON[mode === 'pre' ? 'question' : 'pen'](20)}</span>
+          <h3>${esc(mode === 'pre' ? t('t.lvPre') : t('t.lvPost'))}</h3>
+          ${mode === 'post' ? `<span class="lv-state ${pt.open ? 'on' : ''}">${esc(pt.open ? t('t.open') : t('t.closed'))}</span>` : ''}
+          ${waiting ? `<span class="t-badge">${waiting}</span>` : ''}
+        </div>
+        <div class="lr-meta">
+          ${metaBit('question', `${qs.length} ${t('t.questions')}`)}
+          ${written ? metaBit('pen', t('t.lvWrittenN', { n: written })) : ''}
+          ${metaBit('timer', fmtTimer(mode === 'pre' ? l.timeLimit : pt.timeLimit))}
+        </div>
+        ${ov ? `<div class="lv-stats">
+          <span><b>${taken}</b>/${ov.students} ${esc(t('t.lvTaken'))}</span>
+          <span><b>${passed}</b> ${esc(t('t.lvPassed'))}</span>
+        </div>` : ''}
+        <div class="lv-card-acts">
+          ${markBtn}
+          <button class="tbtn ghost sm" onclick="editLesson('${l.id}','${mode}')">${ICON.pencil(15)} ${esc(t('t.lvEditQs'))}</button>
+          ${mode === 'post' ? `<button class="tbtn ghost sm" onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})">
+            ${ICON[pt.open ? 'lock' : 'unlock'](15)} ${esc(pt.open ? t('t.closePostTest') : t('t.openPostTest'))}</button>` : ''}
+        </div>
+      </section>`;
+  };
+
+  // The two activities in the order the student meets them (the teacher's flow).
+  const storyCard = `
+      <section class="lv-card">
+        <div class="lv-card-head">
+          <span class="lv-card-ic">${ICON.book(20)}</span>
+          <h3>${esc(t('t.storyboard'))}</h3>
+        </div>
+        <div class="lr-meta">
+          ${metaBit('lines', `${lines} ${t('t.lines')}`)}
+          ${metaBit('video', `${vids} ${vids === 1 ? t('t.videos') : t('t.videosPlural')}`)}
+          ${storyQs ? metaBit('chat', `${storyQs} ${t('t.storyQCount')}`) : ''}
+        </div>
+        ${ov ? `<div class="lv-stats">
+          <span><b>${ov.storyDone}</b>/${ov.students} ${esc(t('t.lvRead'))}</span>
+          ${ov.storyReading ? `<span><b>${ov.storyReading}</b> ${esc(t('t.lvReading'))}</span>` : ''}
+        </div>` : ''}
+        <div class="lv-card-acts">
+          <button class="tbtn ghost sm" onclick="editLesson('${l.id}','story')">${ICON.pencil(15)} ${esc(t('t.lvEditStory'))}</button>
+          ${storyQs ? `<button class="tbtn ghost sm" onclick="openStoryAnswers()">${ICON.chat(15)} ${esc(t('t.lvStoryAnswers'))}</button>` : ''}
+        </div>
+      </section>`;
+
+  const chs = levelChallenges(l.id);
+  const chRows = chs.length ? chs.map((c) => `
+      <div class="lv-ch-row">
+        <div class="lv-ch-info">
+          <div class="lv-ch-title">${chem(c.title)}
+            <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
+          </div>
+          <div class="lr-meta">
+            ${metaBit('question', `${c.questionCount || 0} ${t('t.questions')}`)}
+            ${metaBit('people', t('t.lvHandedIn', { n: c.responses || 0 }))}
+          </div>
+        </div>
+        <button class="tbtn ${c.pending ? '' : 'ghost'} sm" onclick="openLevelChallenge('${c.id}')">
+          ${esc(c.pending ? t('t.lvMarkN', { n: c.pending }) : t('t.chResponses'))}
+        </button>
+      </div>`).join('')
+    : `<p class="lv-empty">${esc(t('t.lvNoChallenges'))}</p>`;
 
   viewEl.innerHTML = `
+    <nav class="lv-crumbs" aria-label="${esc(t('t.lvCrumbs'))}">
+      <button type="button" onclick="closeLevel()">${esc(t('t.navLessons'))}</button>
+      <span aria-hidden="true">/</span>
+      <span>${escChem(l.title)}</span>
+    </nav>
+    <div class="t-head">
+      <div class="lv-title">
+        <span class="lv-icon" aria-hidden="true">${esc(l.icon || '🧪')}</span>
+        <div>
+          <h1>${escChem(l.title)}</h1>
+          <div class="sub">${esc(l.flow === 'test-first' ? t('t.flowBadgeTest') : t('t.flowBadgeStory'))}${l.description ? ' · ' + escChem(l.description) : ''}</div>
+        </div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="tbtn ghost" onclick="closeLevel()">${t('common.back')}</button>
+        <button class="tbtn" onclick="editLesson('${l.id}')">${ICON.pencil(16)} ${esc(t('t.lvEditLevel'))}</button>
+      </div>
+    </div>
+
+    <div class="lr-state lv-gate">
+      <button class="chip chip-${gate}" onclick="openGate('${l.id}')">
+        ${ICON[gateIcon](14)}<b>${esc(t('t.access'))}</b> ${esc(gateLabel(l))}
+      </button>
+      ${ov ? `<span class="lv-class">${ICON.people(15)} ${esc(t('t.lvStudents', { n: ov.students }))}</span>` : ''}
+    </div>
+
+    <div class="lv-grid">
+      ${l.flow === 'test-first' ? testCard('pre') + storyCard : storyCard + testCard('pre')}
+      ${testCard('post')}
+      <section class="lv-card lv-board-card">
+        <div class="lv-card-head">
+          <span class="lv-card-ic">${ICON.people(20)}</span>
+          <h3>${esc(t('t.lvBoardTitle'))}</h3>
+        </div>
+        <p class="lv-desc">${esc(t('t.lvBoardDesc'))}</p>
+        ${ov ? `<div class="lv-stats">
+          <span><b>${ov.posts}</b> ${esc(t('t.lvPosts'))}</span>
+          <span><b>${ov.studentPosts}</b> ${esc(t('t.lvFromStudents'))}</span>
+        </div>` : ''}
+        <div class="lv-card-acts">
+          <button class="tbtn sm" onclick="openBoard('${l.id}')">${ICON.people(15)} ${esc(t('t.lvOpenBoard'))}</button>
+        </div>
+      </section>
+
+    </div>
+
+    <section class="t-card lv-chs">
+      <div class="t-head" style="margin:0 0 6px">
+        <h3 style="margin:0">${ICON.puzzle(18)} ${esc(t('t.lvChallenges'))}</h3>
+        <button class="tbtn ghost sm" onclick="setView('challenges')">${esc(t('t.lvManageChallenges'))}</button>
+      </div>
+      ${chRows}
+    </section>`;
+}
+
+function openLevelMarking(mode) {
+  levelSub = mode === 'pre' ? 'mark-pre' : 'mark-post';
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+/** One test's written answers, one card per student, oldest first. */
+function renderLevelMarking(l, mode) {
+  const rows = pendingFor(l.id, mode);
+  const testName = mode === 'pre' ? t('t.lvPre') : t('t.lvPost');
+  viewEl.innerHTML = `
+    <nav class="lv-crumbs" aria-label="${esc(t('t.lvCrumbs'))}">
+      <button type="button" onclick="closeLevel()">${esc(t('t.navLessons'))}</button>
+      <span aria-hidden="true">/</span>
+      <button type="button" onclick="backToLevel()">${escChem(l.title)}</button>
+      <span aria-hidden="true">/</span>
+      <span>${esc(testName)}</span>
+    </nav>
     <div class="t-head">
       <div>
-        <h1>${esc(t('t.markTitle'))}</h1>
-        <div class="sub">${esc(total ? t('t.markSub', { n: total }) : t('t.markSubEmpty'))}</div>
+        <h1>${esc(t('t.lvMarkTitle', { test: testName }))}</h1>
+        <div class="sub">${esc(rows.length ? t('t.markSub', { n: rows.length }) : t('t.markSubEmpty'))}</div>
       </div>
-      <button class="tbtn ghost" onclick="reloadToMark()">${ICON.timer(15)} ${esc(t('t.refresh'))}</button>
+      <div class="row" style="gap:8px">
+        <button class="tbtn ghost" onclick="backToLevel()">${t('common.back')}</button>
+        <button class="tbtn ghost" onclick="reloadLevelMarking()">${ICON.timer(15)} ${esc(t('t.refresh'))}</button>
+      </div>
     </div>
-    ${total ? `<div class="mark-filters">
-      ${chip('all', t('t.markAll'), total)}
-      ${chip('post', t('t.markPostTests'), nPost)}
-      ${chip('challenge', t('t.markChallenges'), nCh)}
-    </div>` : ''}
-    ${body}`;
-
+    ${rows.length ? rows.map(markCard).join('') : `<div class="t-card empty">${esc(t('t.lvAllMarked'))}</div>`}`;
   rows.forEach((s) => updateGradeTotal(s.id));
 }
 
-async function reloadToMark() {
+async function reloadLevelMarking() {
   try { await reload(); render(); }
   catch (e) { toast(e.message, 'bad'); }
+}
+
+/** A challenge's Responses screen, opened from the level page; Back returns here. */
+function openLevelChallenge(id) {
+  levelSub = 'challenge';
+  TChallenges.openFrom(viewEl, id, () => {
+    levelSub = null;
+    reload().catch(() => {}).then(() => { render(); loadLevelOverview(levelId); });
+  });
+  window.scrollTo({ top: 0 });
+}
+
+/** The storyboard questions' answers live in Student Logs, by question. */
+function openStoryAnswers() {
+  view = 'logs'; draft = null; boardLessonId = null; preview = null; levelId = null; levelSub = null;
+  syncHash();
+  TLogs.reset();
+  TLogs.openTab(viewEl, 'story');
 }
 
 /** One student's outstanding written work. Identical for both sources. */
@@ -1318,9 +1536,9 @@ function markCard(s) {
       </div>
     </div>`).join('');
 
-  const where = s.source === 'post'
-    ? t('t.markFromPost')
-    : t('t.markFromChallenge');
+  const where = s.source === 'challenge'
+    ? t('t.markFromChallenge')
+    : s.mode === 'pre' ? t('t.markFromPre') : t('t.markFromPost');
 
   return `
     <div class="t-card grade-card" data-sid="${esc(s.id)}" data-source="${esc(s.source)}"

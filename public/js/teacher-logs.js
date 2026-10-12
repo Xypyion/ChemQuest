@@ -58,6 +58,8 @@ const TLogs = (() => {
   function loading() { host.innerHTML = `<div class="t-card empty">${esc(t('common.loading'))}</div>`; }
 
   function setTab(m) { mode = m; record = null; render(); }
+  /** Open a tab from elsewhere in the console (a level's page links to the story answers). */
+  function openTab(el, m) { host = el; mode = m; record = null; return render(); }
 
   async function refresh() {
     students = null; storyData = null; boardsData = null;
@@ -635,5 +637,5 @@ const TLogs = (() => {
 
   const api = { setTab, setQuery, refresh, openStudent, backToList, analyze, summarize, zoomBoard };
   window.TL = api;
-  return { render, reset, ...api };
+  return { render, reset, openTab, ...api };
 })();

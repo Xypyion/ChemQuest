@@ -116,3 +116,16 @@
   font-weight: 600; color: var(--ink);
 }
 .story-board-answer .btn .ic { vertical-align: -3px; }
+
+/* ---- reopening the storyboard where the student stopped ---- */
+.story-resume {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px;
+  margin: 0 auto 12px; padding: 9px 16px; border-radius: 999px;
+  background: #eafbe4; border: 2px solid #c6ecb6; color: var(--ink);
+  font-size: .9rem; font-weight: 600;
+}
+.story-resume .linkbtn {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  font: inherit; font-weight: 700; color: var(--secondary-dark); text-decoration: underline;
+}
+.story-resume .linkbtn:focus-visible { outline: 3px solid var(--secondary); outline-offset: 2px; border-radius: 4px; }

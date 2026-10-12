@@ -290,12 +290,48 @@ router.post('/:id/story-complete', (req, res) => {
   if (game.activityState(lesson, entry).storyLocked) {
     return res.status(403).json({ error: 'STORY_LOCKED' });
   }
-  if (!entry.storyDone) {
-    entry.storyDone = true;
-    entry.storyCompletedAt = new Date().toISOString();
+  if (!entry.storyDone || entry.storyAt) {
+    if (!entry.storyDone) {
+      entry.storyDone = true;
+      entry.storyCompletedAt = new Date().toISOString();
+    }
+    // Finished, so the next read starts at the beginning again.
+    delete entry.storyAt;
     db.save();
   }
   res.json({ ok: true, activities: game.activityState(lesson, entry) });
+});
+
+/**
+ * POST /api/lessons/:id/story-position — body { index }
+ * The step of the storyboard the student is on, so leaving half-way and coming
+ * back (on any device) reopens it there. Kept on the server rather than in the
+ * browser because school computers are shared and wiped.
+ */
+router.post('/:id/story-position', (req, res) => {
+  const lessons = orderedLessons();
+  const idx = lessons.findIndex((l) => l.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'That level does not exist.' });
+  const gate = unlockInfo(lessons, idx, req.user);
+  if (gate.locked) return res.status(403).json({ error: lockMessage(gate) });
+
+  const lesson = lessons[idx];
+  const steps = lesson.storyboard || [];
+  const index = Number((req.body || {}).index);
+  if (!Number.isInteger(index) || index < 0 || index >= steps.length) {
+    return res.status(400).json({ error: 'Unknown step.' });
+  }
+  const progress = (req.user.progress = req.user.progress || {});
+  const entry = (progress[lesson.id] = progress[lesson.id] || { attempts: 0, bestScore: 0 });
+  if (game.activityState(lesson, entry).storyLocked) {
+    return res.status(403).json({ error: 'STORY_LOCKED' });
+  }
+  // One write per step change, not per request: re-sending the same step is free.
+  if (!entry.storyAt || entry.storyAt.index !== index) {
+    entry.storyAt = { index, at: new Date().toISOString() };
+    db.save();
+  }
+  res.json({ ok: true, index });
 });
 
 /* ------------------------------ POST-TEST ------------------------------ */
