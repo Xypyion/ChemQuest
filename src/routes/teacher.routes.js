@@ -4,6 +4,10 @@ const db = require('../db');
 const game = require('../game');
 const { finalizeAttempt } = require('../grading');
 const challengeLib = require('../challenges');
+const config = require('../config');
+const aiLimit = require('../aiLimit');
+const ai = require('../aiQuestions');          // failureOf/describeFailure: one failure vocabulary
+const marking = require('../aiMarking');
 const { authMiddleware, requireRole, publicUser, hashPassword, signViewAsToken } = require('../auth');
 
 const router = express.Router();
@@ -528,6 +532,7 @@ function submissionView(s) {
       guide: w.guide || '',
       answer: w.answer || '',
       points: w.points || 1,          // max points the teacher may award for this answer
+      ai: w.ai || null,               // Kru CJ's suggestion, if the teacher asked for one
     })),
     createdAt: s.createdAt,
   };
@@ -540,6 +545,81 @@ router.get('/submissions', (req, res) => {
     .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)) // oldest first
     .map(submissionView);
   res.json({ submissions: pending });
+});
+
+/**
+ * POST /api/teacher/submissions/:id/ai-mark — Kru CJ suggests marks for a
+ * pre/post-test's written answers. Body: { questionId?, expected?, note?, lang }.
+ *
+ * Same rules as challenge AI marking: it only SUGGESTS (w.ai) and never writes
+ * `awarded` or grades the attempt — the teacher's Save does that. The
+ * teacher's expected answer is the standard; it comes from the dialog
+ * (`expected`) or, if not typed there, the question's answer guide. With
+ * neither, nothing is marked. `questionId` limits it to one question, which
+ * is how the by-question marking screen asks: one question, every student.
+ */
+router.post('/submissions/:id/ai-mark', async (req, res) => {
+  if (!config.aiEnabled()) return res.status(503).json({ error: 'AI_DISABLED' });
+  const sub = db.findById('submissions', req.params.id);
+  if (!sub) return res.status(404).json({ error: 'Submission not found.' });
+  if (sub.status === 'graded') return res.status(400).json({ error: 'This submission was already graded.' });
+  const body = req.body || {};
+  const only = body.questionId ? String(body.questionId) : null;
+  const items = (sub.written || [])
+    .filter((w) => w.awarded == null && (!only || w.questionId === only))
+    .map((w) => ({
+      questionId: w.questionId,
+      question: w.question,
+      rubric: String(typeof body.expected === 'string' ? body.expected : (w.guide || '')).slice(0, 2000),
+      aiNote: String(typeof body.note === 'string' ? body.note : '').slice(0, 800),
+      expected: '',
+      points: w.points || 1,
+      answer: w.answer || '',
+    }))
+    .filter((it) => it.rubric.trim());
+  if (!items.length) return res.status(400).json({ error: 'NO_RUBRIC_QUESTIONS' });
+  const lang = body.lang === 'th' ? 'th' : 'en';
+
+  // Spend the allowance BEFORE the await — see the note in aiLimit.take().
+  try {
+    aiLimit.take(req.user, 'mark');
+  } catch (err) {
+    if (err.code === 'AI_DAILY_LIMIT') {
+      return res.status(429).json({ error: 'AI_DAILY_LIMIT', ...aiLimit.statusOf(req.user, 'mark') });
+    }
+    throw err;
+  }
+  db.save();
+  await db.flush();
+
+  try {
+    const lesson = db.findById('lessons', sub.lessonId);
+    const out = await marking.markSubmission({
+      challengeTitle: `${lesson ? lesson.title : sub.lessonTitle || ''} — ${sub.mode === 'pre' ? 'Pre-test' : 'Post-test'}`,
+      items,
+      lang,
+    });
+    // Re-find after the await: on Postgres the store may have been re-read.
+    const live = db.findById('submissions', sub.id) || sub;
+    const at = new Date().toISOString();
+    let marked = 0;
+    out.marks.forEach((mk) => {
+      const w = (live.written || []).find((x) => x.questionId === mk.questionId);
+      if (!w || w.awarded != null) return;
+      // A SUGGESTION. `w.awarded` is deliberately not touched.
+      w.ai = { score: mk.score, outOf: mk.outOf, feedback: mk.feedback, criteria: mk.criteria, rubricSilent: mk.rubricSilent, at };
+      marked++;
+    });
+    db.save();
+    res.json({ marked, marks: out.marks, ...aiLimit.statusOf(req.user, 'mark') });
+  } catch (err) {
+    const liveUser = db.findById('users', req.user.id) || req.user;
+    aiLimit.refund(liveUser, 'mark');   // the teacher got nothing
+    db.save();
+    console.error('[ai/test-mark]', ai.describeFailure(err));
+    const { status, code } = ai.failureOf(err);
+    res.status(status).json({ error: code, ...aiLimit.statusOf(req.user, 'mark') });
+  }
 });
 
 /**

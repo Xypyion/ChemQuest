@@ -40,14 +40,7 @@ const TYPES = qs.QUEST_TYPES; // mcq | multi | short | table
  * told not to write them again. Only the question text is sent — an answer key
  * has no business leaving the server for a job that does not need it.
  */
-function existingQuestions(target, difficulty, lessonId) {
-  if (target === 'challenge') {
-    // A challenge belongs to one level: avoid what that level already asks.
-    const out = [];
-    db.filter('challenges', (c) => c.lessonId === lessonId)
-      .forEach((c) => (c.questions || []).forEach((x) => out.push(x.question)));
-    return out;
-  }
+function existingQuestions(target, difficulty) {
   if (target === 'battle') {
     return db
       .filter('battleQuestions', (q) => q.difficulty === difficulty)
@@ -84,7 +77,7 @@ router.get('/status', (req, res) => {
 /**
  * POST /api/teacher/ai/questions — write some stoichiometry questions.
  *
- * Body: { target:'battle'|'quest'|'challenge', difficulty, count, types[], notes?, lang?, lessonId? }
+ * Body: { target:'battle'|'quest', difficulty, count, types[], notes?, lang? }
  * Returns { questions[], dropped, ... quota } — drafts, saved by nobody.
  */
 router.post('/questions', async (req, res) => {
@@ -93,18 +86,12 @@ router.post('/questions', async (req, res) => {
   }
 
   const body = req.body || {};
-  const target = ['quest', 'challenge'].includes(body.target) ? body.target : 'battle';
-  // A challenge is written for one level: tell the model which, so the
-  // questions fit what that level teaches. The teacher's own notes come first.
-  const lesson = target === 'challenge' ? db.findById('lessons', String(body.lessonId || '')) : null;
-  const levelNote = lesson
-    ? `These questions are for the level "${lesson.title}"${lesson.description ? ` (${lesson.description})` : ''}. Fit them to it.`
-    : '';
+  const target = body.target === 'quest' ? 'quest' : 'battle';
   const difficulty = bt.DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'easy';
   const count = Math.max(1, Math.min(ai.MAX_BATCH, parseInt(body.count, 10) || 3));
   const types = (Array.isArray(body.types) ? body.types : []).filter((ty) => TYPES.includes(ty));
   const lang = body.lang === 'th' ? 'th' : 'en';
-  const notes = [String(body.notes || '').trim(), levelNote].filter(Boolean).join(' ').slice(0, ai.MAX_NOTES);
+  const notes = String(body.notes || '').slice(0, ai.MAX_NOTES);
 
   // Spend the allowance BEFORE the await — see the note in aiLimit.take().
   try {
@@ -124,7 +111,7 @@ router.post('/questions', async (req, res) => {
       types: types.length ? types : ['mcq'],
       lang,
       notes,
-      avoid: existingQuestions(target, difficulty, lesson && lesson.id),
+      avoid: existingQuestions(target, difficulty),
     });
 
     const questions = raw.map(usable).filter(Boolean);

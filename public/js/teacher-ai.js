@@ -1,11 +1,9 @@
 /**
  * Teacher console — ✨ "Write me some questions", the AI panel.
  *
- * A dialog shared by three editors that already look the same:
- *   TQuests     (Daily Quests)  — questions for one quest
- *   TBattles    (Coin Battles)  — questions for one difficulty's bank
- *   TChallenges (a level's challenges) — questions for one challenge, written
- *                to fit that level (the server is told which one)
+ * A dialog shared by two editors that already look the same:
+ *   TQuests  (⚔️ Daily Quests)   — questions for one quest
+ *   TBattles (🤺 Coin Battles)   — questions for one difficulty's bank
  *
  * Both call `TAI.open({...})` and get a list of drafts back through `onInsert`.
  * Nothing here saves anything: the questions land in the editor the teacher is
@@ -39,16 +37,14 @@ const TAI = (() => {
 
   /**
    * @param {object} opts
-   * @param {string} opts.target      'battle' | 'quest' | 'challenge' — what it is being written for
-   * @param {string} [opts.lessonId]  for a challenge: the level it belongs to
+   * @param {string} opts.target      'battle' | 'quest' — what it is being written for
    * @param {string} [opts.difficulty] 'easy' | 'medium' | 'hard'
    * @param {string[]} [opts.types]   which types this editor accepts
    * @param {function} opts.onInsert  (questions[]) => void
    */
   async function open(opts) {
     ctx = {
-      target: ['quest', 'challenge'].includes(opts.target) ? opts.target : 'battle',
-      lessonId: opts.lessonId || null,
+      target: opts.target === 'quest' ? 'quest' : 'battle',
       difficulty: opts.difficulty || 'easy',
       types: (opts.types && opts.types.length ? opts.types : ['mcq']).slice(),
       onInsert: opts.onInsert,
@@ -104,7 +100,7 @@ const TAI = (() => {
         ${esc(TYPE_LABEL[ty]())}
       </label>`).join('');
 
-    const diffPicker = ctx.target !== 'battle' ? `
+    const diffPicker = ctx.target === 'quest' ? `
       <div>
         <label class="t-label">${t('t.aiDifficulty')}</label>
         <select class="t-input" id="ai-diff">
@@ -253,7 +249,6 @@ const TAI = (() => {
         types: ctx.picked,
         notes: ctx.notes,
         lang: getLang(),
-        lessonId: ctx.lessonId,
       });
       // Everything arrives ticked: the common case is "these are fine, add them".
       results = (r.questions || []).map((q) => ({ ...q, _take: true, _difficulty: ctx.difficulty }));
@@ -302,3 +297,108 @@ const TAI = (() => {
 document.addEventListener('change', (e) => {
   if (e.target && e.target.classList && e.target.classList.contains('ai-take')) TAI.toggle();
 });
+
+/**
+ * Teacher console — "Analyze with Kru CJ", the dialog every analysis goes through.
+ *
+ * Wherever a student wrote or drew something (a test's written answer, a
+ * challenge answer, a storyboard answer, a whiteboard), the teacher can ask
+ * Kru CJ to read it — and say HOW to read it, right there: the question, what
+ * a good answer contains (criteria), and their own instruction ("accept Thai
+ * or English", "be strict about units"). These start as what was saved with
+ * the question and apply to this run only; the saved question is unchanged.
+ *
+ * Kru CJ suggests; the teacher confirms. Nothing here saves a mark.
+ *
+ *   TAnalyze.open({
+ *     intro,             // what will be read, e.g. "3 answers to this question"
+ *     items: [{ id, question, expected, note }],  // one block per question
+ *     needExpected,      // marking needs criteria; a reading of working does not
+ *     run: async (overrides, progress) => {},     // overrides { [id]: { expected, note } }
+ *   })
+ */
+const TAnalyze = (() => {
+  const esc = (s) => escapeHtml(s);
+  let ctx = null;
+  let busy = false;
+
+  /** The server speaks in codes so both languages can say it properly. */
+  function errorText(code) {
+    const known = {
+      AI_DISABLED: 't.aiDisabled', AI_DAILY_LIMIT: 't.aiDailyLimit', AI_BUSY: 't.aiBusy',
+      AI_BAD_KEY: 't.aiBadKey', AI_FAILED: 't.aiFailed', NO_RUBRIC_QUESTIONS: 't.anNeedExpected',
+      ANSWER_CHANGED: 't.anChanged', BOARD_CHANGED: 't.anChanged', BAD_IMAGE: 't.anBadImage',
+      NOT_FOUND: 't.anNotFound',
+    };
+    return known[code] ? t(known[code]) : code;
+  }
+
+  function open(opts) {
+    ctx = { ...opts, items: (opts.items || []).map((it) => ({ ...it })) };
+    busy = false;
+    paint();
+  }
+
+  function paint(statusText) {
+    const blocks = ctx.items.map((it, i) => `
+      <div class="an-q" data-i="${i}">
+        ${ctx.items.length > 1 ? `<div class="an-n">${esc(t('t.chQn', { n: i + 1 }))}</div>` : ''}
+        <label class="t-label">${esc(t('t.anQuestion'))}</label>
+        <div class="an-qtext">${it.question ? chem(it.question) : `<span class="lg-muted">${esc(t('t.anNoText'))}</span>`}</div>
+        <label class="t-label">${esc(t(ctx.needExpected ? 't.anExpected' : 't.anExpectedOpt'))}</label>
+        <textarea class="t-area an-exp" rows="3" placeholder="${esc(t('t.anExpectedPh'))}">${esc(it.expected || '')}</textarea>
+        <label class="t-label">${esc(t('t.anNote'))}</label>
+        <textarea class="t-area an-note" rows="2" placeholder="${esc(t('t.anNotePh'))}">${esc(it.note || '')}</textarea>
+      </div>`).join('');
+    openModal(`
+      <h3>${ICON.chat(18)} ${esc(t('t.anTitle'))}</h3>
+      ${ctx.intro ? `<p class="sub" style="margin-top:-4px">${esc(ctx.intro)}</p>` : ''}
+      ${blocks}
+      <p class="an-hint">${esc(t('t.anHint'))}</p>
+      <div class="an-status" id="anStatus" role="status">${esc(statusText || '')}</div>
+      <div class="editor-actions" style="border:none;padding-top:10px">
+        <button class="tbtn ghost" onclick="TAnalyze.close()" ${busy ? 'disabled' : ''}>${esc(t('common.cancel'))}</button>
+        <button class="tbtn blue" id="anGo" onclick="TAnalyze.go()" ${busy ? 'disabled' : ''}>
+          ${ICON.chat(14)} ${esc(busy ? t('lg.analyzing') : t('t.anGo'))}</button>
+      </div>`, 'wide');
+  }
+
+  function read() {
+    document.querySelectorAll('.an-q').forEach((el) => {
+      const it = ctx.items[+el.dataset.i];
+      it.expected = el.querySelector('.an-exp').value;
+      it.note = el.querySelector('.an-note').value;
+    });
+  }
+
+  function setStatus(msg) {
+    const el = document.getElementById('anStatus');
+    if (el) el.textContent = msg || '';
+  }
+
+  async function go() {
+    if (busy) return;
+    read();
+    const use = ctx.needExpected ? ctx.items.filter((it) => it.expected.trim()) : ctx.items;
+    if (!use.length) { toast(t('t.anNeedExpected'), 'bad'); return; }
+    const overrides = {};
+    use.forEach((it) => { overrides[it.id] = { expected: it.expected, note: it.note }; });
+    busy = true;
+    paint(t('lg.analyzing'));
+    try {
+      await ctx.run(overrides, setStatus);
+      busy = false;
+      closeModal();
+    } catch (e) {
+      busy = false;
+      paint();
+      toast(errorText(e.message), 'bad');
+    }
+  }
+
+  function close() { if (!busy) closeModal(); }
+
+  const api = { open, go, close, errorText };
+  window.TAnalyze = api;
+  return api;
+})();

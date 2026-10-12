@@ -165,11 +165,12 @@ const BOARD_SCHEMA = {
  * @param {string} o.question       the question text
  * @param {string} [o.expected]     answer key / expected answer, if any
  * @param {string} [o.studentAnswer] what they finally answered, if known
+ * @param {string} [o.aiNote]       the teacher's own instruction for this reading
  * @param {string} o.image          base64 image data (no data: prefix)
  * @param {string} o.mimeType
  * @param {string} [o.lang]
  */
-async function analyzeWhiteboard({ where, question, expected, studentAnswer, image, mimeType, lang }) {
+async function analyzeWhiteboard({ where, question, expected, studentAnswer, aiNote, image, mimeType, lang }) {
   const language = LANGS[lang] || LANGS.en;
   const system = [BOARD_READER, STANDARD, `Write every text field in ${language}.`].join('\n\n');
   const prompt = [
@@ -179,6 +180,7 @@ async function analyzeWhiteboard({ where, question, expected, studentAnswer, ima
       ? `THE CORRECT / EXPECTED ANSWER\n${cut(expected, 2000)}`
       : 'There is no answer key for this question.',
     String(studentAnswer || '').trim() ? `WHAT THE STUDENT ANSWERED IN THE ANSWER BOX\n${cut(studentAnswer, 1500)}` : '',
+    String(aiNote || '').trim() ? `THE TEACHER'S OWN INSTRUCTION FOR THIS READING\n${cut(aiNote, 800)}` : '',
     'THE STUDENT\'S WHITEBOARD is the attached image.',
   ].filter(Boolean).join('\n\n');
 

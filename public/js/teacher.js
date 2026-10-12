@@ -1605,8 +1605,7 @@ function renderLevel() {
       <div class="t-head" style="margin:0 0 6px">
         <h3 style="margin:0">${ICON.puzzle(18)} ${esc(t('t.lvChallenges'))}</h3>
         <div class="row" style="gap:8px">
-          <button class="tbtn ghost sm" onclick="levelNewChallenge(true)">${esc(t('t.aiButton'))}</button>
-          <button class="tbtn sm" onclick="levelNewChallenge(false)">${ICON.plus(14)} ${esc(t('t.chNewShort'))}</button>
+          <button class="tbtn sm" onclick="levelNewChallenge()">${ICON.plus(14)} ${esc(t('t.chNewShort'))}</button>
         </div>
       </div>
       ${chRows}
@@ -1638,9 +1637,9 @@ async function toggleChDetail(id) {
   catch { chDetailOpen[id] = 'error'; }
   if (chDetailOpen[id] && levelId && !levelSub) renderLevel();
 }
-function levelNewChallenge(withAi) {
+function levelNewChallenge() {
   levelSub = 'challenge';
-  TC.newChallenge(levelId, withAi);
+  TC.newChallenge(levelId);
   window.scrollTo({ top: 0 });
 }
 function levelEditChallenge(id) {
@@ -1693,6 +1692,11 @@ function renderLevelMarking(l, mode) {
         <span class="grade-qpts">${esc(t('t.outOf', { n: q.points }))}</span>
       </div>
       ${q.guide ? `<div class="grade-guide">${ICON.question(13)} ${esc(q.guide)}</div>` : ''}
+      <div class="mq-ai">
+        <button class="tbtn ghost sm" onclick="analyzeTestQuestion('${l.id}','${mode}','${esc(q.qid)}')">
+          ${ICON.chat(14)} ${esc(t('t.anButton'))}</button>
+        <span class="lg-muted">${esc(t('t.anTestHint', { n: q.answers.length }))}</span>
+      </div>
       <div class="mq-answers">
         ${q.answers.map(({ s, w }) => {
           const start = w.ai ? w.ai.score : (w.answer ? '' : 0);
@@ -1701,7 +1705,9 @@ function renderLevelMarking(l, mode) {
             <div class="mq-who"><span class="av">${avatarHtml(s.userAvatar, 28)}</span><b>${esc(s.userName)}</b></div>
             <div class="mq-text">${w.answer ? escChem(w.answer) : `<span class="grade-blank">${esc(t('t.gradeNoAnswer'))}</span>`}
               ${w.ai ? `<div class="grade-ai">${ICON.chat(13)} ${esc(t('t.aiSuggests', { s: w.ai.score, m: w.ai.outOf }))}
-                ${w.ai.feedback ? `<span>${esc(w.ai.feedback)}</span>` : ''}</div>` : ''}</div>
+                ${w.ai.feedback ? `<span>${esc(w.ai.feedback)}</span>` : ''}</div>
+                ${(w.ai.criteria || []).length ? `<ul class="ai-crit">${w.ai.criteria.map((c) => `
+                  <li class="${c.met ? 'met' : 'unmet'}">${c.met ? ICON.check(13) : ICON.close(13)}<span>${esc(c.name)}</span></li>`).join('')}</ul>` : ''}` : ''}</div>
             <label class="mq-score">
               <span class="sr-only">${esc(t('t.mqScoreFor', { name: s.userName }))}</span>
               <input type="number" class="mq-input" min="0" max="${w.points}" step="1" placeholder="–"
@@ -1797,6 +1803,51 @@ async function saveLevelMarks() {
   });
   markingCount();
   loadLevelOverview(levelId);
+}
+
+/* "Analyze with Kru CJ" on one question: the teacher sees the question and
+   its answer guide, can change the criteria and add an instruction, then Kru
+   CJ reads every student's answer to it — one request per student, so a long
+   class set never hits the host's time limit and the teacher sees progress.
+   Suggestions pre-fill only EMPTY score boxes; anything typed stays. */
+function analyzeTestQuestion(lessonId, mode, qid) {
+  const rows = pendingFor(lessonId, mode).filter((s) => s.written.some((w) => w.questionId === qid));
+  const w0 = rows.length ? rows[0].written.find((w) => w.questionId === qid) : null;
+  if (!w0) return;
+  TAnalyze.open({
+    intro: t('t.anTestIntro', { n: rows.length }),
+    items: [{ id: qid, question: w0.question, expected: w0.guide || '', note: '' }],
+    needExpected: true,
+    run: async (overrides, progress) => {
+      const o = overrides[qid];
+      const typed = typedMarks();
+      let done = 0;
+      for (const s of rows) {
+        progress(t('t.aiMarking', { n: done + 1, total: rows.length, name: s.userName }));
+        await API.post(`/api/teacher/submissions/${s.id}/ai-mark`, { questionId: qid, expected: o.expected, note: o.note, lang: getLang() });
+        done += 1;
+      }
+      try { await reload(); } catch { /* repaint what we have */ }
+      render();
+      restoreTypedMarks(typed);
+      toast(t('t.anDone', { n: done }), 'good');
+    },
+  });
+}
+/** Score boxes the teacher has typed in (keyed submission|question), to survive a repaint. */
+function typedMarks() {
+  const out = {};
+  document.querySelectorAll('.mq-input').forEach((i) => {
+    if (i.value.trim() !== '' && i.value !== i.dataset.init) out[i.dataset.sid + '|' + i.dataset.qid] = i.value;
+  });
+  return out;
+}
+function restoreTypedMarks(map) {
+  document.querySelectorAll('.mq-input').forEach((i) => {
+    const k = map[i.dataset.sid + '|' + i.dataset.qid];
+    if (k != null) i.value = k;
+  });
+  markingCount();
 }
 
 async function reloadLevelMarking() {

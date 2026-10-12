@@ -305,7 +305,7 @@ const TChallenges = (() => {
   }
 
   /** A new challenge for one level (the level page passes its own id). */
-  async function newChallenge(lessonId, withAi) {
+  async function newChallenge(lessonId) {
     await ensureLoaded();
     const lessons = typeof LESSONS !== 'undefined' ? LESSONS : [];
     draft = {
@@ -316,7 +316,6 @@ const TChallenges = (() => {
     mode = 'editor';
     snapPending = true;
     await render();
-    if (withAi) aiGenerate();
   }
 
   async function edit(id) {
@@ -385,10 +384,7 @@ const TChallenges = (() => {
 
       <div class="t-card">
         <div class="t-head" style="margin:0 0 4px"><h3 style="margin:0">${t('t.chQuestions')}</h3>
-          <div class="row" style="gap:8px">
-            <button class="tbtn ghost sm" onclick="TC.aiGenerate()">${t('t.aiButton')}</button>
-            <button class="tbtn blue sm" onclick="TC.addQuestion()">${t('t.chAddQuestion')}</button>
-          </div></div>
+          <button class="tbtn blue sm" onclick="TC.addQuestion()">${t('t.chAddQuestion')}</button></div>
         <div id="qList">${draft.questions.map((q, i) => questionCard(q, i, null)).join('')
           || `<p class="sub" style="color:var(--t-soft)">${t('t.chNoQuestions')}</p>`}</div>
         <button class="tbtn blue sm" style="margin-top:12px" onclick="TC.addQuestion()">${t('t.chAddQuestion')}</button>
@@ -761,30 +757,7 @@ const TChallenges = (() => {
     leave();
   }
 
-  /* Kru CJ writes questions for this challenge, fitted to its level. Like the
-     quest and battle editors: they land in the draft, unsaved, and the
-     teacher's own Save is the only way they reach a student. Only auto-marked
-     types — the writer does not do written or simulation questions. */
-  function aiGenerate() {
-    syncDraft();
-    TAI.open({
-      target: 'challenge',
-      lessonId: draft.lessonId,
-      difficulty: 'medium',
-      types: ['mcq', 'multi', 'short', 'table'],
-      onInsert: (questions) => {
-        syncDraft();
-        // The editor opens with one empty question; don't leave it in front.
-        draft.questions = draft.questions.filter((q) => !isBlankDraftQuestion(q));
-        questions.forEach((q) => draft.questions.push(mapInQuestion(q)));
-        render();
-      },
-    });
-  }
-  function isBlankDraftQuestion(q) {
-    return q.type === 'mcq' && !String(q.question || '').trim()
-      && !(q.choices || []).some((c) => String(c || '').trim()) && !q.image;
-  }
+
 
   /** Strip the editor's private `_id` and send the challenge to the server. */
   function outQuestion(q) {
@@ -857,13 +830,30 @@ const TChallenges = (() => {
 
   let aiBusy = false;
 
-  /** Papers with at least one rubric-marked answer nobody has confirmed yet. */
-  function papersNeedingAi() {
+  /* Any answer the machine could not mark can go to Kru CJ — not only the
+     questions set up for AI in the editor. The teacher says what a good answer
+     contains (and how to judge it) in the "Analyze with Kru CJ" dialog; the
+     saved expected answer and note just pre-fill it. */
+  function allQuestions() {
+    const out = [];
+    (responses.challenge.questions || []).forEach((q) => {
+      if (q.type === 'simulation') (q.sub || []).forEach((x) => out.push(x)); else out.push(q);
+    });
+    return out;
+  }
+  /** Questions with at least one answer still waiting for a mark. */
+  function questionsToMark() {
     if (!responses) return [];
-    const rubricQs = new Set(responses.challenge.questions.filter((q) => q.aiMark).map((q) => q.id));
-    if (!rubricQs.size) return [];
+    const open = new Set();
+    responses.responses.forEach((r) => {
+      if (r.status === 'graded') return;
+      r.answers.forEach((a) => { if (a.needsMark && a.awarded == null) open.add(a.questionId); });
+    });
+    return allQuestions().filter((q) => open.has(q.id));
+  }
+  function papersFor(ids) {
     return responses.responses.filter((r) => r.status !== 'graded'
-      && r.answers.some((a) => rubricQs.has(a.questionId) && a.needsMark && a.awarded == null && !a.ai));
+      && r.answers.some((a) => ids.has(a.questionId) && a.needsMark && a.awarded == null));
   }
 
   function setAiStatus(msg) {
@@ -871,37 +861,31 @@ const TChallenges = (() => {
     if (el) el.textContent = msg || '';
   }
 
-  async function aiMarkAll() {
+  function aiMarkAll() {
     if (aiBusy) return;
-    const todo = papersNeedingAi();
-    if (!todo.length) { toast(t('t.aiNothingToMark'), 'bad'); return; }
-
-    aiBusy = true;
-    const btn = document.getElementById('aiMarkBtn');
-    if (btn) btn.disabled = true;
-    let done = 0, failed = 0;
-
-    for (const r of todo) {
-      setAiStatus(t('t.aiMarking', { n: done + 1, total: todo.length, name: r.userName }));
-      try {
-        await API.post(`/api/teacher/challenges/responses/${r.id}/ai-mark`, { lang: getLang() });
-        done++;
-      } catch (e) {
-        failed++;
-        // Stop on the first hard failure rather than burning the allowance on
-        // thirty more that will fail the same way.
-        setAiStatus('');
-        toast(aiError(e.message), 'bad');
-        break;
-      }
-    }
-
-    aiBusy = false;
-    setAiStatus('');
-    if (done) toast(t('t.aiMarked', { n: done }), 'good');
-    // Repaint from the server so the boxes hold what was actually stored.
-    await openResponses(responses.challenge.id);
-    if (failed && !done) { /* the toast above already said why */ }
+    const qs = questionsToMark();
+    if (!qs.length) { toast(t('t.aiNothingToMark'), 'bad'); return; }
+    const cid = responses.challenge.id;
+    TAnalyze.open({
+      intro: t('t.anChIntro', { n: papersFor(new Set(qs.map((q) => q.id))).length }),
+      items: qs.map((q) => ({ id: q.id, question: q.question, expected: q.rubric || '', note: q.aiNote || '' })),
+      needExpected: true,
+      run: async (overrides, progress) => {
+        const todo = papersFor(new Set(Object.keys(overrides)));
+        aiBusy = true;
+        let done = 0;
+        try {
+          for (const r of todo) {
+            progress(t('t.aiMarking', { n: done + 1, total: todo.length, name: r.userName }));
+            await API.post(`/api/teacher/challenges/responses/${r.id}/ai-mark`, { lang: getLang(), overrides });
+            done++;
+          }
+        } finally { aiBusy = false; }
+        toast(t('t.aiMarked', { n: done }), 'good');
+        // Repaint from the server so the boxes hold what was actually stored.
+        await openResponses(cid);
+      },
+    });
   }
 
   async function buildReport() {
@@ -990,22 +974,22 @@ const TChallenges = (() => {
       </div>`;
   }
 
-  /** The AI toolbar above the class set — hidden entirely with no key set. */
+  /** The AI toolbar above the class set. */
   function aiBar() {
     const d = responses;
-    const rubricCount = d.challenge.questions.filter((q) => q.aiMark).length;
-    if (!rubricCount) return '';
+    if (!d.responses.length) return '';
     if (!d.aiEnabled) return `<div class="t-card ai-bar off">${t('t.aiDisabled')}</div>`;
-    const todo = papersNeedingAi().length;
+    const qs = questionsToMark();
+    const papers = qs.length ? papersFor(new Set(qs.map((q) => q.id))).length : 0;
     return `
       <div class="t-card ai-bar">
         <div class="ai-bar-text">
-          <b>${t('t.aiBarTitle')}</b>
-          <span class="sub">${t('t.aiBarSub', { q: rubricCount, n: todo })}</span>
+          <b>${t('t.anBarTitle')}</b>
+          <span class="sub">${esc(qs.length ? t('t.anBarSub', { q: qs.length, n: papers }) : t('t.aiNothingToMark'))}</span>
         </div>
         <span class="ai-status" id="aiStatus"></span>
-        <button class="tbtn blue" id="aiMarkBtn" onclick="TC.aiMarkAll()" ${todo ? '' : 'disabled'}>
-          ${ICON.chat(14)} ${t('t.aiMarkAll')}</button>
+        <button class="tbtn blue" id="aiMarkBtn" onclick="TC.aiMarkAll()" ${qs.length ? '' : 'disabled'}>
+          ${ICON.chat(14)} ${t('t.anButton')}</button>
         <button class="tbtn ghost" id="aiReportBtn" onclick="TC.buildReport()" ${d.responses.length ? '' : 'disabled'}>
           ${ICON.lines(14)} ${d.aiReport ? t('t.aiReportAgain') : t('t.aiReportBuild')}</button>
       </div>`;
@@ -1248,7 +1232,7 @@ const TChallenges = (() => {
 
   const api = {
     // list
-    newChallenge, edit, move, togglePublish, confirmDelete, doDelete, aiGenerate,
+    newChallenge, edit, move, togglePublish, confirmDelete, doDelete,
     addCat, removeCat, saveCats,
     openAssign, syncAssignUI, saveAssign,
     // editor

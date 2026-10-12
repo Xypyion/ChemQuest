@@ -192,7 +192,20 @@ async function withAllowance(payer, purpose, fn) {
   }
 }
 
-async function analyzeStoryAnswer(recId, payer, purpose, lang) {
+/* The teacher may give Kru CJ what to look for at the moment they ask:
+   the expected answer / criteria and their own instruction. Either one
+   replaces what was saved with the question, for this run only. A field the
+   request leaves out keeps the saved one. */
+function overridesOf(req) {
+  const b = req.body || {};
+  const o = {};
+  if (typeof b.expected === 'string') o.expected = b.expected.slice(0, 2000);
+  if (typeof b.note === 'string') o.note = b.note.slice(0, 800);
+  return o;
+}
+const pick = (over, key, saved) => (over && typeof over[key] === 'string' ? over[key] : saved);
+
+async function analyzeStoryAnswer(recId, payer, purpose, lang, over) {
   const rec = db.findById('storyAnswers', recId);
   if (!rec) return { ok: false, status: 404, code: 'NOT_FOUND' };
   const lesson = db.findById('lessons', rec.lessonId);
@@ -202,8 +215,8 @@ async function analyzeStoryAnswer(recId, payer, purpose, lang) {
   const out = await withAllowance(payer, purpose, () => diag.diagnoseStoryAnswer({
     lessonTitle: rec.lessonTitle,
     question: (step && step.question) || rec.question,
-    expected: step ? step.expected : '',
-    aiNote: step ? step.aiNote : '',
+    expected: pick(over, 'expected', step ? step.expected : ''),
+    aiNote: pick(over, 'note', step ? step.aiNote : ''),
     answer: rec.answer,
     lang,
   }));
@@ -223,7 +236,7 @@ async function analyzeStoryAnswer(recId, payer, purpose, lang) {
   return out.ok ? { ok: true, ai: live.ai } : out;
 }
 
-async function analyzeBoard(recId, payer, purpose, lang) {
+async function analyzeBoard(recId, payer, purpose, lang, over) {
   const rec = db.findById('whiteboards', recId);
   if (!rec) return { ok: false, status: 404, code: 'NOT_FOUND' };
   const img = parseImage(rec.image);
@@ -233,8 +246,9 @@ async function analyzeBoard(recId, payer, purpose, lang) {
   const out = await withAllowance(payer, purpose, () => diag.analyzeWhiteboard({
     where: `${KIND_LABEL[rec.kind] || rec.kind}: ${rec.title}`,
     question: rec.question,
-    expected: rec.expected,
+    expected: pick(over, 'expected', rec.expected),
     studentAnswer: rec.answer,
+    aiNote: pick(over, 'note', ''),
     image: img.data,
     mimeType: img.mimeType,
     lang,
@@ -653,10 +667,27 @@ teacherRouter.get('/whiteboard/:id/image', (req, res) => {
   res.json({ image: w.image || '' });
 });
 
+/** GET /api/teacher/logs/analyze-context/:kind/:id — what Kru CJ would be
+ *  given for one story answer or board, so the "Analyze with Kru CJ" dialog
+ *  can show it and let the teacher change it for this run. */
+teacherRouter.get('/analyze-context/:kind/:id', (req, res) => {
+  if (req.params.kind === 'story') {
+    const rec = db.findById('storyAnswers', req.params.id);
+    if (!rec) return res.status(404).json({ error: 'NOT_FOUND' });
+    const lesson = db.findById('lessons', rec.lessonId);
+    const step = lesson ? storyQuestion(lesson, rec.stepId) : null;
+    return res.json({ question: (step && step.question) || rec.question || '',
+      expected: (step && step.expected) || '', note: (step && step.aiNote) || '' });
+  }
+  const rec = db.findById('whiteboards', req.params.id);
+  if (!rec) return res.status(404).json({ error: 'NOT_FOUND' });
+  res.json({ question: rec.question || '', expected: rec.expected || '', note: '' });
+});
+
 /** POST /api/teacher/logs/story-answer/:id/analyze — run (or re-run) Kru CJ. */
 teacherRouter.post('/story-answer/:id/analyze', async (req, res, next) => {
   try {
-    const out = await analyzeStoryAnswer(req.params.id, req.user, 'mark', langOf(req));
+    const out = await analyzeStoryAnswer(req.params.id, req.user, 'mark', langOf(req), overridesOf(req));
     if (!out.ok) return res.status(out.status).json({ error: out.code, ...aiLimit.statusOf(req.user, 'mark') });
     res.json({ ai: out.ai, ...aiLimit.statusOf(req.user, 'mark') });
   } catch (err) { next(err); }
@@ -665,7 +696,7 @@ teacherRouter.post('/story-answer/:id/analyze', async (req, res, next) => {
 /** POST /api/teacher/logs/whiteboard/:id/analyze — run (or re-run) Kru CJ. */
 teacherRouter.post('/whiteboard/:id/analyze', async (req, res, next) => {
   try {
-    const out = await analyzeBoard(req.params.id, req.user, 'mark', langOf(req));
+    const out = await analyzeBoard(req.params.id, req.user, 'mark', langOf(req), overridesOf(req));
     if (!out.ok) return res.status(out.status).json({ error: out.code, ...aiLimit.statusOf(req.user, 'mark') });
     res.json({ ai: out.ai, ...aiLimit.statusOf(req.user, 'mark') });
   } catch (err) { next(err); }

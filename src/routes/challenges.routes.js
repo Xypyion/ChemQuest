@@ -527,18 +527,32 @@ teacherRouter.get('/:id/responses', (req, res) => {
  * The client loops.
  * --------------------------------------------------------------------- */
 
-/** Everything in this submission that Kru CJ is allowed to mark. */
-function markableItems(c, sub) {
+/** Everything in this submission that Kru CJ is allowed to mark.
+ *
+ *  `over` ({ [questionId]: { expected, note } }) is what the teacher typed in
+ *  the "Analyze with Kru CJ" dialog. When given, it decides which questions
+ *  are marked — any answer the machine could not mark, not only the ones
+ *  set up for AI in the editor — and its expected answer / instruction
+ *  replace the saved ones for this run. Without an expected answer nothing is
+ *  marked: the teacher's answer is the standard, never the model's. */
+function markableItems(c, sub, over) {
   const byId = new Map(ch.flatQuestions(c).map((q) => [q.id, q]));
+  const o = over && typeof over === 'object' ? over : null;
+  const rubricOf = (q) => (o && o[q.id] && typeof o[q.id].expected === 'string' ? o[q.id].expected : q.rubric) || '';
+  const noteOf = (q) => (o && o[q.id] && typeof o[q.id].note === 'string' ? o[q.id].note : q.aiNote) || '';
+  const allowed = (q) => (o
+    ? !!o[q.id] && q.type !== 'simulation' && ch.gradeQuestion(q, undefined).auto === false
+      && !!String(rubricOf(q)).trim()
+    : ch.isAiMarkable(q));
   return (sub.manual || [])
     .filter((m) => m.awarded == null)          // never re-mark what a teacher confirmed
     .map((m) => ({ m, q: byId.get(m.questionId) }))
-    .filter((x) => x.q && ch.isAiMarkable(x.q))
+    .filter((x) => x.q && allowed(x.q))
     .map((x) => ({
       questionId: x.q.id,
       question: x.q.question,
-      rubric: x.q.rubric,
-      aiNote: x.q.aiNote,
+      rubric: String(rubricOf(x.q)).slice(0, 2000),
+      aiNote: String(noteOf(x.q)).slice(0, 800),
       expected: ch.expectedText(x.q),
       points: x.q.points || 0,
       answer: ch.answerText(x.q, (sub.answers || {})[x.q.id]),
@@ -555,7 +569,7 @@ teacherRouter.post('/responses/:sid/ai-mark', async (req, res) => {
   const c = db.findById('challenges', sub.challengeId);
   if (!c) return res.status(404).json({ error: 'Challenge not found.' });
 
-  const items = markableItems(c, sub);
+  const items = markableItems(c, sub, req.body && req.body.overrides);
   if (!items.length) return res.json({ marked: 0, marks: [], diagnosis: sub.aiDiagnosis || null });
 
   const lang = (req.body && req.body.lang) === 'th' ? 'th' : 'en';
