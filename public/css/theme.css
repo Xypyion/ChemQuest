@@ -317,6 +317,27 @@ html { scrollbar-gutter: stable; }
 .toast.good { background: var(--good); }
 .toast.bad { background: var(--bad); }
 
+/* ---------- Teacher signed in as a student ---------- */
+/* Pinned to the bottom of every student page; body gets padding so it never
+   covers the last thing on the page. */
+.viewas-bar {
+  /* left+right+auto margins centre it; left:50% would cap it at half the screen. */
+  position: fixed; left: 16px; right: 16px; bottom: 14px; margin: 0 auto; width: fit-content; max-width: calc(100vw - 32px); box-sizing: border-box; z-index: 998;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ink); color: #fff; padding: 8px 8px 8px 14px; border-radius: 999px;
+  box-shadow: var(--shadow-soft); font-family: var(--font); font-size: .9rem; font-weight: 600;
+}
+.viewas-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.viewas-who > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.viewas-who .avatar-img { border-radius: 50%; flex: none; }
+.viewas-back {
+  flex: none; border: none; cursor: pointer; font: inherit; font-weight: 700;
+  background: var(--sun); color: var(--ink); padding: 7px 14px; border-radius: 999px;
+}
+.viewas-back:hover { filter: brightness(1.05); }
+.viewas-back:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+body.has-viewas-bar { padding-bottom: 72px; }
+
 /* ---------- Animations ---------- */
 @keyframes pop-in { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes float-y { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }

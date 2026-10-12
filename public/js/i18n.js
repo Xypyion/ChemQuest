@@ -24,6 +24,8 @@ const I18N = {
     'chem.hide': 'Hide the chemistry keys',
 
     'nav.logout': 'Log out',
+    'viewAs.bar': 'Signed in as {name}',
+    'viewAs.back': 'Back to teacher',
     'nav.sections': 'Sections',
     'nav.settings': 'Settings',
 
@@ -459,6 +461,10 @@ const I18N = {
     't.previewDoneSub': 'That’s the whole student journey for this level.',
     't.previewReplay': 'Replay',
     't.previewBackList': '← Back to levels',
+    't.practiceTitle': 'Your test student account',
+    't.practiceSub': 'A student account that belongs to you. Use it to test the real student pages — it is kept off the leaderboard and the gradebook.',
+    't.practiceBtn': 'Switch to student account',
+    't.practiceChip': 'Test account',
 
     'lesson.phase.storyDone': 'Done',
     'lesson.finishStory': 'Finish the story ✅',
@@ -1294,6 +1300,8 @@ const I18N = {
     'chem.hide': 'ซ่อนแป้นเคมี',
 
     'nav.logout': 'ออกจากระบบ',
+    'viewAs.bar': 'ใช้บัญชีของ {name}',
+    'viewAs.back': 'กลับไปหน้าครู',
     'nav.sections': 'ส่วนต่าง ๆ',
     'nav.settings': 'ตั้งค่า',
 
@@ -1729,6 +1737,10 @@ const I18N = {
     't.previewDoneSub': 'นี่คือเส้นทางทั้งหมดที่นักเรียนจะได้เจอในด่านนี้',
     't.previewReplay': 'ดูใหม่',
     't.previewBackList': '← กลับไปเลือกด่าน',
+    't.practiceTitle': 'บัญชีนักเรียนสำหรับทดสอบของคุณ',
+    't.practiceSub': 'บัญชีนักเรียนที่เป็นของคุณเอง ใช้ทดสอบหน้าของนักเรียนจริง — ไม่แสดงในตารางอันดับและสมุดคะแนน',
+    't.practiceBtn': 'สลับไปบัญชีนักเรียน',
+    't.practiceChip': 'บัญชีทดสอบ',
 
     'lesson.phase.storyDone': 'จบ',
     'lesson.finishStory': 'อ่านจบแล้ว ✅',

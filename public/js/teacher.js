@@ -927,7 +927,7 @@ function studentRowsHtml() {
       <td class="st-who">
         <span class="av">${avatarHtml(s.avatar, 30)}</span>
         <span class="st-id">
-          <b>${esc(s.name)}</b>
+          <b>${esc(s.name)}${s.practice ? `<span class="practice-chip">${esc(t('t.practiceChip'))}</span>` : ''}</b>
           <span class="st-mail">${esc(s.email)}</span>
         </span>
       </td>
@@ -1044,7 +1044,36 @@ function renderPreviewPicker() {
   }).join('') : `<div class="empty">${t('t.noLevels')}</div>`;
   viewEl.innerHTML = `
     <div class="t-head"><div><h1>${t('t.previewTitle')}</h1><div class="sub">${t('t.previewPickSub')}</div></div></div>
+    ${practiceCardHtml()}
     <div class="t-card">${rows}</div>`;
+}
+
+/* ---- the teacher's own test student account ----
+   The previews below are read-only and never touch an account. This is the
+   other half: one real student account that belongs to the teacher, so the
+   full student flow (saving, points, coins, Kru CJ) can be tested without
+   using a real student. The server creates it on the first switch and keeps
+   it off the leaderboard, the gradebook and battles with real students.
+   api.js parks the teacher's session while it is in use. */
+function practiceCardHtml() {
+  const mine = STUDENTS.find((s) => s.practice);
+  return `
+    <div class="t-card practice-card">
+      <span class="av">${avatarHtml(mine ? mine.avatar : 's1', 44)}</span>
+      <div class="practice-info">
+        <b>${esc(t('t.practiceTitle'))}</b>
+        <span class="sub">${esc(t('t.practiceSub'))}</span>
+      </div>
+      <button class="tbtn" onclick="switchToPractice()">${ICON.play(15)} ${esc(t('t.practiceBtn'))}</button>
+    </div>`;
+}
+
+async function switchToPractice() {
+  try {
+    const { token, user } = await API.post('/api/teacher/practice-student');
+    API.startViewAs(token, user);
+    location.href = '/dashboard.html';
+  } catch (e) { toast(e.message, 'bad'); }
 }
 
 /** The activities a preview walks through, in the teacher's chosen order. */
