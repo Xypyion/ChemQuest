@@ -1,12 +1,19 @@
 /**
- * Teacher Console — 🧩 Challenges.
+ * Teacher Console — challenges.
  *
- * Lives in its own file (teacher.js is already big) and is driven by teacher.js:
- *   TChallenges.render(hostEl)  — paint the current sub-view
- *   TChallenges.reset()         — leave the section (called when the nav changes)
+ * There is no Challenges menu item any more: every challenge belongs to one
+ * level, so they are listed, created and marked on that level's page
+ * (teacher.js renderLevel). This file owns the two screens that open from
+ * there — the editor (question builder) and Responses (marking) — plus the
+ * row actions (publish, assign, move, delete), the shared category list and a
+ * read-only view of a challenge's questions.
  *
- * Sub-views: list (categories + challenges) → editor (question builder) →
- * responses (marking). Inline handlers call the exported `TC` object.
+ * teacher.js calls:
+ *   TChallenges.attach(hostEl, onExit) — once; onExit runs whenever one of
+ *                                        these screens closes or the data changes
+ *   TChallenges.render(hostEl)         — paint the open screen
+ *   TChallenges.reset()                — forget the open screen (nav change)
+ * Inline handlers call the exported `TC` object.
  */
 const TChallenges = (() => {
   const MAX_IMG_BYTES = 900 * 1024;
@@ -24,18 +31,24 @@ const TChallenges = (() => {
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'q' + Math.random().toString(36).slice(2));
 
   let host = null;
-  let mode = 'list';        // 'list' | 'editor' | 'responses'
+  let mode = 'none';        // 'none' | 'editor' | 'responses'
   let cats = [];            // working copy of the categories
   let list = [];            // challenge summaries
   let draft = null;         // challenge being edited
   let responses = null;     // { challenge, responses[], missing[] }
   let simPreview = {};      // questionId -> bool (show the live preview?)
   let loaded = false;
-  // Set when Responses was opened from somewhere else (a level's page in
-  // teacher.js): Back goes there instead of to this section's list.
-  let backHook = null;
+  // Where Back, Cancel, Save and the row actions return to: the level page.
+  let onExit = null;
 
-  function reset() { mode = 'list'; draft = null; responses = null; loaded = false; backHook = null; }
+  function reset() { mode = 'none'; draft = null; responses = null; loaded = false; }
+  function attach(el, fn) { host = el; onExit = fn; }
+  /** Close whichever screen is open and hand control back to the level page. */
+  function leave() {
+    mode = 'none'; draft = null; responses = null; snap = null;
+    if (onExit) onExit();
+  }
+  async function ensureLoaded() { if (!loaded) await load(); }
 
   /* Unsaved-changes check (see "UNSAVED CHANGES" in teacher.js): the draft as
      it was when the editor opened, taken right after it is first painted so
@@ -71,95 +84,83 @@ const TChallenges = (() => {
     }
     if (mode === 'editor') { paintEditor(); takeSnap(); return; }
     if (mode === 'responses') return paintResponses();
-    paintList();
+    leave();
   }
 
-  /** Reload from the server, then repaint (also refreshes teacher.js badges). */
+  /** After a row action: reload, then let the level page repaint (and its badges). */
   async function refresh() {
     loaded = false;
-    if (typeof reload === 'function') { try { await reload(); } catch { /* ignore */ } }
-    await render();
+    try { await load(); } catch { /* the level page reloads its own copy anyway */ }
+    if (onExit) onExit();
   }
 
-  /* Plain text: the row draws its own icon beside this, and a level's own
-     emoji doubled it up. */
-  function lessonName(id) {
-    const l = (typeof LESSONS !== 'undefined' ? LESSONS : []).find((x) => x.id === id);
-    return l ? l.title : '—';
-  }
+  /* =========================== READ-ONLY VIEW ===========================
+     A published challenge could only be read by opening its editor (risky:
+     one stray keystroke and Save changes what students are answering) or by
+     working back from Responses. This lays out every question with its answer
+     key, points and rubric, for reading only. teacher.js shows it under the
+     challenge's row on the level page. */
 
-  /* ================================ LIST ================================ */
+  const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
-  function paintList() {
-    const groups = cats.map((c) => ({ label: (c.icon ? c.icon + ' ' : '') + c.name, items: [] }));
-    const other = { label: t('t.chUncategorized'), items: [] };
-    list.forEach((c) => {
-      const i = cats.findIndex((k) => k.id === c.categoryId);
-      (i === -1 ? other : groups[i]).items.push(c);
-    });
-    if (other.items.length) groups.push(other);
-
-    const body = list.length
-      ? groups.filter((g) => g.items.length).map((g) => `
-          <div class="t-card">
-            <div class="t-head cat-head"><h3>${ICON.lines(15)} ${esc(g.label)}</h3></div>
-            ${g.items.map(challengeRow).join('')}
-          </div>`).join('')
-      : `<div class="t-card empty">${t('t.chNone')}</div>`;
-
-    host.innerHTML = `
-      <div class="t-head">
-        <div><h1>${t('t.chTitle')}</h1><div class="sub">${t('t.chSub')}</div></div>
-        <button class="tbtn" onclick="TC.newChallenge()">${t('t.chNew')}</button>
-      </div>
-      ${body}
-      <details class="t-fold" ${cats.length ? '' : ''}>
-        <summary>${ICON.lines(15)} ${esc(t('t.chCatsFold'))}</summary>
-        <div class="t-card" id="catCard"></div>
-      </details>`;
-    paintCategories();
-  }
-
-  /* Seven buttons in five colours became one. "Responses" is what a teacher
-     opens this list to reach once a class has handed in; everything else —
-     assign, publish, reorder, delete — is setup, and lives in the row menu.
-     Published/draft is a FACT about the challenge, so it reads as a chip beside
-     the title rather than as a third coloured button. */
-  function challengeRow(c) {
-    const assigned = c.assign && c.assign.mode === 'some'
-      ? t('t.chAssignedN', { n: (c.assign.studentIds || []).length })
-      : t('t.chAssignedAll');
-    const bit = (icon, text) => `<i>${ICON[icon](14)}${esc(text)}</i>`;
+  function detailQuestion(q, label) {
+    const type = TYPE_LABEL[q.type] ? TYPE_LABEL[q.type]() : q.type;
+    const pts = q.type === 'simulation' ? '' : `<span class="chd-pts">${esc(ptsLabel(q.points == null ? 1 : q.points))}</span>`;
+    let body = '';
+    if (q.type === 'mcq' || q.type === 'multi') {
+      const right = q.type === 'mcq' ? [q.correctIndex] : (q.correctIndexes || []);
+      body = `<ul class="chd-choices">${(q.choices || []).map((c, i) => `
+        <li class="${right.includes(i) ? 'is-key' : ''}"><b>${LETTERS[i] || i + 1}</b> ${chem(c)}
+          ${right.includes(i) ? `<span class="chd-key">${ICON.check(13)} ${esc(t('t.correct'))}</span>` : ''}</li>`).join('')}</ul>`;
+    } else if (q.type === 'short') {
+      body = `<div class="chd-row"><b>${esc(t('t.chdAccepted'))}</b> ${(q.accepted || []).map((a) => `<span class="chd-ans">${chem(a)}</span>`).join(' ') || '—'}
+        ${q.caseSensitive ? `<span class="chd-note">${esc(t('t.chdCase'))}</span>` : ''}</div>`;
+    } else if (q.type === 'table') {
+      const tb = q.table || { columns: [], rows: [] };
+      body = `<div class="chd-tablewrap"><table class="chd-table">
+        <thead><tr>${(tb.columns || []).map((c) => `<th>${chem(c)}</th>`).join('')}</tr></thead>
+        <tbody>${(tb.rows || []).map((r) => `<tr>${(r.cells || []).map((c) => c.blank
+          ? `<td class="is-key">${chem(c.answer || '')}</td>`
+          : `<td>${chem(c.text || '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <div class="chd-note">${esc(t('t.chdTableKey'))}</div>`;
+    } else if (q.type === 'simulation') {
+      body = `<div class="chd-note">${ICON.flask(13)} ${esc(t('t.chdSim'))}</div>
+        <ol class="chd-sub">${(q.sub || []).map((sq, i) => detailQuestion(sq, String.fromCharCode(97 + i))).join('')}</ol>`;
+    }
+    if (q.rubric) body += `<div class="chd-row chd-rubric"><b>${esc(t('t.chdRubric'))}</b> ${chem(q.rubric)}</div>`;
+    if (q.aiMark) body += `<div class="chd-note">${ICON.chat(13)} ${esc(t('t.chdAiMark'))}</div>`;
+    if (q.explanation) body += `<div class="chd-row"><b>${esc(t('t.chdExplain'))}</b> ${chem(q.explanation)}</div>`;
     return `
-      <div class="lesson-row challenge-row">
-        <div class="info">
-          <div class="t">${chem(c.title)}
-            <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
-          </div>
-          <div class="d lr-meta">
-            ${bit('book', lessonName(c.lessonId))}
-            ${bit('question', `${c.questionCount} ${t('t.questions')}`)}
-            ${bit('star', String(c.maxPoints))}
-            ${bit('people', assigned)}
-            ${c.responses ? bit('pen', t('t.chStats', { r: c.responses, p: c.pending })) : ''}
-          </div>
-        </div>
-        <div class="acts">
-          <button class="tbtn ${c.pending ? '' : 'ghost'} sm" onclick="TC.openResponses('${c.id}')">
-            ${esc(t('t.chResponses'))}${c.pending ? ` <span class="t-badge">${c.pending}</span>` : ''}
-          </button>
-          ${TMenu.html('ch-' + c.id, [
-            { label: t('t.edit'), action: `TC.edit('${c.id}')`, icon: 'pencil' },
-            { label: t('t.chAssign'), action: `TC.openAssign('${c.id}')`, icon: 'people' },
-            { label: c.published ? t('t.chUnpublish') : t('t.chPublish'),
-              action: `TC.togglePublish('${c.id}', ${c.published ? 'false' : 'true'})`,
-              icon: c.published ? 'lock' : 'unlock' },
-            { label: t('t.moveUp'), action: `TC.move('${c.id}','up')`, icon: 'up' },
-            { label: t('t.moveDown'), action: `TC.move('${c.id}','down')`, icon: 'down' },
-            { label: t('t.chDelete'), action: `TC.confirmDelete('${c.id}')`, icon: 'trash', danger: true },
-          ], t('t.rowActions', { title: c.title }))}
-        </div>
-      </div>`;
+      <li class="chd-q">
+        <div class="chd-head"><span class="chd-n">${esc(label)}</span><span class="chd-type">${esc(type)}</span>${pts}</div>
+        <div class="chd-text">${chem(q.question || '')}</div>
+        ${q.image ? `<img class="chd-img" src="${esc(q.image)}" alt="">` : ''}
+        ${body}
+      </li>`;
+  }
+
+  /** Every question of one full challenge (as GET /item/:id returns it), read-only. */
+  function detailHtml(c) {
+    const bits = [];
+    if (c.timeLimit) bits.push(t('t.chdTime', { n: Math.round(c.timeLimit / 60) || 1 }));
+    if (c.dueAt) bits.push(t('t.chdDue', { when: fmtWhen(c.dueAt) }));
+    bits.push(c.allowRetake ? t('t.chdRetake') : t('t.chdOnce'));
+    const qs = c.questions || [];
+    return `
+      ${c.description ? `<p class="chd-desc">${chem(c.description)}</p>` : ''}
+      <div class="chd-meta">${bits.map((b) => `<span>${esc(b)}</span>`).join('')}</div>
+      ${qs.length ? `<ol class="chd-list">${qs.map((q, i) => detailQuestion(q, String(i + 1))).join('')}</ol>`
+        : `<p class="lv-empty">${esc(t('t.chdNoQs'))}</p>`}`;
+  }
+
+  /** Fetch one challenge in full (answer keys included — teacher only). */
+  async function fetchFull(id) {
+    return (await API.get('/api/teacher/challenges/item/' + id)).challenge;
+  }
+
+  /** The shared category list, painted into the level page's fold. */
+  async function mountCategories() {
+    try { await ensureLoaded(); paintCategories(); } catch { /* fold stays empty */ }
   }
 
   /* ---- categories editor ---- */
@@ -209,8 +210,10 @@ const TChallenges = (() => {
     try { await API.post(`/api/teacher/challenges/${id}/move`, { direction }); await refresh(); }
     catch (e) { toast(e.message, 'bad'); }
   }
-  function confirmDelete(id) {
+  async function confirmDelete(id) {
+    await ensureLoaded();
     const c = list.find((x) => x.id === id);
+    if (!c) return;
     openModal(`<h3>${t('t.chDeleteQ')}</h3><p>${t('t.chDeleteMsg', { title: esc(c.title) })}</p>
       <div class="editor-actions" style="border:none;padding:0">
         <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
@@ -222,8 +225,10 @@ const TChallenges = (() => {
   }
 
   /* ---- assign modal ---- */
-  function openAssign(id) {
+  async function openAssign(id) {
+    await ensureLoaded();
     const c = list.find((x) => x.id === id);
+    if (!c) return;
     const a = c.assign || { mode: 'all', studentIds: [] };
     const students = typeof STUDENTS !== 'undefined' ? STUDENTS : [];
     const rows = students.length ? students.map((s) => `
@@ -299,20 +304,23 @@ const TChallenges = (() => {
     return b;
   }
 
-  function newChallenge() {
+  /** A new challenge for one level (the level page passes its own id). */
+  async function newChallenge(lessonId) {
+    await ensureLoaded();
     const lessons = typeof LESSONS !== 'undefined' ? LESSONS : [];
     draft = {
-      id: null, lessonId: lessons.length ? lessons[0].id : '', categoryId: cats.length ? cats[0].id : '',
+      id: null, lessonId: lessonId || (lessons.length ? lessons[0].id : ''), categoryId: '',
       title: '', description: '', icon: '🧩', timeLimit: 0, dueAt: '', allowRetake: false,
       published: false, questions: [blankQuestion('mcq')],
     };
     mode = 'editor';
     snapPending = true;
-    render();
+    await render();
   }
 
   async function edit(id) {
     try {
+      await ensureLoaded();
       const { challenge } = await API.get('/api/teacher/challenges/item/' + id);
       draft = {
         id: challenge.id,
@@ -746,8 +754,10 @@ const TChallenges = (() => {
   }
   function cancelEdit() {
     if (!confirmDiscard()) return;
-    draft = null; mode = 'list'; render();
+    leave();
   }
+
+
 
   /** Strip the editor's private `_id` and send the challenge to the server. */
   function outQuestion(q) {
@@ -786,8 +796,9 @@ const TChallenges = (() => {
       else await API.post('/api/teacher/challenges', payload);
       toast(t('t.chSaved'), 'good');
       draft = null;
-      mode = 'list';
-      await refresh();
+      snap = null;
+      loaded = false;
+      leave();
     } catch (e) { toast(e.message, 'bad'); }
   }
 
@@ -819,13 +830,30 @@ const TChallenges = (() => {
 
   let aiBusy = false;
 
-  /** Papers with at least one rubric-marked answer nobody has confirmed yet. */
-  function papersNeedingAi() {
+  /* Any answer the machine could not mark can go to Kru CJ — not only the
+     questions set up for AI in the editor. The teacher says what a good answer
+     contains (and how to judge it) in the "Analyze with Kru CJ" dialog; the
+     saved expected answer and note just pre-fill it. */
+  function allQuestions() {
+    const out = [];
+    (responses.challenge.questions || []).forEach((q) => {
+      if (q.type === 'simulation') (q.sub || []).forEach((x) => out.push(x)); else out.push(q);
+    });
+    return out;
+  }
+  /** Questions with at least one answer still waiting for a mark. */
+  function questionsToMark() {
     if (!responses) return [];
-    const rubricQs = new Set(responses.challenge.questions.filter((q) => q.aiMark).map((q) => q.id));
-    if (!rubricQs.size) return [];
+    const open = new Set();
+    responses.responses.forEach((r) => {
+      if (r.status === 'graded') return;
+      r.answers.forEach((a) => { if (a.needsMark && a.awarded == null) open.add(a.questionId); });
+    });
+    return allQuestions().filter((q) => open.has(q.id));
+  }
+  function papersFor(ids) {
     return responses.responses.filter((r) => r.status !== 'graded'
-      && r.answers.some((a) => rubricQs.has(a.questionId) && a.needsMark && a.awarded == null && !a.ai));
+      && r.answers.some((a) => ids.has(a.questionId) && a.needsMark && a.awarded == null));
   }
 
   function setAiStatus(msg) {
@@ -833,37 +861,31 @@ const TChallenges = (() => {
     if (el) el.textContent = msg || '';
   }
 
-  async function aiMarkAll() {
+  function aiMarkAll() {
     if (aiBusy) return;
-    const todo = papersNeedingAi();
-    if (!todo.length) { toast(t('t.aiNothingToMark'), 'bad'); return; }
-
-    aiBusy = true;
-    const btn = document.getElementById('aiMarkBtn');
-    if (btn) btn.disabled = true;
-    let done = 0, failed = 0;
-
-    for (const r of todo) {
-      setAiStatus(t('t.aiMarking', { n: done + 1, total: todo.length, name: r.userName }));
-      try {
-        await API.post(`/api/teacher/challenges/responses/${r.id}/ai-mark`, { lang: getLang() });
-        done++;
-      } catch (e) {
-        failed++;
-        // Stop on the first hard failure rather than burning the allowance on
-        // thirty more that will fail the same way.
-        setAiStatus('');
-        toast(aiError(e.message), 'bad');
-        break;
-      }
-    }
-
-    aiBusy = false;
-    setAiStatus('');
-    if (done) toast(t('t.aiMarked', { n: done }), 'good');
-    // Repaint from the server so the boxes hold what was actually stored.
-    await openResponses(responses.challenge.id);
-    if (failed && !done) { /* the toast above already said why */ }
+    const qs = questionsToMark();
+    if (!qs.length) { toast(t('t.aiNothingToMark'), 'bad'); return; }
+    const cid = responses.challenge.id;
+    TAnalyze.open({
+      intro: t('t.anChIntro', { n: papersFor(new Set(qs.map((q) => q.id))).length }),
+      items: qs.map((q) => ({ id: q.id, question: q.question, expected: q.rubric || '', note: q.aiNote || '' })),
+      needExpected: true,
+      run: async (overrides, progress) => {
+        const todo = papersFor(new Set(Object.keys(overrides)));
+        aiBusy = true;
+        let done = 0;
+        try {
+          for (const r of todo) {
+            progress(t('t.aiMarking', { n: done + 1, total: todo.length, name: r.userName }));
+            await API.post(`/api/teacher/challenges/responses/${r.id}/ai-mark`, { lang: getLang(), overrides });
+            done++;
+          }
+        } finally { aiBusy = false; }
+        toast(t('t.aiMarked', { n: done }), 'good');
+        // Repaint from the server so the boxes hold what was actually stored.
+        await openResponses(cid);
+      },
+    });
   }
 
   async function buildReport() {
@@ -952,22 +974,22 @@ const TChallenges = (() => {
       </div>`;
   }
 
-  /** The AI toolbar above the class set — hidden entirely with no key set. */
+  /** The AI toolbar above the class set. */
   function aiBar() {
     const d = responses;
-    const rubricCount = d.challenge.questions.filter((q) => q.aiMark).length;
-    if (!rubricCount) return '';
+    if (!d.responses.length) return '';
     if (!d.aiEnabled) return `<div class="t-card ai-bar off">${t('t.aiDisabled')}</div>`;
-    const todo = papersNeedingAi().length;
+    const qs = questionsToMark();
+    const papers = qs.length ? papersFor(new Set(qs.map((q) => q.id))).length : 0;
     return `
       <div class="t-card ai-bar">
         <div class="ai-bar-text">
-          <b>${t('t.aiBarTitle')}</b>
-          <span class="sub">${t('t.aiBarSub', { q: rubricCount, n: todo })}</span>
+          <b>${t('t.anBarTitle')}</b>
+          <span class="sub">${esc(qs.length ? t('t.anBarSub', { q: qs.length, n: papers }) : t('t.aiNothingToMark'))}</span>
         </div>
         <span class="ai-status" id="aiStatus"></span>
-        <button class="tbtn blue" id="aiMarkBtn" onclick="TC.aiMarkAll()" ${todo ? '' : 'disabled'}>
-          ${ICON.chat(14)} ${t('t.aiMarkAll')}</button>
+        <button class="tbtn blue" id="aiMarkBtn" onclick="TC.aiMarkAll()" ${qs.length ? '' : 'disabled'}>
+          ${ICON.chat(14)} ${t('t.anButton')}</button>
         <button class="tbtn ghost" id="aiReportBtn" onclick="TC.buildReport()" ${d.responses.length ? '' : 'disabled'}>
           ${ICON.lines(14)} ${d.aiReport ? t('t.aiReportAgain') : t('t.aiReportBuild')}</button>
       </div>`;
@@ -1133,18 +1155,7 @@ const TChallenges = (() => {
     } catch (e) { toast(e.message, 'bad'); }
   }
 
-  function backToList() {
-    responses = null; mode = 'list';
-    if (backHook) { const go = backHook; backHook = null; go(); return; }
-    render();
-  }
-
-  /** Open one challenge's Responses into `el`; Back calls `onBack` instead of showing the list. */
-  async function openFrom(el, id, onBack) {
-    host = el;
-    backHook = onBack || null;
-    await openResponses(id);
-  }
+  function backToList() { leave(); }
 
   /* ------------------------------ CSV export ----------------------------- */
 
@@ -1236,7 +1247,7 @@ const TChallenges = (() => {
   };
   window.TC = api;
 
-  return { render, reset, openFrom, isDirty };
+  return { render, reset, attach, isDirty, detailHtml, fetchFull, mountCategories, ensureLoaded };
 })();
 
 // `toLocalInput` (ISO → the value a datetime-local input wants) lives in teacher.js.

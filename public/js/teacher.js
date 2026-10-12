@@ -31,6 +31,9 @@ let boardLessonId = null;                    // lesson whose assignment board is
 let levelId = null;                          // level whose page is open
 let levelSub = null;                         // null | 'mark-pre' | 'mark-post' | 'challenge'
 let levelOverview = null;                    // { lessonId, data } class counts for that page
+let chDetailOpen = {};                       // level page: challenge id -> full challenge, or 'loading' / 'error'
+let catsFoldOpen = false;                    // level page: is the categories fold open?
+let CH_CATS = [];                            // challenge categories, for the tags on challenge rows
 let preview = null;                          // in-console "play as student" preview state
 
 const viewEl = document.getElementById('view');
@@ -40,6 +43,13 @@ const esc = (s) => escapeHtml(s);
    "Balancing H2O" reads wrong on a stoichiometry course. Names, emails
    and form values keep plain esc(). */
 const escChem = (s) => chem(s);
+
+/* The challenge editor and Responses screens open from a level page and
+   come back to it — after Back, Cancel, Save, or a row action. */
+TChallenges.attach(viewEl, () => {
+  levelSub = null;
+  reload().catch(() => {}).then(() => { render(); if (levelId) loadLevelOverview(levelId); });
+});
 
 init();
 async function init() {
@@ -70,6 +80,7 @@ async function reload() {
   try {
     const ch = await API.get('/api/teacher/challenges');
     CHALLENGES = ch.challenges;
+    CH_CATS = ch.categories || [];
   } catch { CHALLENGES = []; }
   try {
     CH_PENDING = (await API.get('/api/teacher/challenges/pending')).submissions;
@@ -85,12 +96,14 @@ async function reload() {
    with what it marks - a test's answers on its level's page, a challenge's on
    its Responses screen - so each section counts its own, and the two numbers
    never overlap. (There used to be a separate "To mark" queue for both.) */
+/* Challenges live inside their level now (there is no Challenges menu item),
+   so Lessons & Levels counts everything waiting in a level: test answers and
+   challenge answers. */
 const NAV_BADGE = {
-  lessons: () => POST_PENDING.length,
-  challenges: () => CH_PENDING.length,
+  lessons: () => POST_PENDING.length + CH_PENDING.length,
 };
 const NAV_KEY = {
-  lessons: 't.navLessons', challenges: 't.navChallenges', quests: 't.navQuests',
+  lessons: 't.navLessons', quests: 't.navQuests',
   battles: 't.navBattles', gradebook: 't.navGradebook',
   students: 't.navStudents', logs: 't.navLogs', preview: 't.playAsStudent',
 };
@@ -123,6 +136,7 @@ function levelDraftChanged() {
 }
 function anyUnsaved() {
   return levelDraftChanged()
+    || markingChanged()
     || (typeof TChallenges !== 'undefined' && TChallenges.isDirty())
     || (typeof TQuests !== 'undefined' && TQuests.isDirty())
     || (typeof TBattles !== 'undefined' && TBattles.isDirty());
@@ -153,7 +167,6 @@ function render() {
   if (preview) return renderPreview();
   if (view === 'lessons' && levelId) return renderLevel();
   if (view === 'preview') return renderPreviewPicker();
-  if (view === 'challenges') return TChallenges.render(viewEl);
   if (view === 'quests') return TQuests.render(viewEl);
   if (view === 'battles') return TBattles.render(viewEl);
   if (view === 'logs') return TLogs.render(viewEl);
@@ -284,6 +297,10 @@ function fmtTimer(seconds) {
   return m ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`;
 }
 
+/** "1 point" / "4 points" — numbers on a row always say what they count. */
+function qCountLabel(n) { return Number(n) === 1 ? t('t.question1') : `${n} ${t('t.questions')}`; }
+function ptsLabel(n) { return t(Number(n) === 1 ? 't.chdPt1' : 't.chdPts', { n }); }
+
 function metaBit(icon, text) {
   return `<i>${ICON[icon](15)}${esc(text)}</i>`;
 }
@@ -301,7 +318,8 @@ function renderLessons() {
     const gate = gateMode(l);
     const gateIcon = gate === 'locked' ? 'lock' : gate === 'scheduled' ? 'calendar' : 'unlock';
 
-    const toMark = POST_PENDING.filter((s) => s.lessonId === l.id).length;
+    const toMark = POST_PENDING.filter((s) => s.lessonId === l.id).length
+      + levelChallenges(l.id).reduce((n, c) => n + (c.pending || 0), 0);
 
     return `
     <div class="lesson-row">
@@ -1367,8 +1385,14 @@ function openLevel(id) {
   window.scrollTo({ top: 0 });
   loadLevelOverview(id);
 }
-function closeLevel() { levelId = null; levelSub = null; render(); }
-function backToLevel() { levelSub = null; render(); window.scrollTo({ top: 0 }); }
+function closeLevel() {
+  if (markingChanged() && !window.confirm(t('t.unsavedLeave'))) return;
+  levelId = null; levelSub = null; chDetailOpen = {}; render();
+}
+function backToLevel() {
+  if (markingChanged() && !window.confirm(t('t.unsavedLeave'))) return;
+  levelSub = null; render(); window.scrollTo({ top: 0 });
+}
 
 /** The class counts on the level page. Painted when they arrive; the page does not wait. */
 async function loadLevelOverview(id) {
@@ -1482,21 +1506,52 @@ function renderLevel() {
       </section>`;
 
   const chs = levelChallenges(l.id);
-  const chRows = chs.length ? chs.map((c) => `
+  const catName = (id) => {
+    const c = (typeof CH_CATS !== 'undefined' ? CH_CATS : []).find((x) => x.id === id);
+    return c ? c.name : '';
+  };
+  const chRows = chs.length ? chs.map((c, i) => {
+    const assigned = c.assign && c.assign.mode === 'some'
+      ? t('t.chAssignedN', { n: (c.assign.studentIds || []).length })
+      : t('t.chAssignedAll');
+    const open = !!chDetailOpen[c.id];
+    return `
       <div class="lv-ch-row">
-        <div class="lv-ch-info">
-          <div class="lv-ch-title">${chem(c.title)}
-            <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
+        <div class="lv-ch-main">
+          <div class="lv-ch-info">
+            <div class="lv-ch-title">${chem(c.title)}
+              <span class="t-pill ${c.published ? 'pub' : 'draft'}">${esc(c.published ? t('t.chPublished') : t('t.chDraft'))}</span>
+              ${catName(c.categoryId) ? `<span class="lv-ch-cat">${esc(catName(c.categoryId))}</span>` : ''}
+            </div>
+            <div class="lr-meta">
+              ${metaBit('question', qCountLabel(c.questionCount || 0))}
+              ${metaBit('star', ptsLabel(c.maxPoints || 0))}
+              ${metaBit('people', assigned)}
+              ${metaBit('pen', t('t.lvHandedIn', { n: c.responses || 0 }))}
+              ${c.dueAt ? metaBit('calendar', t('t.chdDue', { when: fmtWhen(c.dueAt) })) : ''}
+            </div>
           </div>
-          <div class="lr-meta">
-            ${metaBit('question', `${c.questionCount || 0} ${t('t.questions')}`)}
-            ${metaBit('people', t('t.lvHandedIn', { n: c.responses || 0 }))}
+          <div class="lv-ch-acts">
+            <button class="tbtn ghost sm" aria-expanded="${open}" onclick="toggleChDetail('${c.id}')">
+              ${ICON[open ? 'up' : 'down'](14)} ${esc(t('t.chdView'))}</button>
+            <button class="tbtn ${c.pending ? '' : 'ghost'} sm" onclick="openLevelChallenge('${c.id}')">
+              ${esc(c.pending ? t('t.lvMarkN', { n: c.pending }) : t('t.chResponses'))}
+            </button>
+            ${TMenu.html('lvch-' + c.id, [
+              { label: t('t.edit'), action: `levelEditChallenge('${c.id}')`, icon: 'pencil' },
+              { label: t('t.chAssign'), action: `TC.openAssign('${c.id}')`, icon: 'people' },
+              { label: c.published ? t('t.chUnpublish') : t('t.chPublish'),
+                action: `TC.togglePublish('${c.id}', ${c.published ? 'false' : 'true'})`,
+                icon: c.published ? 'lock' : 'unlock' },
+              { label: t('t.moveUp'), action: `TC.move('${c.id}','up')`, icon: 'up', disabled: i === 0 },
+              { label: t('t.moveDown'), action: `TC.move('${c.id}','down')`, icon: 'down', disabled: i === chs.length - 1 },
+              { label: t('t.chDelete'), action: `TC.confirmDelete('${c.id}')`, icon: 'trash', danger: true },
+            ], t('t.rowActions', { title: c.title }))}
           </div>
         </div>
-        <button class="tbtn ${c.pending ? '' : 'ghost'} sm" onclick="openLevelChallenge('${c.id}')">
-          ${esc(c.pending ? t('t.lvMarkN', { n: c.pending }) : t('t.chResponses'))}
-        </button>
-      </div>`).join('')
+        <div class="lv-ch-detail" id="chd-${c.id}" ${open ? '' : 'hidden'}>${open ? chDetailBody(c.id) : ''}</div>
+      </div>`;
+  }).join('')
     : `<p class="lv-empty">${esc(t('t.lvNoChallenges'))}</p>`;
 
   viewEl.innerHTML = `
@@ -1549,10 +1604,49 @@ function renderLevel() {
     <section class="t-card lv-chs">
       <div class="t-head" style="margin:0 0 6px">
         <h3 style="margin:0">${ICON.puzzle(18)} ${esc(t('t.lvChallenges'))}</h3>
-        <button class="tbtn ghost sm" onclick="setView('challenges')">${esc(t('t.lvManageChallenges'))}</button>
+        <div class="row" style="gap:8px">
+          <button class="tbtn sm" onclick="levelNewChallenge()">${ICON.plus(14)} ${esc(t('t.chNewShort'))}</button>
+        </div>
       </div>
       ${chRows}
+      <details class="t-fold lv-cats" ${catsFoldOpen ? 'open' : ''} ontoggle="catsFoldOpen = this.open">
+        <summary>${ICON.lines(15)} ${esc(t('t.lvCatsFold'))}</summary>
+        <div class="t-card" id="catCard"></div>
+      </details>
     </section>`;
+  TChallenges.mountCategories();
+}
+
+/* ---- the level's challenges ----
+   Everything the old Challenges menu item did now happens here, in the level
+   the challenge belongs to. "View" opens a read-only list of a challenge's
+   questions with their answer keys — published challenges included, without
+   going through the editor. */
+
+function chDetailBody(id) {
+  const d = chDetailOpen[id];
+  if (d === 'loading') return `<p class="lv-empty">${esc(t('common.loading'))}</p>`;
+  if (!d || d === 'error') return `<p class="lv-empty">${esc(t('t.chdError'))}</p>`;
+  return TChallenges.detailHtml(d);
+}
+async function toggleChDetail(id) {
+  if (chDetailOpen[id]) { delete chDetailOpen[id]; return renderLevel(); }
+  chDetailOpen[id] = 'loading';
+  renderLevel();
+  try { chDetailOpen[id] = await TChallenges.fetchFull(id); }
+  catch { chDetailOpen[id] = 'error'; }
+  if (chDetailOpen[id] && levelId && !levelSub) renderLevel();
+}
+function levelNewChallenge() {
+  levelSub = 'challenge';
+  TC.newChallenge(levelId);
+  window.scrollTo({ top: 0 });
+}
+function levelEditChallenge(id) {
+  levelSub = 'challenge';
+  chDetailOpen = {};          // it may be about to change
+  TC.edit(id);
+  window.scrollTo({ top: 0 });
 }
 
 function openLevelMarking(mode) {
@@ -1561,10 +1655,71 @@ function openLevelMarking(mode) {
   window.scrollTo({ top: 0 });
 }
 
-/** One test's written answers, one card per student, oldest first. */
+/* One test's written answers, grouped BY QUESTION: each question once at the
+   top, every student's answer to it underneath. It used to be one card per
+   student, each repeating every question in full, so a class set of one
+   paragraph question filled screen after screen with the same words.
+
+   A student's attempt is finalised as a whole (the server adds the written
+   marks to the auto-marked part and works out pass/fail), so "Save marks"
+   saves only the students whose every answer has a score. Boxes start empty
+   rather than at 0 — an untouched box used to save as a real 0. Exceptions:
+   a blank answer starts at 0, and Kru CJ's suggestion, if there is one,
+   pre-fills its box as before. */
+function markingQuestions(rows) {
+  const qs = [];
+  const byId = {};
+  rows.forEach((s) => s.written.forEach((w) => {
+    let q = byId[w.questionId];
+    if (!q) {
+      q = byId[w.questionId] = { qid: w.questionId, question: w.question, points: w.points, guide: w.guide, answers: [] };
+      qs.push(q);
+    }
+    q.answers.push({ s, w });
+  }));
+  return qs;
+}
+
 function renderLevelMarking(l, mode) {
   const rows = pendingFor(l.id, mode);
   const testName = mode === 'pre' ? t('t.lvPre') : t('t.lvPost');
+  const qs = markingQuestions(rows);
+  const blocks = qs.map((q, qi) => `
+    <section class="t-card mq">
+      <div class="mq-head">
+        <span class="grade-q-n">${qi + 1}</span>
+        <div class="mq-qtext">${escChem(q.question)}</div>
+        <span class="grade-qpts">${esc(t('t.outOf', { n: q.points }))}</span>
+      </div>
+      ${q.guide ? `<div class="grade-guide">${ICON.question(13)} ${esc(q.guide)}</div>` : ''}
+      <div class="mq-ai">
+        <button class="tbtn ghost sm" onclick="analyzeTestQuestion('${l.id}','${mode}','${esc(q.qid)}')">
+          ${ICON.chat(14)} ${esc(t('t.anButton'))}</button>
+        <span class="lg-muted">${esc(t('t.anTestHint', { n: q.answers.length }))}</span>
+      </div>
+      <div class="mq-answers">
+        ${q.answers.map(({ s, w }) => {
+          const start = w.ai ? w.ai.score : (w.answer ? '' : 0);
+          return `
+          <div class="mq-ans">
+            <div class="mq-who"><span class="av">${avatarHtml(s.userAvatar, 28)}</span><b>${esc(s.userName)}</b></div>
+            <div class="mq-text">${w.answer ? escChem(w.answer) : `<span class="grade-blank">${esc(t('t.gradeNoAnswer'))}</span>`}
+              ${w.ai ? `<div class="grade-ai">${ICON.chat(13)} ${esc(t('t.aiSuggests', { s: w.ai.score, m: w.ai.outOf }))}
+                ${w.ai.feedback ? `<span>${esc(w.ai.feedback)}</span>` : ''}</div>
+                ${(w.ai.criteria || []).length ? `<ul class="ai-crit">${w.ai.criteria.map((c) => `
+                  <li class="${c.met ? 'met' : 'unmet'}">${c.met ? ICON.check(13) : ICON.close(13)}<span>${esc(c.name)}</span></li>`).join('')}</ul>` : ''}` : ''}</div>
+            <label class="mq-score">
+              <span class="sr-only">${esc(t('t.mqScoreFor', { name: s.userName }))}</span>
+              <input type="number" class="mq-input" min="0" max="${w.points}" step="1" placeholder="–"
+                     data-sid="${esc(s.id)}" data-qid="${esc(w.questionId)}" data-max="${w.points}"
+                     data-init="${start}" value="${start}" oninput="markingCount()">
+              <span class="grade-outof">/ ${w.points}</span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+    </section>`).join('');
+
   viewEl.innerHTML = `
     <nav class="lv-crumbs" aria-label="${esc(t('t.lvCrumbs'))}">
       <button type="button" onclick="closeLevel()">${esc(t('t.navLessons'))}</button>
@@ -1576,15 +1731,123 @@ function renderLevelMarking(l, mode) {
     <div class="t-head">
       <div>
         <h1>${esc(t('t.lvMarkTitle', { test: testName }))}</h1>
-        <div class="sub">${esc(rows.length ? t('t.markSub', { n: rows.length }) : t('t.markSubEmpty'))}</div>
+        <div class="sub">${esc(rows.length === 1 ? t('t.mqSub1') : rows.length ? t('t.mqSub', { n: rows.length }) : t('t.markSubEmpty'))}</div>
       </div>
       <div class="row" style="gap:8px">
         <button class="tbtn ghost" onclick="backToLevel()">${t('common.back')}</button>
-        <button class="tbtn ghost" onclick="reloadLevelMarking()">${ICON.timer(15)} ${esc(t('t.refresh'))}</button>
+        <button class="tbtn ghost" onclick="reloadLevelMarking()">${esc(t('t.refresh'))}</button>
       </div>
     </div>
-    ${rows.length ? rows.map(markCard).join('') : `<div class="t-card empty">${esc(t('t.lvAllMarked'))}</div>`}`;
-  rows.forEach((s) => updateGradeTotal(s.id));
+    ${rows.length ? blocks + `
+      <div class="mq-foot">
+        <span id="mqCount"></span>
+        <button class="tbtn" id="mqSave" onclick="saveLevelMarks()">${esc(t('t.mqSave'))}</button>
+      </div>` : `<div class="t-card empty">${esc(t('t.lvAllMarked'))}</div>`}`;
+  markingCount();
+}
+
+/** Each submission's score boxes; a student is ready when none is empty. */
+function markingStudents() {
+  const by = {};
+  document.querySelectorAll('.mq-input').forEach((inp) => {
+    (by[inp.dataset.sid] = by[inp.dataset.sid] || []).push(inp);
+  });
+  return Object.entries(by).map(([sid, inputs]) => ({
+    sid, inputs, ready: inputs.every((i) => i.value.trim() !== ''),
+  }));
+}
+function markingCount() {
+  const st = markingStudents();
+  const ready = st.filter((x) => x.ready).length;
+  const el = document.getElementById('mqCount');
+  if (el) el.textContent = t('t.mqReady', { r: ready, n: st.length });
+  const btn = document.getElementById('mqSave');
+  if (btn) btn.disabled = !ready;
+}
+function markingChanged() {
+  if (!levelSub || !levelSub.startsWith('mark-')) return false;
+  return [...document.querySelectorAll('.mq-input')].some((i) => i.value !== i.dataset.init);
+}
+
+async function saveLevelMarks() {
+  const st = markingStudents();
+  const ready = st.filter((x) => x.ready);
+  if (!ready.length) return;
+  const btn = document.getElementById('mqSave');
+  if (btn) { btn.disabled = true; btn.textContent = t('t.gradeSaving'); }
+  let saved = 0;
+  const failed = [];
+  for (const x of ready) {
+    const scores = {};
+    x.inputs.forEach((inp) => {
+      const max = Number(inp.dataset.max) || 0;
+      let v = parseInt(inp.value, 10);
+      if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
+      scores[inp.dataset.qid] = v;
+    });
+    try { await API.post(`/api/teacher/submissions/${x.sid}/grade`, { scores }); saved += 1; }
+    catch (e) { failed.push(e.message); }
+  }
+  const left = st.length - saved;
+  if (failed.length) toast(failed[0], 'bad');
+  toast(left ? t('t.mqSavedSome', { n: saved, left }) : t('t.mqSavedAll', { n: saved }), saved ? 'good' : 'bad');
+  /* Re-render with what is still waiting; typed-but-unsaved boxes of students
+     who were not complete are kept, so a partial pass is not thrown away. */
+  const keep = {};
+  st.filter((x) => !x.ready).forEach((x) => x.inputs.forEach((i) => { if (i.value.trim() !== '') keep[x.sid + '|' + i.dataset.qid] = i.value; }));
+  try { await reload(); } catch { /* render what we have */ }
+  render();
+  document.querySelectorAll('.mq-input').forEach((i) => {
+    const k = keep[i.dataset.sid + '|' + i.dataset.qid];
+    if (k != null) i.value = k;
+  });
+  markingCount();
+  loadLevelOverview(levelId);
+}
+
+/* "Analyze with Kru CJ" on one question: the teacher sees the question and
+   its answer guide, can change the criteria and add an instruction, then Kru
+   CJ reads every student's answer to it — one request per student, so a long
+   class set never hits the host's time limit and the teacher sees progress.
+   Suggestions pre-fill only EMPTY score boxes; anything typed stays. */
+function analyzeTestQuestion(lessonId, mode, qid) {
+  const rows = pendingFor(lessonId, mode).filter((s) => s.written.some((w) => w.questionId === qid));
+  const w0 = rows.length ? rows[0].written.find((w) => w.questionId === qid) : null;
+  if (!w0) return;
+  TAnalyze.open({
+    intro: t('t.anTestIntro', { n: rows.length }),
+    items: [{ id: qid, question: w0.question, expected: w0.guide || '', note: '' }],
+    needExpected: true,
+    run: async (overrides, progress) => {
+      const o = overrides[qid];
+      const typed = typedMarks();
+      let done = 0;
+      for (const s of rows) {
+        progress(t('t.aiMarking', { n: done + 1, total: rows.length, name: s.userName }));
+        await API.post(`/api/teacher/submissions/${s.id}/ai-mark`, { questionId: qid, expected: o.expected, note: o.note, lang: getLang() });
+        done += 1;
+      }
+      try { await reload(); } catch { /* repaint what we have */ }
+      render();
+      restoreTypedMarks(typed);
+      toast(t('t.anDone', { n: done }), 'good');
+    },
+  });
+}
+/** Score boxes the teacher has typed in (keyed submission|question), to survive a repaint. */
+function typedMarks() {
+  const out = {};
+  document.querySelectorAll('.mq-input').forEach((i) => {
+    if (i.value.trim() !== '' && i.value !== i.dataset.init) out[i.dataset.sid + '|' + i.dataset.qid] = i.value;
+  });
+  return out;
+}
+function restoreTypedMarks(map) {
+  document.querySelectorAll('.mq-input').forEach((i) => {
+    const k = map[i.dataset.sid + '|' + i.dataset.qid];
+    if (k != null) i.value = k;
+  });
+  markingCount();
 }
 
 async function reloadLevelMarking() {
@@ -1595,10 +1858,7 @@ async function reloadLevelMarking() {
 /** A challenge's Responses screen, opened from the level page; Back returns here. */
 function openLevelChallenge(id) {
   levelSub = 'challenge';
-  TChallenges.openFrom(viewEl, id, () => {
-    levelSub = null;
-    reload().catch(() => {}).then(() => { render(); loadLevelOverview(levelId); });
-  });
+  TC.openResponses(id);
   window.scrollTo({ top: 0 });
 }
 
@@ -1608,100 +1868,6 @@ function openStoryAnswers() {
   syncHash();
   TLogs.reset();
   TLogs.openTab(viewEl, 'story');
-}
-
-/** One student's outstanding written work. Identical for both sources. */
-function markCard(s) {
-  const items = s.written.map((w, i) => `
-    <div class="grade-item" data-qid="${esc(w.questionId)}" data-max="${w.points}">
-      <div class="grade-q">
-        <span class="grade-q-n">${i + 1}</span>
-        <span>${escChem(w.question)}</span>
-        <span class="grade-qpts">${esc(t('t.outOf', { n: w.points }))}</span>
-      </div>
-      <div class="grade-ans">${w.answer ? escChem(w.answer) : `<span class="grade-blank">${esc(t('t.gradeNoAnswer'))}</span>`}</div>
-      ${w.guide ? `<div class="grade-guide">${ICON.question(13)} ${esc(w.guide)}</div>` : ''}
-      ${w.ai ? `<div class="grade-ai">${ICON.chat(13)} ${esc(t('t.aiSuggests', { s: w.ai.score, m: w.ai.outOf }))}
-        ${w.ai.feedback ? `<span>${esc(w.ai.feedback)}</span>` : ''}</div>` : ''}
-      <div class="grade-score">
-        <label class="t-label" style="margin:0">${esc(t('t.gradeScoreLabel'))}</label>
-        <input type="number" class="grade-score-input" min="0" max="${w.points}" step="1"
-               value="${w.ai ? w.ai.score : 0}" oninput="updateGradeTotal('${s.id}')">
-        <span class="grade-outof">/ ${w.points}</span>
-        ${w.ai ? `<span class="ai-chip">${esc(t('t.aiPrefilled'))}</span>` : ''}
-      </div>
-    </div>`).join('');
-
-  const where = s.source === 'challenge'
-    ? t('t.markFromChallenge')
-    : s.mode === 'pre' ? t('t.markFromPre') : t('t.markFromPost');
-
-  return `
-    <div class="t-card grade-card" data-sid="${esc(s.id)}" data-source="${esc(s.source)}"
-         data-mcq="${s.autoPoints}" data-max="${s.maxPoints}">
-      <div class="grade-head">
-        <span class="av">${avatarHtml(s.userAvatar, 34)}</span>
-        <div class="grade-who">
-          <div class="grade-name">${esc(s.userName)}</div>
-          <div class="grade-where">
-            <span class="mark-src src-${esc(s.source)}">${esc(where)}</span>
-            <span>${escChem(s.title)}</span>
-          </div>
-        </div>
-        <span class="grade-auto">${esc(t('t.markAutoAlready', { p: s.autoPoints }))}</span>
-      </div>
-      <div class="grade-items">${items}</div>
-      <div class="grade-foot">
-        <span class="grade-total" id="gt-${esc(s.id)}"></span>
-        <button class="tbtn" onclick="saveGrades('${esc(s.id)}')">${esc(t('t.gradeSave'))}</button>
-      </div>
-    </div>`;
-}
-
-/** Live "earned / max" readout as the teacher types. */
-function updateGradeTotal(sid) {
-  const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
-  if (!card) return;
-  let earned = Number(card.dataset.mcq) || 0;
-  card.querySelectorAll('.grade-item').forEach((it) => {
-    const max = Number(it.dataset.max) || 0;
-    let v = parseInt(it.querySelector('.grade-score-input').value, 10);
-    if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
-    earned += v;
-  });
-  const el = document.getElementById('gt-' + sid);
-  if (el) el.textContent = t('t.gradeTotal', { e: earned, m: card.dataset.max });
-}
-
-async function saveGrades(sid) {
-  const card = document.querySelector(`.grade-card[data-sid="${sid}"]`);
-  if (!card) return;
-  const scores = {};
-  card.querySelectorAll('.grade-item').forEach((it) => {
-    const qid = it.dataset.qid;
-    const max = Number(it.dataset.max) || 0;
-    let v = parseInt(it.querySelector('.grade-score-input').value, 10);
-    if (!Number.isFinite(v) || v < 0) v = 0; if (v > max) v = max;
-    scores[qid] = v;
-  });
-
-  /* The one place the two sources differ. Both endpoints take the same
-     `scores` body keyed by question id; only the path changes. */
-  const url = card.dataset.source === 'challenge'
-    ? `/api/teacher/challenges/responses/${sid}/grade`
-    : `/api/teacher/submissions/${sid}/grade`;
-
-  const btn = card.querySelector('.grade-foot .tbtn');
-  if (btn) { btn.disabled = true; btn.textContent = t('t.gradeSaving'); }
-  try {
-    await API.post(url, { scores });
-    toast(t('t.gradeSaved'), 'good');
-    await reload();
-    render();
-  } catch (e) {
-    toast(e.message, 'bad');
-    if (btn) { btn.disabled = false; btn.textContent = t('t.gradeSave'); }
-  }
 }
 
 /* ============================ GRADEBOOK ============================ */

@@ -605,20 +605,30 @@ const TLogs = (() => {
     lists.forEach((arr) => arr.forEach((x) => { if (x.id === id) { x.ai = ai; x.aiError = null; } }));
   }
 
-  async function analyze(kind, id, btn) {
-    if (btn) { btn.disabled = true; btn.innerHTML = `${ICON.chat(14)} ${esc(t('lg.analyzing'))}`; }
+  /* Analyze opens the shared "Analyze with Kru CJ" dialog: the question, what
+     a good answer contains and the teacher's own instruction, pre-filled from
+     what is saved and changeable for this run. Criteria are optional here —
+     reading a student's working is useful even without an answer key. */
+  async function analyze(kind, id) {
+    let c;
     try {
-      const url = kind === 'story'
-        ? `/api/teacher/logs/story-answer/${encodeURIComponent(id)}/analyze`
-        : `/api/teacher/logs/whiteboard/${encodeURIComponent(id)}/analyze`;
-      const r = await API.post(url, { lang: getLang() });
-      patchLoaded(kind, id, r.ai);
-      toast(t('lg.analyzed'), 'good');
-      render();
-    } catch (e) {
-      toast(aiError(e.message), 'bad');
-      if (btn) { btn.disabled = false; btn.innerHTML = `${ICON.chat(14)} ${esc(t('lg.analyze'))}`; }
-    }
+      c = await API.get(`/api/teacher/logs/analyze-context/${kind === 'story' ? 'story' : 'board'}/${encodeURIComponent(id)}`);
+    } catch (e) { toast(aiError(e.message), 'bad'); return; }
+    TAnalyze.open({
+      intro: t(kind === 'story' ? 't.anStoryIntro' : 't.anBoardIntro'),
+      items: [{ id, question: c.question, expected: c.expected, note: c.note }],
+      needExpected: false,
+      run: async (overrides) => {
+        const o = overrides[id];
+        const url = kind === 'story'
+          ? `/api/teacher/logs/story-answer/${encodeURIComponent(id)}/analyze`
+          : `/api/teacher/logs/whiteboard/${encodeURIComponent(id)}/analyze`;
+        const r = await API.post(url, { lang: getLang(), expected: o.expected, note: o.note });
+        patchLoaded(kind, id, r.ai);
+        toast(t('lg.analyzed'), 'good');
+        render();
+      },
+    });
   }
 
   async function summarize() {

@@ -354,13 +354,21 @@ teacherRouter.post('/:id/assign', (req, res) => {
 /** Move a challenge up/down inside its list. */
 teacherRouter.post('/:id/move', (req, res) => {
   const dir = (req.body && req.body.direction) === 'up' ? -1 : 1;
-  const list = db.all('challenges').slice().sort((a, b) => (a.order || 0) - (b.order || 0));
-  const i = list.findIndex((c) => c.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Challenge not found.' });
+  const me = db.findById('challenges', req.params.id);
+  if (!me) return res.status(404).json({ error: 'Challenge not found.' });
+  const all = db.all('challenges').slice()
+    .sort((a, b) => (a.order || 0) - (b.order || 0) || new Date(a.createdAt) - new Date(b.createdAt));
+  // Challenges are managed inside their level now, so "up" means past the
+  // previous challenge OF THIS LEVEL — the global neighbour may belong to
+  // another level, and swapping with it changed nothing the teacher could see.
+  // Renumber first: several challenges sharing order 0 could never swap.
+  all.forEach((c, k) => { c.order = k + 1; });
+  const list = all.filter((c) => c.lessonId === me.lessonId);
+  const i = list.indexOf(me);
   const j = i + dir;
-  if (j < 0 || j >= list.length) return res.json({ ok: true });
-  const tmp = list[i].order || 0;
-  list[i].order = list[j].order || 0;
+  if (j < 0 || j >= list.length) { db.save(); return res.json({ ok: true }); }
+  const tmp = list[i].order;
+  list[i].order = list[j].order;
   list[j].order = tmp;
   db.save();
   res.json({ ok: true });
@@ -519,18 +527,32 @@ teacherRouter.get('/:id/responses', (req, res) => {
  * The client loops.
  * --------------------------------------------------------------------- */
 
-/** Everything in this submission that Kru CJ is allowed to mark. */
-function markableItems(c, sub) {
+/** Everything in this submission that Kru CJ is allowed to mark.
+ *
+ *  `over` ({ [questionId]: { expected, note } }) is what the teacher typed in
+ *  the "Analyze with Kru CJ" dialog. When given, it decides which questions
+ *  are marked — any answer the machine could not mark, not only the ones
+ *  set up for AI in the editor — and its expected answer / instruction
+ *  replace the saved ones for this run. Without an expected answer nothing is
+ *  marked: the teacher's answer is the standard, never the model's. */
+function markableItems(c, sub, over) {
   const byId = new Map(ch.flatQuestions(c).map((q) => [q.id, q]));
+  const o = over && typeof over === 'object' ? over : null;
+  const rubricOf = (q) => (o && o[q.id] && typeof o[q.id].expected === 'string' ? o[q.id].expected : q.rubric) || '';
+  const noteOf = (q) => (o && o[q.id] && typeof o[q.id].note === 'string' ? o[q.id].note : q.aiNote) || '';
+  const allowed = (q) => (o
+    ? !!o[q.id] && q.type !== 'simulation' && ch.gradeQuestion(q, undefined).auto === false
+      && !!String(rubricOf(q)).trim()
+    : ch.isAiMarkable(q));
   return (sub.manual || [])
     .filter((m) => m.awarded == null)          // never re-mark what a teacher confirmed
     .map((m) => ({ m, q: byId.get(m.questionId) }))
-    .filter((x) => x.q && ch.isAiMarkable(x.q))
+    .filter((x) => x.q && allowed(x.q))
     .map((x) => ({
       questionId: x.q.id,
       question: x.q.question,
-      rubric: x.q.rubric,
-      aiNote: x.q.aiNote,
+      rubric: String(rubricOf(x.q)).slice(0, 2000),
+      aiNote: String(noteOf(x.q)).slice(0, 800),
       expected: ch.expectedText(x.q),
       points: x.q.points || 0,
       answer: ch.answerText(x.q, (sub.answers || {})[x.q.id]),
@@ -547,7 +569,7 @@ teacherRouter.post('/responses/:sid/ai-mark', async (req, res) => {
   const c = db.findById('challenges', sub.challengeId);
   if (!c) return res.status(404).json({ error: 'Challenge not found.' });
 
-  const items = markableItems(c, sub);
+  const items = markableItems(c, sub, req.body && req.body.overrides);
   if (!items.length) return res.json({ marked: 0, marks: [], diagnosis: sub.aiDiagnosis || null });
 
   const lang = (req.body && req.body.lang) === 'th' ? 'th' : 'en';
