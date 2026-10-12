@@ -866,3 +866,15 @@ details.qcard[open] > .qcard-sum { border-bottom: 1px solid var(--t-line); }
   .lv-grid { grid-template-columns: minmax(0, 1fr); }
   .lv-ch-row { flex-direction: column; align-items: flex-start; }
 }
+
+/* A question that stops the level from saving (half-written). */
+.builder-item.q-invalid { border-color: var(--t-danger); box-shadow: 0 0 0 3px rgba(239, 70, 102, .15); }
+/* Post-test chip for a level whose post-test has no questions: a fact, not a button. */
+.chip.chip-off { cursor: default; opacity: .75; }
+.chip.chip-off:hover { background: #f3f4fa; border-color: var(--t-line); }
+/* A test with no questions yet: neutral, not the green all-clear. */
+.lv-clear.lv-none { color: var(--t-soft); }
+/* Gradebook total: the percent sits quieter than the points. */
+.gb-total { white-space: nowrap; }
+.gb-pct { font-weight: 600; color: var(--t-soft); margin-left: 4px; }
+.q-problem { margin: 6px 0 4px; color: var(--t-danger); font-weight: 700; font-size: .86rem; }

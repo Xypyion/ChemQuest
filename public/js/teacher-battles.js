@@ -34,6 +34,27 @@ const TBattles = (() => {
 
   function reset() { loaded = false; draft = []; tab = 'easy'; }
 
+  /* Unsaved-changes check (see "UNSAVED CHANGES" in teacher.js). The rules and
+     the bank on screen are saved by different buttons, so each keeps its own
+     snapshot, taken after it is painted. Switching Easy / Medium / Hard used to
+     reload the bank from the server and silently drop what was typed. */
+  let bankSnap = null, rulesSnap = null;
+  let snapBank = false, snapRules = false;
+  function takeSnaps() {
+    if (snapRules) { snapRules = false; syncSettings(); rulesSnap = JSON.stringify(settings); }
+    if (snapBank) { snapBank = false; syncDraft(); bankSnap = JSON.stringify(draft); }
+  }
+  function bankDirty() {
+    if (!document.getElementById('bqList')) return false;
+    syncDraft();
+    return JSON.stringify(draft) !== bankSnap;
+  }
+  function isDirty() {
+    if (!document.getElementById('b-enabled')) return false;
+    syncSettings();
+    return bankDirty() || JSON.stringify(settings) !== rulesSnap;
+  }
+
   /* ------------------------------- loading ------------------------------ */
 
   async function load() {
@@ -43,6 +64,7 @@ const TBattles = (() => {
     recent = data.recent || [];
     draft = (await API.get('/api/teacher/battles/bank/' + tab)).questions.map(mapInQuestion);
     loaded = true;
+    snapBank = true; snapRules = true;
   }
 
   async function render(el) {
@@ -64,6 +86,7 @@ const TBattles = (() => {
       ${settingsCard()}
       ${bankCard()}
       ${logCard()}`;
+    takeSnaps();
   }
 
   function settingsCard() {
@@ -394,9 +417,13 @@ const TBattles = (() => {
   /** Switching difficulty saves nothing — load that bank fresh. */
   async function setTab(d) {
     syncSettings();
-    tab = d;
+    if (d === tab) return;
+    if (bankDirty() && !window.confirm(t('t.unsavedBank'))) return;
     try {
-      draft = (await API.get('/api/teacher/battles/bank/' + d)).questions.map(mapInQuestion);
+      const qs = (await API.get('/api/teacher/battles/bank/' + d)).questions.map(mapInQuestion);
+      tab = d;
+      draft = qs;
+      snapBank = true;
       paint();
     } catch (e) { toast(e.message, 'bad'); }
   }
@@ -414,6 +441,7 @@ const TBattles = (() => {
         dailyLimit: settings.dailyLimit,
       });
       settings = r.settings;
+      snapRules = true;
       toast(t('t.bSettingsSaved'), 'good');
       paint();
     } catch (e) { toast(e.message, 'bad'); }
@@ -426,6 +454,7 @@ const TBattles = (() => {
       const r = await API.post('/api/teacher/battles/bank/' + tab, { questions: draft.map(outQuestion) });
       draft = r.questions.map(mapInQuestion);
       banks[tab] = r.questions.length;
+      snapBank = true;
       toast(t('t.bBankSaved'), 'good');
       if (r.dropped) toast(t('t.bDropped', { n: r.dropped }), 'bad');
       paint();
@@ -458,5 +487,5 @@ const TBattles = (() => {
   };
   window.TB = api;
 
-  return { render, reset };
+  return { render, reset, isDirty };
 })();

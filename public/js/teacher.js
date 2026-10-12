@@ -108,7 +108,33 @@ function paintNav() {
 }
 function updateChallengeBadge() { paintNav(); }
 function updateGradingBadge() { paintNav(); }   // kept: called from other console files
+/* ========================= UNSAVED CHANGES =========================
+   Every editor in the console (a level, a challenge, a daily quest, a battle
+   bank) used to drop what the teacher had typed, without a word, the moment
+   they clicked another menu item, Back or Cancel. Each editor now keeps a
+   snapshot of what it opened with; leaving while it differs asks first, and
+   so does closing or reloading the tab (switching language reloads too). */
+let draftSnap = null;                         // the level draft as opened / last saved
+function snapDraft() { syncDraft(); draftSnap = JSON.stringify(draft); }
+function levelDraftChanged() {
+  if (!draft || !document.getElementById('f-title')) return false;
+  syncDraft();
+  return JSON.stringify(draft) !== draftSnap;
+}
+function anyUnsaved() {
+  return levelDraftChanged()
+    || (typeof TChallenges !== 'undefined' && TChallenges.isDirty())
+    || (typeof TQuests !== 'undefined' && TQuests.isDirty())
+    || (typeof TBattles !== 'undefined' && TBattles.isDirty());
+}
+/** True when it is fine to leave: nothing unsaved, or the teacher said so. */
+function confirmDiscard() { return !anyUnsaved() || window.confirm(t('t.unsavedLeave')); }
+window.addEventListener('beforeunload', (e) => {
+  if (anyUnsaved()) { e.preventDefault(); e.returnValue = ''; }
+});
+
 function setView(v) {
+  if (!confirmDiscard()) return;
   view = v; draft = null; boardLessonId = null; preview = null;
   levelId = null; levelSub = null;
   // These are top-level consts, which are not properties of window.
@@ -300,11 +326,13 @@ function renderLessons() {
           <button class="chip chip-${gate}" onclick="openGate('${l.id}')">
             ${ICON[gateIcon](14)}<b>${esc(t('t.access'))}</b> ${esc(gateLabel(l))}
           </button>
-          <button class="chip ${pt.open ? 'chip-on' : ''}"
+          ${!pt.open && !ptCount ? `<span class="chip chip-off" title="${esc(t('t.postTestNeedsQs'))}">
+            ${ICON.lock(14)}<b>${esc(t('t.postTestShort'))}</b> ${esc(t('t.lvNoQs'))}
+          </span>` : `<button class="chip ${pt.open ? 'chip-on' : ''}"
                   onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})"
                   title="${esc(pt.open ? t('t.closePostTest') : t('t.openPostTest'))}">
             ${ICON[pt.open ? 'unlock' : 'lock'](14)}<b>${esc(t('t.postTestShort'))}</b> ${esc(pt.open ? t('t.open') : t('t.closed'))}
-          </button>
+          </button>`}
           ${toMark ? `<button class="chip chip-mark" onclick="openLevel('${l.id}')">
             ${ICON.pen(14)}<b>${esc(t('t.lvToMarkChip', { n: toMark }))}</b>
           </button>` : ''}
@@ -484,11 +512,12 @@ function newLesson() {
        controlled nothing. It is still carried draft -> save so editing a level
        never blanks the value already stored against it. */
     id: null, title: '', description: '', terrain: 'plain', icon: '🧪', timeLimit: 0, flow: 'story-first',
-    storyboard: [{ type: 'line', character: 'Ruby', mood: 'wave', text: '', image: '' }],
+    storyboard: [{ ...blankLine(), mood: 'wave' }],
     quizzes: { easy: [blankQuestion()], medium: [], hard: [] },
     postTest: { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } },
   };
   render();
+  snapDraft();
 }
 async function editLesson(id, focus) {
   try {
@@ -516,6 +545,7 @@ async function editLesson(id, focus) {
     };
     if (!draft.storyboard.length) draft.storyboard = [blankLine()];
     render();
+    snapDraft();
     // Opened from a card on the level page: land on that part of the editor.
     const target = focus && document.getElementById('ed-' + focus);
     if (target) target.scrollIntoView({ block: 'start' });
@@ -552,7 +582,11 @@ function renderQuizSection(zone) {
   const timeVal = zone === 'post' ? (d.postTest.timeLimit || 0) : (d.timeLimit || 0);
   const questions = quizzes[QSET].map((q, i) => renderQuestionCard(q, i, zone)).join('') ||
     `<p class="sub" style="color:var(--t-soft)">${t('t.noQuestions')}</p>`;
-  const openToggle = zone === 'post' && d.id ? `
+  const saved = zone === 'post' && d.id ? LESSONS.find((x) => x.id === d.id) : null;
+  const savedPostQs = saved ? oneSet((saved.postTest || {}).quizzes).length : 0;
+  const openToggle = zone === 'post' && d.id && !d.postTest.open && !savedPostQs
+    ? `<div class="t-hint" style="margin-bottom:8px">${t('t.postTestNeedsQs')}</div>`
+    : zone === 'post' && d.id ? `
     <button class="tbtn ${d.postTest.open ? 'green' : 'ghost'} sm" style="margin-bottom:8px"
             onclick="togglePostTestFromEditor()">
       ${d.postTest.open ? ICON.unlock(14) + ' ' + t('t.postTestShort') + ': ' + t('t.open') + ' — ' + t('t.closePostTest') : t('t.openPostTest')}
@@ -874,7 +908,10 @@ function removeChoice(zone, qid, idx) {
   if (q && q.choices.length > 2) { q.choices.splice(idx, 1); if (q.correctIndex >= q.choices.length) q.correctIndex = 0; }
   render();
 }
-function cancelEdit() { draft = null; render(); window.scrollTo({ top: 0 }); }
+function cancelEdit() {
+  if (!confirmDiscard()) return;
+  draft = null; draftSnap = null; render(); window.scrollTo({ top: 0 });
+}
 
 async function togglePostTestFromEditor() {
   if (!draft || !draft.id) return;
@@ -887,14 +924,71 @@ async function togglePostTestFromEditor() {
   } catch (e) { toast(e.message, 'bad'); }
 }
 
+/* Saving used to drop, silently, any question with no text or fewer than two
+   filled choices — the teacher saw "Level saved" and the question was gone.
+   Now: a question that is completely blank is still left out (that is just an
+   unused card), but one that is half-written stops the save, and the card is
+   marked so the teacher can see which one and why. */
+function isBlankQuestion(q) {
+  return !q.question.trim() && !(q.explanation || '').trim()
+    && (q.type === 'written' || !(q.choices || []).some((c) => c.trim()));
+}
+function questionProblem(q) {
+  if (isBlankQuestion(q)) return null;
+  if (!q.question.trim()) return 't.qProbText';
+  if (q.type === 'written') return null;
+  if ((q.choices || []).filter((c) => c.trim()).length < 2) return 't.qProbChoices';
+  if (!(q.choices[q.correctIndex] || '').trim()) return 't.qProbKey';
+  return null;
+}
+function findQuestionProblems() {
+  const out = [];
+  ['pre', 'post'].forEach((zone) => {
+    zoneQuizzes(zone)[QSET].forEach((q, i) => {
+      const key = questionProblem(q);
+      if (key) out.push({ zone, qid: q._id, n: i + 1, key });
+    });
+  });
+  return out;
+}
+
 async function saveLesson() {
   syncDraft();
   if (!draft.title.trim()) { toast(t('t.needTitle'), 'bad'); return; }
+  document.querySelectorAll('.qcard.q-invalid').forEach((el) => el.classList.remove('q-invalid'));
+  document.querySelectorAll('.q-problem').forEach((el) => el.remove());
+  const problems = findQuestionProblems();
+  if (problems.length) {
+    problems.forEach((p) => {
+      const el = document.querySelector(`#quizList-${p.zone} .qcard[data-qid="${p.qid}"]`);
+      if (!el) return;
+      el.classList.add('q-invalid');
+      // The reason stays on the card; the toast alone disappears in seconds.
+      const note = document.createElement('div');
+      note.className = 'q-problem';
+      note.textContent = t(p.key);
+      el.querySelector('.builder-head').after(note);
+    });
+    const p = problems[0];
+    const where = t('t.qProbWhere', { test: p.zone === 'post' ? t('t.lvPost') : t('t.lvPre'), n: p.n });
+    toast(where + ' ' + t(p.key) + (problems.length > 1 ? ' ' + t('t.qProbMore', { n: problems.length - 1 }) : ''), 'bad');
+    const first = document.querySelector('.qcard.q-invalid');
+    if (first) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return;
+  }
+  /* Empty choices are dropped (a student would otherwise see a blank option),
+     and the correct answer follows its choice to the new position. */
   const mapQ = (arr) => arr
-    .filter((q) => q.question.trim() && (q.type === 'written' || (q.choices || []).filter((c) => c.trim()).length >= 2))
-    .map((q) => q.type === 'written'
-      ? { id: q._id, type: 'written', question: q.question, points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard }
-      : { id: q._id, type: 'mcq', question: q.question, choices: q.choices, correctIndex: q.correctIndex, points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard });
+    .filter((q) => !isBlankQuestion(q))
+    .map((q) => {
+      if (q.type === 'written') {
+        return { id: q._id, type: 'written', question: q.question, points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard };
+      }
+      const kept = q.choices.map((c, i) => ({ c, i })).filter((x) => x.c.trim());
+      return { id: q._id, type: 'mcq', question: q.question, choices: kept.map((x) => x.c),
+        correctIndex: Math.max(0, kept.findIndex((x) => x.i === q.correctIndex)),
+        points: q.points || 1, explanation: q.explanation, whiteboard: !!q.whiteboard };
+    });
   const payload = {
     title: draft.title, description: draft.description, terrain: draft.terrain, icon: draft.icon,
     timeLimit: draft.timeLimit || 0,
@@ -915,7 +1009,7 @@ async function saveLesson() {
     if (draft.id) await API.put('/api/teacher/lessons/' + draft.id, payload);
     else await API.post('/api/teacher/lessons', payload);
     toast(t('t.levelSaved'), 'good');
-    draft = null; await reload(); render(); window.scrollTo({ top: 0 });
+    draft = null; draftSnap = null; await reload(); render(); window.scrollTo({ top: 0 });
   } catch (e) { toast(e.message, 'bad'); }
 }
 
@@ -1336,7 +1430,9 @@ function renderLevel() {
     const passed = ov ? (mode === 'pre' ? ov.prePassed : ov.postPassed) : null;
     const markBtn = waiting
       ? `<button class="tbtn sm" onclick="openLevelMarking('${mode}')">${ICON.pen(15)} ${esc(t('t.lvMarkN', { n: waiting }))}</button>`
-      : `<span class="lv-clear">${ICON.check(15)} ${esc(written ? t('t.lvNothingToMark') : t('t.lvAutoMarked'))}</span>`;
+      : !qs.length
+        ? `<span class="lv-clear lv-none">${esc(t('t.lvNoQsYet'))}</span>`
+        : `<span class="lv-clear">${ICON.check(15)} ${esc(written ? t('t.lvNothingToMark') : t('t.lvAutoMarked'))}</span>`;
     return `
       <section class="lv-card ${waiting ? 'has-work' : ''}">
         <div class="lv-card-head">
@@ -1357,7 +1453,7 @@ function renderLevel() {
         <div class="lv-card-acts">
           ${markBtn}
           <button class="tbtn ghost sm" onclick="editLesson('${l.id}','${mode}')">${ICON.pencil(15)} ${esc(t('t.lvEditQs'))}</button>
-          ${mode === 'post' ? `<button class="tbtn ghost sm" onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})">
+          ${mode === 'post' && (pt.open || qs.length) ? `<button class="tbtn ghost sm" onclick="togglePostTest('${l.id}', ${pt.open ? 'false' : 'true'})">
             ${ICON[pt.open ? 'lock' : 'unlock'](15)} ${esc(pt.open ? t('t.closePostTest') : t('t.openPostTest'))}</button>` : ''}
         </div>
       </section>`;
@@ -1609,6 +1705,24 @@ async function saveGrades(sid) {
 }
 
 /* ============================ GRADEBOOK ============================ */
+/* The Total column used to add raw scores across columns with different
+   maximums ("18" from /20 plus "70" from /100 read as 88 of nothing) and
+   showed 0 for a student with no scores at all. It now reads
+   "earned / possible · percent", where possible counts only the columns that
+   have a score for that student — an empty cell is "not marked yet", not 0. */
+function gbTotalHtml(grades) {
+  let earned = 0, possible = 0;
+  (GRADEBOOK.columns || []).forEach((c) => {
+    const v = grades[c.id];
+    if (v == null || v === '') return;
+    earned += Number(v) || 0;
+    possible += Number(c.max) || 0;
+  });
+  if (!possible) return '—';
+  const r = (n) => Math.round(n * 100) / 100;
+  return `<b>${r(earned)}</b> / ${r(possible)} <span class="gb-pct">${Math.round((earned / possible) * 100)}%</span>`;
+}
+
 async function renderGradebook() {
   document.querySelectorAll('.t-nav button[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === 'gradebook'));
   viewEl.innerHTML = `<div class="t-head"><div><h1>${t('t.gradebookTitle')}</h1><div class="sub">${t('t.gradebookSub')}</div></div></div>
@@ -1627,17 +1741,15 @@ function paintGradebook() {
       <th class="gb-total-h">${t('t.gbTotal')}</th>
     </tr>`;
   const body = rows.length ? rows.map((r) => {
-    let total = 0;
     const cells = cols.map((c) => {
       const v = r.grades[c.id];
-      if (v != null) total += Number(v);
       return `<td><input class="gb-cell" type="number" min="0" max="${c.max}" step="any" value="${v == null ? '' : v}"
         data-sid="${r.id}" data-cid="${c.id}" onchange="saveScore('${r.id}','${c.id}',this)"></td>`;
     }).join('');
     return `<tr>
       <td class="gb-sticky gb-name"><span class="av">${avatarHtml(r.avatar, 24)}</span> ${esc(r.name)}</td>
       ${cells}
-      <td class="gb-total" data-sid="${r.id}">${cols.length ? total : '—'}</td>
+      <td class="gb-total" data-sid="${r.id}">${gbTotalHtml(r.grades)}</td>
     </tr>`;
   }).join('') : `<tr><td class="gb-sticky">—</td><td colspan="${cols.length + 1}" class="empty">${t('t.gbNoStudents')}</td></tr>`;
 
@@ -1658,10 +1770,9 @@ function paintGradebook() {
 }
 
 function recomputeGbTotal(sid) {
-  let total = 0;
-  document.querySelectorAll(`.gb-cell[data-sid="${sid}"]`).forEach((inp) => { const v = parseFloat(inp.value); if (Number.isFinite(v)) total += v; });
+  const row = (GRADEBOOK.rows || []).find((x) => x.id === sid);
   const el = document.querySelector(`.gb-total[data-sid="${sid}"]`);
-  if (el) el.textContent = Math.round(total * 100) / 100;
+  if (row && el) el.innerHTML = gbTotalHtml(row.grades);
 }
 
 async function saveScore(studentId, columnId, input) {
@@ -1714,7 +1825,17 @@ async function doEditGbColumn(id) {
   await saveGbColumns(GRADEBOOK.columns.map((c) => c.id === id ? { id: c.id, name: name || c.name, max } : { id: c.id, name: c.name, max: c.max }));
   closeModal();
 }
-async function deleteGbColumn(id) {
+function deleteGbColumn(id) {
+  const c = GRADEBOOK.columns.find((x) => x.id === id);
+  if (!c) return;
+  const n = (GRADEBOOK.rows || []).filter((r) => r.grades[id] != null && r.grades[id] !== '').length;
+  openModal(`<h3>${esc(t('t.gbDeleteColQ'))}</h3>
+    <p>${esc(t('t.gbDeleteColMsg', { name: c.name, n }))}</p>
+    <div class="editor-actions" style="border:none;padding:0">
+      <button class="tbtn ghost" onclick="editGbColumn('${id}')">${t('common.cancel')}</button>
+      <button class="tbtn danger" onclick="doDeleteGbColumn('${id}')">${t('t.gbDeleteCol')}</button></div>`);
+}
+async function doDeleteGbColumn(id) {
   await saveGbColumns(GRADEBOOK.columns.filter((c) => c.id !== id).map((c) => ({ id: c.id, name: c.name, max: c.max })));
   closeModal();
 }
@@ -1766,7 +1887,7 @@ async function doImportGbScores() {
     GRADEBOOK = await API.post('/api/teacher/gradebook/import', body);
     closeModal();
     paintGradebook();
-    toast(t('t.gbImported'), 'good');
+    toast(GRADEBOOK.updated ? t('t.gbImportUpdated') : t('t.gbImported'), 'good');
   } catch (e) { toast(e.message, 'bad'); }
 }
 

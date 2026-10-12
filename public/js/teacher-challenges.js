@@ -37,6 +37,23 @@ const TChallenges = (() => {
 
   function reset() { mode = 'list'; draft = null; responses = null; loaded = false; backHook = null; }
 
+  /* Unsaved-changes check (see "UNSAVED CHANGES" in teacher.js): the draft as
+     it was when the editor opened, taken right after it is first painted so
+     both sides have been through the same syncDraft(). */
+  let snap = null;
+  let snapPending = false;
+  function takeSnap() {
+    if (!snapPending || !draft) return;
+    snapPending = false;
+    syncDraft();
+    snap = JSON.stringify(draft);
+  }
+  function isDirty() {
+    if (mode !== 'editor' || !draft || !document.getElementById('c-title')) return false;
+    syncDraft();
+    return JSON.stringify(draft) !== snap;
+  }
+
   /* ------------------------------- loading ------------------------------ */
 
   async function load() {
@@ -52,7 +69,7 @@ const TChallenges = (() => {
       host.innerHTML = `<div class="t-card empty">${t('common.loading')}</div>`;
       try { await load(); } catch (e) { host.innerHTML = `<div class="t-card empty">${esc(e.message)}</div>`; return; }
     }
-    if (mode === 'editor') return paintEditor();
+    if (mode === 'editor') { paintEditor(); takeSnap(); return; }
     if (mode === 'responses') return paintResponses();
     paintList();
   }
@@ -290,6 +307,7 @@ const TChallenges = (() => {
       published: false, questions: [blankQuestion('mcq')],
     };
     mode = 'editor';
+    snapPending = true;
     render();
   }
 
@@ -311,6 +329,7 @@ const TChallenges = (() => {
       };
       if (!draft.questions.length) draft.questions.push(blankQuestion('mcq'));
       mode = 'editor';
+      snapPending = true;
       render();
     } catch (e) { toast(e.message, 'bad'); }
   }
@@ -725,7 +744,10 @@ const TChallenges = (() => {
     reader.onerror = () => toast('Could not read that file.', 'bad');
     reader.readAsDataURL(file);
   }
-  function cancelEdit() { draft = null; mode = 'list'; render(); }
+  function cancelEdit() {
+    if (!confirmDiscard()) return;
+    draft = null; mode = 'list'; render();
+  }
 
   /** Strip the editor's private `_id` and send the challenge to the server. */
   function outQuestion(q) {
@@ -1214,7 +1236,7 @@ const TChallenges = (() => {
   };
   window.TC = api;
 
-  return { render, reset, openFrom };
+  return { render, reset, openFrom, isDirty };
 })();
 
 // `toLocalInput` (ISO → the value a datetime-local input wants) lives in teacher.js.
