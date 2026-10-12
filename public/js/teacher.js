@@ -937,6 +937,7 @@ function studentRowsHtml() {
       <td class="st-acts">
         <button class="tbtn ghost sm" onclick='editStudent("${s.id}")'>${ICON.pencil(14)} ${esc(t('t.edit'))}</button>
         ${TMenu.html('student-' + s.id, [
+          { label: t('t.viewAsBtn'), action: `confirmViewAs("${s.id}")`, icon: 'play' },
           { label: t('t.resetPw'), action: `resetPassword("${s.id}")`, icon: 'lock' },
           { label: t('t.deleteStudent'), action: `confirmDeleteStudent("${s.id}")`, icon: 'trash', danger: true },
         ], t('t.rowActions', { title: s.name }))}
@@ -1044,7 +1045,61 @@ function renderPreviewPicker() {
   }).join('') : `<div class="empty">${t('t.noLevels')}</div>`;
   viewEl.innerHTML = `
     <div class="t-head"><div><h1>${t('t.previewTitle')}</h1><div class="sub">${t('t.previewPickSub')}</div></div></div>
-    <div class="t-card">${rows}</div>`;
+    <div class="t-card">${rows}</div>
+    <div class="t-head va-head">
+      <div><h2>${esc(t('t.viewAsTitle'))}</h2><div class="sub">${esc(t('t.viewAsSub'))}</div></div>
+      <input class="t-input t-search" type="search" placeholder="${esc(t('t.studentSearchPh'))}"
+             aria-label="${esc(t('t.studentSearchPh'))}" value="${esc(viewAsQuery)}" oninput="setViewAsQuery(this.value)">
+    </div>
+    <div class="t-card t-tablewrap"><table class="t-table"><tbody id="viewAsRows">${viewAsRowsHtml()}</tbody></table></div>`;
+}
+
+/* ---- sign in as a real student (testing) ----
+   The preview above is read-only and never touches an account. This is the
+   other half: the real student pages, as one real student, with saving on —
+   so the teacher can check what that student actually sees and test a flow
+   end to end. The teacher's own session is parked and restored by api.js. */
+let viewAsQuery = '';
+
+function setViewAsQuery(v) {
+  viewAsQuery = v;
+  const body = document.getElementById('viewAsRows');
+  if (body) body.innerHTML = viewAsRowsHtml();
+}
+
+function viewAsRowsHtml() {
+  const q = viewAsQuery.trim().toLowerCase();
+  const list = q ? STUDENTS.filter((s) => (s.name || '').toLowerCase().includes(q)
+    || (s.email || '').toLowerCase().includes(q)) : STUDENTS;
+  if (!list.length) {
+    return `<tr><td class="empty">${esc(STUDENTS.length ? t('t.noStudentMatch') : t('t.noStudents'))}</td></tr>`;
+  }
+  return list.map((s) => `
+    <tr>
+      <td class="st-who">
+        <span class="av">${avatarHtml(s.avatar, 30)}</span>
+        <span class="st-id"><b>${esc(s.name)}</b><span class="st-mail">${esc(s.email)}</span></span>
+      </td>
+      <td class="st-acts"><button class="tbtn blue sm" onclick='confirmViewAs("${s.id}")'>${ICON.play(14)} ${esc(t('t.viewAsBtn'))}</button></td>
+    </tr>`).join('');
+}
+
+function confirmViewAs(id) {
+  const s = STUDENTS.find((x) => x.id === id);
+  if (!s) return;
+  openModal(`<h3>${t('t.viewAsQ', { name: esc(s.name) })}</h3>
+    <p>${esc(t('t.viewAsMsg'))}</p>
+    <div class="editor-actions" style="border:none;padding:0">
+      <button class="tbtn ghost" onclick="closeModal()">${t('common.cancel')}</button>
+      <button class="tbtn" onclick="doViewAs('${id}')">${esc(t('t.viewAsGo'))}</button></div>`);
+}
+
+async function doViewAs(id) {
+  try {
+    const { token, user } = await API.post(`/api/teacher/students/${id}/view-as`);
+    API.startViewAs(token, user);
+    location.href = '/dashboard.html';
+  } catch (e) { toast(e.message, 'bad'); }
 }
 
 /** The activities a preview walks through, in the teacher's chosen order. */

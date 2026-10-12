@@ -21,6 +21,17 @@ function signToken(user) {
   return jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_TTL });
 }
 
+/**
+ * A student token a teacher holds while signed in AS that student (for testing).
+ * Short-lived on purpose — it is a borrowed account, not a session to keep —
+ * and it names the teacher, so a request can always be traced back to who
+ * was really at the keyboard.
+ */
+const VIEW_AS_TTL = '4h';
+function signViewAsToken(student, teacher) {
+  return jwt.sign({ id: student.id, role: student.role, viewAs: teacher.id }, JWT_SECRET, { expiresIn: VIEW_AS_TTL });
+}
+
 /** Remove sensitive fields before sending a user to the client. */
 function publicUser(user) {
   if (!user) return null;
@@ -58,6 +69,7 @@ module.exports = {
   hashPassword,
   verifyPassword,
   signToken,
+  signViewAsToken,
   publicUser,
   authMiddleware,
   requireRole,

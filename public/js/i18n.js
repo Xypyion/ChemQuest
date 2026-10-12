@@ -24,6 +24,8 @@ const I18N = {
     'chem.hide': 'Hide the chemistry keys',
 
     'nav.logout': 'Log out',
+    'viewAs.bar': 'Signed in as {name}',
+    'viewAs.back': 'Back to teacher',
     'nav.sections': 'Sections',
     'nav.settings': 'Settings',
 
@@ -459,6 +461,12 @@ const I18N = {
     't.previewDoneSub': 'That’s the whole student journey for this level.',
     't.previewReplay': 'Replay',
     't.previewBackList': '← Back to levels',
+    't.viewAsTitle': 'Sign in as a student',
+    't.viewAsSub': 'Use a real student account to test the full flow. This is not a preview — what you do is saved.',
+    't.viewAsBtn': 'Sign in as',
+    't.viewAsQ': 'Sign in as {name}?',
+    't.viewAsMsg': 'You will use this student’s real account. Answers, points, coins and questions to Kru CJ are saved to it. Use “Back to teacher” at the bottom of the screen to return.',
+    't.viewAsGo': 'Sign in',
 
     'lesson.phase.storyDone': 'Done',
     'lesson.finishStory': 'Finish the story ✅',
@@ -1294,6 +1302,8 @@ const I18N = {
     'chem.hide': 'ซ่อนแป้นเคมี',
 
     'nav.logout': 'ออกจากระบบ',
+    'viewAs.bar': 'ใช้บัญชีของ {name}',
+    'viewAs.back': 'กลับไปหน้าครู',
     'nav.sections': 'ส่วนต่าง ๆ',
     'nav.settings': 'ตั้งค่า',
 
@@ -1729,6 +1739,12 @@ const I18N = {
     't.previewDoneSub': 'นี่คือเส้นทางทั้งหมดที่นักเรียนจะได้เจอในด่านนี้',
     't.previewReplay': 'ดูใหม่',
     't.previewBackList': '← กลับไปเลือกด่าน',
+    't.viewAsTitle': 'เข้าสู่ระบบเป็นนักเรียน',
+    't.viewAsSub': 'ใช้บัญชีนักเรียนจริงเพื่อทดสอบการใช้งานทั้งหมด นี่ไม่ใช่ตัวอย่าง — สิ่งที่ทำจะถูกบันทึก',
+    't.viewAsBtn': 'เข้าเป็นนักเรียนคนนี้',
+    't.viewAsQ': 'เข้าสู่ระบบเป็น {name}?',
+    't.viewAsMsg': 'คุณจะใช้บัญชีจริงของนักเรียนคนนี้ คำตอบ คะแนน เหรียญ และคำถามที่ถามครู CJ จะถูกบันทึกในบัญชีนี้ กด “กลับไปหน้าครู” ที่ด้านล่างของจอเพื่อกลับ',
+    't.viewAsGo': 'เข้าสู่ระบบ',
 
     'lesson.phase.storyDone': 'จบ',
     'lesson.finishStory': 'อ่านจบแล้ว ✅',

@@ -12,6 +12,26 @@ const API = {
   updateUser(user) { localStorage.setItem('cq_user', JSON.stringify(user)); },
   clear() { localStorage.removeItem('cq_token'); localStorage.removeItem('cq_user'); },
 
+  /* "Sign in as a student" (teacher console). The teacher's own session is
+     parked under cq_teacher_* while the student's sits in the normal slots,
+     so every student page works unchanged. Leaving puts the teacher back. */
+  viewingAs() { return !!localStorage.getItem('cq_teacher_token') && (API.user() || {}).role === 'student'; },
+  startViewAs(token, user) {
+    localStorage.setItem('cq_teacher_token', API.token());
+    localStorage.setItem('cq_teacher_user', localStorage.getItem('cq_user'));
+    API.setSession(token, user);
+  },
+  endViewAs() {
+    const token = localStorage.getItem('cq_teacher_token');
+    const user = localStorage.getItem('cq_teacher_user');
+    localStorage.removeItem('cq_teacher_token');
+    localStorage.removeItem('cq_teacher_user');
+    if (!token) { API.clear(); return false; }
+    localStorage.setItem('cq_token', token);
+    localStorage.setItem('cq_user', user);
+    return true;
+  },
+
   async call(method, path, body) {
     let res;
     try {
@@ -32,8 +52,10 @@ const API = {
     // actually happened instead of a blank "something went wrong".
     const json = await res.json().catch(() => null);
     if (res.status === 401 && !path.endsWith('/login') && !path.endsWith('/signup')) {
-      API.clear();
-      location.href = '/';
+      // A borrowed student session expired: go back to the teacher, not the login page.
+      const back = API.viewingAs() && API.endViewAs();
+      if (!back) API.clear();
+      location.href = back ? '/teacher.html' : '/';
       throw new Error((json && json.error) || 'Session expired');
     }
     if (!res.ok) {
@@ -64,8 +86,32 @@ function guard(role) {
 }
 
 function logout() {
+  // Signed in as a student from the teacher console: "Log out" means "go back".
+  if (API.viewingAs()) return backToTeacher();
   API.clear();
   location.href = '/';
+}
+
+function backToTeacher() {
+  location.href = API.endViewAs() ? '/teacher.html' : '/';
+}
+
+/* ---------- "Signed in as a student" bar ---------- */
+/* Fixed to the bottom of every student page while a teacher is borrowing a
+   student account, so it is never in doubt whose account is in use — and the
+   way back is always one click away, on the in-level pages too. */
+function mountViewAsBar() {
+  if (!API.viewingAs() || document.querySelector('.viewas-bar')) return;
+  const user = API.user();
+  const bar = document.createElement('div');
+  bar.className = 'viewas-bar';
+  bar.setAttribute('role', 'status');
+  bar.innerHTML = `
+    <span class="viewas-who">${avatarHtml(user.avatar, 22)}
+      <span>${escapeHtml(t('viewAs.bar', { name: user.name }))}</span></span>
+    <button type="button" class="viewas-back" onclick="backToTeacher()">${escapeHtml(t('viewAs.back'))}</button>`;
+  document.body.appendChild(bar);
+  document.body.classList.add('has-viewas-bar');
 }
 
 /* ---------- Toast notifications ---------- */
@@ -476,3 +522,4 @@ function studentFigure(value, size) {
 /* Last, so everything above it is defined. */
 if (document.body.dataset.page) mountNav();
 mountBrandMarks();
+mountViewAsBar();

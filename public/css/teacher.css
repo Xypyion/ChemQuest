@@ -650,6 +650,10 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
 .t-search { max-width: 280px; }
 .t-tablewrap { overflow-x: auto; }
 
+/* "Sign in as a student" — a second section under the level previews. */
+.t-head.va-head { margin: 30px 0 14px; }
+.va-head h2 { font-size: 1.25rem; margin: 0; }
+
 /* Name and email are one identity, not two columns to scan separately. */
 .st-who { display: flex; align-items: center; gap: 11px; }
 .st-id { display: flex; flex-direction: column; line-height: 1.35; min-width: 0; }

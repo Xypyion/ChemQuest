@@ -4,7 +4,7 @@ const db = require('../db');
 const game = require('../game');
 const { finalizeAttempt } = require('../grading');
 const challengeLib = require('../challenges');
-const { authMiddleware, requireRole, publicUser, hashPassword } = require('../auth');
+const { authMiddleware, requireRole, publicUser, hashPassword, signViewAsToken } = require('../auth');
 
 const router = express.Router();
 
@@ -299,6 +299,16 @@ router.post('/students/:id/password', (req, res) => {
   user.passwordHash = hashPassword(password);
   db.save();
   res.json({ ok: true });
+});
+
+/** Sign the teacher in AS this student, for testing the real student flow.
+ *  No password needed (the teacher could reset it anyway), and deliberately
+ *  NOT recorded as a login — Student Logs shows when the student themself
+ *  signed in, and a teacher's test visit must not show up there. */
+router.post('/students/:id/view-as', (req, res) => {
+  const user = db.findById('users', req.params.id);
+  if (!user || user.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
+  res.json({ token: signViewAsToken(user, req.user), user: publicUser(user) });
 });
 
 router.delete('/students/:id', (req, res) => {
