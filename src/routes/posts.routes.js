@@ -1,7 +1,20 @@
 /**
- * Assignment board ("posts") routes — a Facebook-group-style feed per level.
- * Students and the teacher can post text + file attachments, comment, like,
- * and students can send a private question to the teacher under any post.
+ * Assignment board ("posts") routes — one board per level.
+ *
+ * A level can have many ASSIGNMENTS (teacher posts), and each assignment has
+ * its OWN rating criteria. Students hand their work in UNDER an assignment
+ * (`assignmentId` on the student's post), and that work is rated on that
+ * assignment's criteria. Student posts with no assignment are free "class
+ * posts": shared, liked and commented on, but not rated.
+ *
+ * (Before: one set of criteria for the whole level, and student work that
+ * belonged to no assignment — so a level with three assignments could not
+ * rate each on its own terms. The old level-wide list, `lesson.ratingCriteria`,
+ * is still returned as `legacyCriteria` so a teacher's first new assignment
+ * can start from it.)
+ *
+ * Everyone can comment and like; students can send a private question to the
+ * teacher under an assignment.
  *
  * Attachments arrive as base64 data URLs and are written to data/uploads/,
  * then served back as /uploads/<file> so the JSON store stays small.
@@ -68,8 +81,26 @@ function deleteAttachmentFiles(post) {
   });
 }
 
+const MAX_CRITERIA = 8;
+const MAX_TITLE = 120;
+
+/** A criteria list as typed by the teacher -> stored shape (ids kept, so ratings survive edits). */
+function normalizeCriteria(arr) {
+  return (Array.isArray(arr) ? arr : [])
+    .map((c) => ({ id: (c && c.id) || crypto.randomUUID(), label: ((c && c.label) || '').toString().trim().slice(0, 80) }))
+    .filter((c) => c.label)
+    .slice(0, MAX_CRITERIA);
+}
+
+/** The criteria a student's work is rated on: its assignment's, or none. */
+function criteriaFor(post) {
+  if (!post || post.isAssignment || !post.assignmentId) return [];
+  const a = db.findById('posts', post.assignmentId);
+  return a && a.isAssignment && a.lessonId === post.lessonId ? (a.criteria || []) : [];
+}
+
 /**
- * Peer/teacher rating summary for a student work, against the level's criteria.
+ * Peer/teacher rating summary for a student work, against its assignment's criteria.
  * Aggregates per-criterion averages (individual raters stay anonymous), plus the
  * requesting user's own rating and the teacher's rating (shown distinctly).
  */
@@ -105,6 +136,9 @@ function viewPost(post, user, criteria) {
     lessonId: post.lessonId,
     author: post.author,
     isAssignment: !!post.isAssignment,
+    title: post.title || '',
+    criteria: post.isAssignment ? (post.criteria || []) : undefined,
+    assignmentId: post.assignmentId || null,
     text: post.text,
     attachments: post.attachments || [],
     likes: post.likes || [],
@@ -112,8 +146,8 @@ function viewPost(post, user, criteria) {
     comments: post.comments || [],
     // Private questions: the teacher sees all; a student only their own.
     questions: (post.questions || []).filter((qq) => isTeacher || qq.author.id === user.id),
-    // Ratings only apply to student works, never to a teacher's assignment post.
-    rating: post.isAssignment ? null : ratingSummary(post, user, criteria),
+    // Ratings only apply to work handed in under an assignment that has criteria.
+    rating: post.isAssignment || !criteria.length ? null : ratingSummary(post, user, criteria),
     createdAt: post.createdAt,
     canDelete: isTeacher || post.author.id === user.id,
   };
@@ -123,16 +157,16 @@ function viewPost(post, user, criteria) {
 router.get('/lesson/:lessonId', (req, res) => {
   const lesson = db.findById('lessons', req.params.lessonId);
   if (!lesson) return res.status(404).json({ error: 'That level does not exist.' });
-  const criteria = lesson.ratingCriteria || [];
-  const posts = db
-    .filter('posts', (p) => p.lessonId === lesson.id)
+  const all = db.filter('posts', (p) => p.lessonId === lesson.id);
+  const critById = new Map(all.filter((p) => p.isAssignment).map((p) => [p.id, p.criteria || []]));
+  const posts = all
     .sort((a, b) => {
-      // Teacher assignments pinned on top, then newest first.
+      // Teacher assignments first, then newest first.
       if (!!b.isAssignment !== !!a.isAssignment) return b.isAssignment ? 1 : -1;
       return new Date(b.createdAt) - new Date(a.createdAt);
     })
-    .map((p) => viewPost(p, req.user, criteria));
-  res.json({ posts, criteria });
+    .map((p) => viewPost(p, req.user, p.assignmentId ? (critById.get(p.assignmentId) || []) : []));
+  res.json({ posts, legacyCriteria: req.user.role === 'teacher' ? (lesson.ratingCriteria || []) : [] });
 });
 
 /** POST /api/posts/lesson/:lessonId — create a post (text and/or files). */
@@ -145,13 +179,25 @@ router.post('/lesson/:lessonId', (req, res) => {
   const rawFiles = Array.isArray(body.attachments) ? body.attachments.slice(0, MAX_FILES_PER_POST) : [];
   const attachments = rawFiles.map(saveAttachment).filter(Boolean);
 
-  if (!text && !attachments.length) return res.status(400).json({ error: 'Write something or attach a file first.' });
+  const isTeacher = req.user.role === 'teacher';
+  const title = isTeacher ? (body.title || '').toString().trim().slice(0, MAX_TITLE) : '';
+  if (!text && !attachments.length && !title) return res.status(400).json({ error: 'Write something or attach a file first.' });
+
+  // A student's post handed in under an assignment must name one on THIS level.
+  let assignmentId = null;
+  if (!isTeacher && body.assignmentId) {
+    const a = db.findById('posts', String(body.assignmentId));
+    if (!a || !a.isAssignment || a.lessonId !== lesson.id) {
+      return res.status(400).json({ error: 'That assignment is not on this level.' });
+    }
+    assignmentId = a.id;
+  }
 
   const post = {
     id: crypto.randomUUID(),
     lessonId: lesson.id,
     author: authorOf(req.user),
-    isAssignment: req.user.role === 'teacher',
+    isAssignment: isTeacher,
     text,
     attachments,
     likes: [],
@@ -159,12 +205,31 @@ router.post('/lesson/:lessonId', (req, res) => {
     questions: [],
     createdAt: new Date().toISOString(),
   };
+  if (isTeacher) { post.title = title; post.criteria = normalizeCriteria(body.criteria); }
+  if (assignmentId) post.assignmentId = assignmentId;
   db.insert('posts', post);
-  res.status(201).json({ post: viewPost(post, req.user, lesson.ratingCriteria || []) });
+  res.status(201).json({ post: viewPost(post, req.user, criteriaFor(post)) });
 });
 
 /**
- * POST /api/posts/:id/rate — rate a classmate's work against the level's
+ * PATCH /api/posts/:id/assignment — the teacher edits an assignment's title
+ * and its rating criteria. Criteria keep their ids, so stars already given on
+ * a criterion that is renamed stay with it; a removed criterion's stars stop
+ * counting but are not deleted.
+ */
+router.patch('/:id/assignment', (req, res) => {
+  if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Only the teacher edits assignments.' });
+  const post = db.findById('posts', req.params.id);
+  if (!post || !post.isAssignment) return res.status(404).json({ error: 'Assignment not found.' });
+  const body = req.body || {};
+  if (typeof body.title === 'string') post.title = body.title.trim().slice(0, MAX_TITLE);
+  if (Array.isArray(body.criteria)) post.criteria = normalizeCriteria(body.criteria);
+  db.save();
+  res.json({ post: viewPost(post, req.user, []) });
+});
+
+/**
+ * POST /api/posts/:id/rate — rate a classmate's work against its assignment's
  * criteria. Any logged-in user may rate (students rate peers, the teacher rates
  * too), but never their own post and never a teacher assignment post. Scores are
  * 1–5 per criterion; a rater may update one or more criteria at a time.
@@ -175,9 +240,8 @@ router.post('/:id/rate', (req, res) => {
   if (post.isAssignment) return res.status(403).json({ error: 'Only student works can be rated.' });
   if (post.author.id === req.user.id) return res.status(403).json({ error: 'You cannot rate your own work.' });
 
-  const lesson = db.findById('lessons', post.lessonId);
-  const criteria = (lesson && lesson.ratingCriteria) || [];
-  if (!criteria.length) return res.status(400).json({ error: 'Your teacher has not set any rating criteria yet.' });
+  const criteria = criteriaFor(post);
+  if (!criteria.length) return res.status(400).json({ error: 'This work is not rated: it has no assignment criteria.' });
 
   const critIds = new Set(criteria.map((c) => c.id));
   const raw = (req.body && req.body.scores) || {};
@@ -266,6 +330,12 @@ router.delete('/:id', (req, res) => {
   }
   deleteAttachmentFiles(post);
   db.remove('posts', post.id);
+  // Work handed in under a deleted assignment is the students' own: it stays,
+  // as a class post (no longer rated).
+  if (post.isAssignment) {
+    db.filter('posts', (p) => p.assignmentId === post.id).forEach((p) => { delete p.assignmentId; });
+    db.save();
+  }
   res.json({ ok: true });
 });
 

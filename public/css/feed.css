@@ -162,3 +162,32 @@
 
 /* Teacher console gets light backgrounds for these cards */
 body.teacher .post-card, body.teacher .composer { box-shadow: 0 6px 20px rgba(30,30,60,.08); }
+
+/* -------- Assignments with their own criteria, and the work handed in under each -------- */
+.feed-sec { margin: 10px 0 0; font-size: 1.15rem; color: var(--ink); }
+.feed-sec-sub { margin: -8px 0 0; color: var(--ink-soft); font-size: .9rem; }
+.feed-new { align-self: flex-start; }
+.new-assign { background: var(--card); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow-soft); display: grid; gap: 8px; }
+.new-assign .na-head { font-weight: 800; font-size: 1.05rem; color: var(--ink); }
+.new-assign .composer { box-shadow: none; padding: 0; }
+.new-assign > .btn { justify-self: start; }
+.crit-editor { display: grid; gap: 4px; }
+.crit-hint { color: var(--ink-soft); font-size: .84rem; }
+.crit-row .crit-in { flex: 1; }
+.crit-add { justify-self: start; margin-top: 4px; }
+
+.post-card .as-title { margin: 4px 0 6px; font-size: 1.2rem; color: var(--ink); }
+.as-crit { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; font-size: .88rem; }
+.as-crit b { color: var(--ink-soft); }
+.as-crit-chip { padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--secondary) 14%, transparent); color: var(--ink); font-weight: 600; }
+.as-edit-btn { margin-left: auto; padding: 5px 12px; font-size: .8rem; }
+.as-edit { margin-top: 10px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--secondary) 8%, transparent); display: grid; gap: 6px; }
+.as-edit-acts { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* The work handed in sits INSIDE its assignment, set in from it. */
+.as-work { margin-top: 14px; padding: 12px; border-radius: 16px; background: color-mix(in srgb, var(--ink) 5%, transparent); display: grid; gap: 10px; }
+.as-work-head { font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.as-mine { font-size: .82rem; font-weight: 700; color: var(--good); }
+.as-work .composer { box-shadow: none; }
+.post-card.work { box-shadow: none; border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+.feed-empty.small { padding: 10px; font-size: .88rem; }
