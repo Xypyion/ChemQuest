@@ -650,9 +650,18 @@ body.teacher input[type=radio], body.teacher input[type=checkbox] {
 .t-search { max-width: 280px; }
 .t-tablewrap { overflow-x: auto; }
 
-/* "Sign in as a student" — a second section under the level previews. */
-.t-head.va-head { margin: 30px 0 14px; }
-.va-head h2 { font-size: 1.25rem; margin: 0; }
+/* The teacher's own test student account, top of "Play as student". */
+.practice-card { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.practice-card .av { line-height: 0; flex: none; }
+.practice-card .av img { border-radius: 50%; }
+.practice-info { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+.practice-info .sub { color: var(--t-soft); font-size: .88rem; }
+/* Marks that account in the Students list. Same family as .ai-chip. */
+.practice-chip {
+  font-size: .7rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase;
+  color: var(--t-indigo); background: #eceafb; padding: 2px 8px; border-radius: 999px;
+  margin-left: 6px; vertical-align: 1px;
+}
 
 /* Name and email are one identity, not two columns to scan separately. */
 .st-who { display: flex; align-items: center; gap: 11px; }

@@ -148,7 +148,8 @@ studentRouter.get('/opponents', (req, res) => {
   const today = actionsToday(req.user.id);
 
   const list = db
-    .filter('users', (u) => u.role === 'student' && u.id !== req.user.id)
+    .filter('users', (u) => u.role === 'student' && u.id !== req.user.id
+      && !!u.practice === !!req.user.practice) // test accounts only meet test accounts
     .map((u) => {
       const last = lastAgainst(req.user.id, u.id);
       // Reported against the cheapest difficulty, so a student is only shown as

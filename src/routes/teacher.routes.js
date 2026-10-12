@@ -261,6 +261,7 @@ function studentSummary(u) {
     certificates: (u.certificates || []).length,
     levelsCompleted: completed,
     avatar: u.avatar || '🧑‍🎓',
+    practice: !!u.practice,
     createdAt: u.createdAt,
   };
 }
@@ -301,13 +302,34 @@ router.post('/students/:id/password', (req, res) => {
   res.json({ ok: true });
 });
 
-/** Sign the teacher in AS this student, for testing the real student flow.
- *  No password needed (the teacher could reset it anyway), and deliberately
- *  NOT recorded as a login — Student Logs shows when the student themself
- *  signed in, and a teacher's test visit must not show up there. */
-router.post('/students/:id/view-as', (req, res) => {
-  const user = db.findById('users', req.params.id);
-  if (!user || user.role !== 'student') return res.status(404).json({ error: 'Student not found.' });
+/** Switch to this teacher's own test student account, creating it the first
+ *  time. One per teacher, linked by `practiceOf`. It is a real student
+ *  account (so every student page and rule applies), but `practice: true`
+ *  keeps it off the class leaderboard, the gradebook and coin battles with
+ *  real students. Its password is random and never shown: the only way in
+ *  is this switch. */
+router.post('/practice-student', (req, res) => {
+  let user = db.find('users', (u) => u.role === 'student' && u.practiceOf === req.user.id);
+  if (!user) {
+    user = {
+      id: crypto.randomUUID(),
+      role: 'student',
+      practice: true,
+      practiceOf: req.user.id,
+      name: `${req.user.name || 'Teacher'} (Test)`,
+      email: `test-${req.user.id}@practice.local`,
+      passwordHash: hashPassword(crypto.randomBytes(24).toString('hex')),
+      progress: {},
+      certificates: [],
+      earnedPoints: 0,
+      bonusPoints: 0,
+      points: 0,
+      avatar: 's1',
+      createdAt: new Date().toISOString(),
+    };
+    game.recalcPoints(user);
+    db.insert('users', user);
+  }
   res.json({ token: signViewAsToken(user, req.user), user: publicUser(user) });
 });
 
@@ -329,7 +351,7 @@ function gradebookColumns() {
 }
 function gradebookRows() {
   return db
-    .filter('users', (u) => u.role === 'student')
+    .filter('users', (u) => u.role === 'student' && !u.practice) // a teacher's test account is not a grade
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     .map((u) => ({ id: u.id, name: u.name, avatar: u.avatar || '🧑‍🎓', grades: u.grades || {} }));
 }

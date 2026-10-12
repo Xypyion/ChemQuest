@@ -7,7 +7,7 @@ const router = express.Router();
 /** GET /api/leaderboard — all students ranked by points (any logged-in user). */
 router.get('/', authMiddleware, (req, res) => {
   const ranked = db
-    .filter('users', (u) => u.role === 'student')
+    .filter('users', (u) => u.role === 'student' && !u.practice) // not a teacher's test account
     .map((u) => {
       const progress = u.progress || {};
       return {

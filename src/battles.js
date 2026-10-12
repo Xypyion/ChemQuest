@@ -172,6 +172,9 @@ function canAttack(attacker, defender, ctx) {
   if (ctx.openBattle) return { ok: false, reason: 'battleInProgress' };
   if (!defender || defender.role !== 'student') return { ok: false, reason: 'notAStudent' };
   if (defender.id === attacker.id) return { ok: false, reason: 'self' };
+  // A teacher's test account and real students never fight: no coins move
+  // between pretend and real.
+  if (!!defender.practice !== !!attacker.practice) return { ok: false, reason: 'notAStudent' };
 
   if (s.dailyLimit > 0 && ctx.battlesToday >= s.dailyLimit) {
     return { ok: false, reason: 'dailyLimit' };
@@ -252,6 +255,7 @@ function canDuel(challenger, defender, ctx) {
   if (!s.enabled) return { ok: false, reason: 'disabled' };
   if (!defender || defender.role !== 'student') return { ok: false, reason: 'notAStudent' };
   if (defender.id === challenger.id) return { ok: false, reason: 'self' };
+  if (!!defender.practice !== !!challenger.practice) return { ok: false, reason: 'notAStudent' };
 
   if (ctx.openSent >= MAX_OPEN_DUELS) return { ok: false, reason: 'tooManyDuels' };
   if (ctx.pendingAgainst) return { ok: false, reason: 'duelPending' };
