@@ -36,6 +36,21 @@ const TQuests = (() => {
     loaded = false;
   }
 
+  /* Unsaved-changes check (see "UNSAVED CHANGES" in teacher.js). */
+  let snap = null;
+  let snapPending = false;
+  function takeSnap() {
+    if (!snapPending || !draft) return;
+    snapPending = false;
+    syncDraft();
+    snap = JSON.stringify(draft);
+  }
+  function isDirty() {
+    if (mode !== 'editor' || !draft || !document.getElementById('q-title')) return false;
+    syncDraft();
+    return JSON.stringify(draft) !== snap;
+  }
+
   async function load() {
     list = (await API.get('/api/teacher/quests')).quests || [];
     loaded = true;
@@ -49,7 +64,7 @@ const TQuests = (() => {
       host.innerHTML = `<div class="t-card empty">${t('common.loading')}</div>`;
       try { await load(); } catch (e) { host.innerHTML = `<div class="t-card empty">${esc(e.message)}</div>`; return; }
     }
-    if (mode === 'editor') return paintEditor();
+    if (mode === 'editor') { paintEditor(); takeSnap(); return; }
     if (mode === 'responses') return paintResponses();
     paintList();
   }
@@ -155,6 +170,7 @@ const TQuests = (() => {
   function newQuest() {
     draft = { id: null, title: '', icon: '⚔️', description: '', reward: 10, timeLimit: 0, opensAt: '', closesAt: '', questions: [blankQuestion('mcq')] };
     mode = 'editor';
+    snapPending = true;
     render();
   }
 
@@ -173,6 +189,7 @@ const TQuests = (() => {
         questions: (q.questions || []).map(mapInQuestion),
       };
       mode = 'editor';
+      snapPending = true;
       render();
     } catch (e) { toast(e.message, 'bad'); }
   }
@@ -551,6 +568,8 @@ const TQuests = (() => {
   }
 
   function backToList() {
+    // Back / Cancel from the editor asks first if anything is unsaved.
+    if (mode === 'editor' && !confirmDiscard()) return;
     mode = 'list';
     draft = null;
     responses = null;
@@ -588,5 +607,5 @@ const TQuests = (() => {
   };
   window.TQ = api;
 
-  return { render, reset };
+  return { render, reset, isDirty };
 })();

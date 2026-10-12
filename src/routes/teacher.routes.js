@@ -273,7 +273,13 @@ router.post('/lessons/:id/posttest-open', (req, res) => {
   const lesson = db.findById('lessons', req.params.id);
   if (!lesson) return res.status(404).json({ error: 'Level not found.' });
   lesson.postTest = lesson.postTest || { open: false, timeLimit: 0, quizzes: { easy: [], medium: [], hard: [] } };
-  lesson.postTest.open = !!(req.body && req.body.open);
+  const open = !!(req.body && req.body.open);
+  // Opening an empty post-test would show students a test with nothing in it.
+  // Closing is always allowed.
+  const q = lesson.postTest.quizzes || {};
+  const count = ['easy', 'medium', 'hard'].reduce((n, k) => n + ((q[k] || []).length), 0);
+  if (open && !count) return res.status(400).json({ error: 'Add and save post-test questions before opening it.' });
+  lesson.postTest.open = open;
   db.save();
   res.json({ ok: true, open: lesson.postTest.open });
 });
@@ -398,12 +404,17 @@ router.post('/gradebook/columns', (req, res) => {
   const cols = arr.slice(0, 40).map((c, i) => {
     let max = Number(c && c.max);
     if (!Number.isFinite(max) || max < 1) max = 100;
-    return {
+    const col = {
       id: (c && c.id) || crypto.randomUUID(),
       name: ((c && c.name) || '').toString().trim().slice(0, 60) || 'Untitled',
       max: Math.min(Math.round(max), 100000),
       order: i,
     };
+    // An imported column remembers what it was imported from (server-side
+    // only, so the client cannot forge it), so importing again updates it.
+    const old = c && c.id && db.findById('gradebook', c.id);
+    if (old && old.source) col.source = old.source;
+    return col;
   });
   const keep = new Set(cols.map((c) => c.id));
   // Drop scores that belonged to removed columns.
@@ -437,7 +448,29 @@ router.post('/gradebook/score', (req, res) => {
 });
 
 /** Create a column pre-filled from a level's pre-test or post-test best scores,
- *  or from the points students earned on one challenge. */
+ *  or from the points students earned on one challenge.
+ *
+ *  Importing the same source again UPDATES its column instead of adding a
+ *  second one: an import is a snapshot, and re-importing is how a teacher
+ *  refreshes it after more marking. (It used to add a duplicate every time.)
+ *  A student who never took the test or handed in the challenge gets an empty
+ *  cell, not a 0 — "not done" and "scored nothing" are different things. */
+function importColumn(source, name, max) {
+  let col = db.find('gradebook', (c) => c.source === source);
+  const updated = !!col;
+  if (col) col.max = max; // keep the name: the teacher may have renamed it
+  else {
+    col = { id: crypto.randomUUID(), name, max, order: db.all('gradebook').length, source };
+    db.insert('gradebook', col);
+  }
+  return { col, updated };
+}
+function setImported(u, colId, score) {
+  u.grades = u.grades || {};
+  if (score == null) delete u.grades[colId];
+  else u.grades[colId] = score;
+}
+
 router.post('/gradebook/import', (req, res) => {
   const body = req.body || {};
 
@@ -445,41 +478,31 @@ router.post('/gradebook/import', (req, res) => {
   if (body.challengeId) {
     const challenge = db.findById('challenges', body.challengeId);
     if (!challenge) return res.status(404).json({ error: 'Challenge not found.' });
-    const col = {
-      id: crypto.randomUUID(),
-      name: `${challenge.icon || '🧩'} ${challenge.title}`.trim().slice(0, 60),
-      max: Math.max(1, challengeLib.maxPoints(challenge)),
-      order: db.all('gradebook').length,
-    };
-    db.insert('gradebook', col);
+    const { col, updated } = importColumn('challenge:' + challenge.id,
+      `${challenge.icon || '🧩'} ${challenge.title}`.trim().slice(0, 60),
+      Math.max(1, challengeLib.maxPoints(challenge)));
     db.filter('users', (u) => u.role === 'student').forEach((u) => {
       const sub = db.find('challengeSubmissions', (s) => s.challengeId === challenge.id && s.userId === u.id);
-      if (!sub) return; // never handed it in — leave the cell empty for the teacher
-      u.grades = u.grades || {};
-      u.grades[col.id] = sub.status === 'graded' ? (sub.earned || 0) : (sub.autoEarned || 0);
+      // Never handed it in: empty cell for the teacher.
+      setImported(u, col.id, !sub ? null : sub.status === 'graded' ? (sub.earned || 0) : (sub.autoEarned || 0));
     });
     db.save();
-    return res.json({ columns: gradebookColumns(), rows: gradebookRows() });
+    return res.json({ columns: gradebookColumns(), rows: gradebookRows(), updated });
   }
 
   const lesson = db.findById('lessons', body.lessonId);
   if (!lesson) return res.status(404).json({ error: 'Level not found.' });
   const src = body.source === 'pre' ? 'pre' : 'post';
-  const col = {
-    id: crypto.randomUUID(),
-    name: `${lesson.icon || ''} ${lesson.title} — ${src === 'pre' ? 'Pre-test' : 'Post-test'}`.trim().slice(0, 60),
-    max: 100,
-    order: db.all('gradebook').length,
-  };
-  db.insert('gradebook', col);
+  const { col, updated } = importColumn(src + ':' + lesson.id,
+    `${lesson.icon || ''} ${lesson.title} — ${src === 'pre' ? 'Pre-test' : 'Post-test'}`.trim().slice(0, 60), 100);
   db.filter('users', (u) => u.role === 'student').forEach((u) => {
     const p = (u.progress || {})[lesson.id] || {};
-    const score = src === 'pre' ? (p.bestScore || 0) : ((p.post && p.post.bestScore) || 0);
-    u.grades = u.grades || {};
-    u.grades[col.id] = score;
+    const t = src === 'pre' ? p : (p.post || {});
+    // Same "has taken it" test as the level page's class counts.
+    setImported(u, col.id, t.attempts ? (t.bestScore || 0) : null);
   });
   db.save();
-  res.json({ columns: gradebookColumns(), rows: gradebookRows() });
+  res.json({ columns: gradebookColumns(), rows: gradebookRows(), updated });
 });
 
 /* ------------------------- Written-answer grading ------------------------ */
