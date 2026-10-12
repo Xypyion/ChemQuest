@@ -10,7 +10,11 @@
 const path = require('path');
 const express = require('express');
 const db = require('./src/db');
+const config = require('./src/config');
 const { seedIfEmpty } = require('./src/seed');
+
+// Demo mode only (`npm run demo`): a canned Kru CJ. Throws on a real server.
+if (config.aiFake()) require('./src/aiFake').install();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -68,6 +72,39 @@ app.use('/api', async (req, res, next) => {
   }
   next();
 });
+
+/* ---- Demo mode only (`npm run demo`) ----
+   GET /demo-login signs this browser in as the teacher and opens the console,
+   so the demo starts with no password to type. It exists only when DEMO=1, it
+   refuses to exist on a hosted or Postgres-backed server, and it only answers
+   requests from this computer. */
+if (config.demoMode()) {
+  if (config.isProductionLike()) {
+    throw new Error('DEMO=1 is for a local demo copy only. Refusing to start on a hosted or Postgres-backed server.');
+  }
+  const { signToken, publicUser } = require('./src/auth');
+  const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+  app.get('/demo-login', async (req, res, next) => {
+    try {
+      if (!LOOPBACK.has(req.socket.remoteAddress)) return res.status(403).send('The demo login only works on this computer.');
+      await db.ready();
+      const teacher = db.find('users', (u) => u.role === 'teacher');
+      if (!teacher) return res.status(503).send('The demo has no teacher yet. Run npm run demo again.');
+      // `<` escaped so nothing in a name can close the script tag.
+      const json = (v) => JSON.stringify(v).replace(/</g, '\\u003c');
+      res.set('Cache-Control', 'no-store');
+      res.type('html').send(`<!doctype html><meta charset="utf-8"><title>StoiVenture demo</title><script>
+localStorage.removeItem('cq_teacher_token');
+localStorage.removeItem('cq_teacher_user');
+localStorage.setItem('cq_token', ${json(signToken(teacher))});
+localStorage.setItem('cq_user', ${json(JSON.stringify(publicUser(teacher)))});
+location.replace('/teacher.html');
+</script>`);
+    } catch (err) {
+      next(err);
+    }
+  });
+}
 
 // ---- API ----
 app.use('/api/auth', require('./src/routes/auth.routes'));
@@ -158,7 +195,7 @@ app.get('/uploads/db/:id', async (req, res, next) => {
 });
 
 // Assignment attachments uploaded to the board (disk-backed hosts).
-app.use('/uploads', express.static(path.join(__dirname, 'data', 'uploads')));
+app.use('/uploads', express.static(path.join(db.dataDir, 'uploads')));
 
 // ---- Standalone mode ----
 // Only when run directly (`node server.js`). Under serverless the platform owns

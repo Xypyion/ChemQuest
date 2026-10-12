@@ -51,7 +51,33 @@ function apiKey() {
  * StoiVenture keeps working normally on a machine with no key configured.
  */
 function aiEnabled() {
-  return apiKey().length > 0;
+  return aiFake() || apiKey().length > 0;
+}
+
+/**
+ * DEMO ONLY. `AI_FAKE=1` swaps every Kru CJ call for a canned answer
+ * (src/aiFake.js), so `npm run demo` has a working Kru CJ with no key and no
+ * cost. Never in production: src/aiFake.js refuses to install on a hosted or
+ * Postgres-backed server.
+ */
+function aiFake() {
+  load();
+  return process.env.AI_FAKE === '1';
+}
+
+/**
+ * DEMO ONLY. `DEMO=1` adds GET /demo-login, which signs the browser in as the
+ * teacher with no password (see server.js). Same production refusal as AI_FAKE.
+ */
+function demoMode() {
+  load();
+  return process.env.DEMO === '1';
+}
+
+/** A server that real people use: hosted, or on the shared Postgres database. */
+function isProductionLike() {
+  load();
+  return !!(process.env.VERCEL || process.env.DATABASE_URL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY);
 }
 
 /**
@@ -180,6 +206,6 @@ function teacherSeed() {
 }
 
 module.exports = {
-  load, apiKey, aiEnabled, aiModel, aiLimits, tutorUnlimited, teacherSeed,
+  load, apiKey, aiEnabled, aiFake, demoMode, isProductionLike, aiModel, aiLimits, tutorUnlimited, teacherSeed,
   thinkingFor, noteThinkingUnsupported, rejectsThinking,
 };

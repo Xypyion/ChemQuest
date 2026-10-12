@@ -24,7 +24,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+/* Where the file backend keeps its data. `data/` unless `DATA_DIR` says
+   otherwise (a path relative to the repo root, or absolute) — `npm run demo`
+   points it at `data-demo/` so a fake class never touches real data.
+   Uploaded attachments live in `<DATA_DIR>/uploads` (posts.routes.js). */
+const ROOT_DIR = path.join(__dirname, '..');
+const DATA_DIR = path.resolve(ROOT_DIR, (process.env.DATA_DIR || '').trim() || 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 const DEFAULT_DATA = { users: [], lessons: [], meta: { version: 1 } };
@@ -450,6 +455,9 @@ const db = {
   close() {
     return backend.close();
   },
+
+  /** The data folder (see DATA_DIR above). */
+  dataDir: DATA_DIR,
 };
 
 module.exports = db;
