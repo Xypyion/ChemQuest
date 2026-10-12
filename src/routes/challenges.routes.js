@@ -354,13 +354,21 @@ teacherRouter.post('/:id/assign', (req, res) => {
 /** Move a challenge up/down inside its list. */
 teacherRouter.post('/:id/move', (req, res) => {
   const dir = (req.body && req.body.direction) === 'up' ? -1 : 1;
-  const list = db.all('challenges').slice().sort((a, b) => (a.order || 0) - (b.order || 0));
-  const i = list.findIndex((c) => c.id === req.params.id);
-  if (i === -1) return res.status(404).json({ error: 'Challenge not found.' });
+  const me = db.findById('challenges', req.params.id);
+  if (!me) return res.status(404).json({ error: 'Challenge not found.' });
+  const all = db.all('challenges').slice()
+    .sort((a, b) => (a.order || 0) - (b.order || 0) || new Date(a.createdAt) - new Date(b.createdAt));
+  // Challenges are managed inside their level now, so "up" means past the
+  // previous challenge OF THIS LEVEL — the global neighbour may belong to
+  // another level, and swapping with it changed nothing the teacher could see.
+  // Renumber first: several challenges sharing order 0 could never swap.
+  all.forEach((c, k) => { c.order = k + 1; });
+  const list = all.filter((c) => c.lessonId === me.lessonId);
+  const i = list.indexOf(me);
   const j = i + dir;
-  if (j < 0 || j >= list.length) return res.json({ ok: true });
-  const tmp = list[i].order || 0;
-  list[i].order = list[j].order || 0;
+  if (j < 0 || j >= list.length) { db.save(); return res.json({ ok: true }); }
+  const tmp = list[i].order;
+  list[i].order = list[j].order;
   list[j].order = tmp;
   db.save();
   res.json({ ok: true });

@@ -1,9 +1,11 @@
 /**
  * Teacher console — ✨ "Write me some questions", the AI panel.
  *
- * A dialog shared by two editors that already look the same:
- *   TQuests  (⚔️ Daily Quests)   — questions for one quest
- *   TBattles (🤺 Coin Battles)   — questions for one difficulty's bank
+ * A dialog shared by three editors that already look the same:
+ *   TQuests     (Daily Quests)  — questions for one quest
+ *   TBattles    (Coin Battles)  — questions for one difficulty's bank
+ *   TChallenges (a level's challenges) — questions for one challenge, written
+ *                to fit that level (the server is told which one)
  *
  * Both call `TAI.open({...})` and get a list of drafts back through `onInsert`.
  * Nothing here saves anything: the questions land in the editor the teacher is
@@ -37,14 +39,16 @@ const TAI = (() => {
 
   /**
    * @param {object} opts
-   * @param {string} opts.target      'battle' | 'quest' — what it is being written for
+   * @param {string} opts.target      'battle' | 'quest' | 'challenge' — what it is being written for
+   * @param {string} [opts.lessonId]  for a challenge: the level it belongs to
    * @param {string} [opts.difficulty] 'easy' | 'medium' | 'hard'
    * @param {string[]} [opts.types]   which types this editor accepts
    * @param {function} opts.onInsert  (questions[]) => void
    */
   async function open(opts) {
     ctx = {
-      target: opts.target === 'quest' ? 'quest' : 'battle',
+      target: ['quest', 'challenge'].includes(opts.target) ? opts.target : 'battle',
+      lessonId: opts.lessonId || null,
       difficulty: opts.difficulty || 'easy',
       types: (opts.types && opts.types.length ? opts.types : ['mcq']).slice(),
       onInsert: opts.onInsert,
@@ -100,7 +104,7 @@ const TAI = (() => {
         ${esc(TYPE_LABEL[ty]())}
       </label>`).join('');
 
-    const diffPicker = ctx.target === 'quest' ? `
+    const diffPicker = ctx.target !== 'battle' ? `
       <div>
         <label class="t-label">${t('t.aiDifficulty')}</label>
         <select class="t-input" id="ai-diff">
@@ -249,6 +253,7 @@ const TAI = (() => {
         types: ctx.picked,
         notes: ctx.notes,
         lang: getLang(),
+        lessonId: ctx.lessonId,
       });
       // Everything arrives ticked: the common case is "these are fine, add them".
       results = (r.questions || []).map((q) => ({ ...q, _take: true, _difficulty: ctx.difficulty }));
