@@ -61,7 +61,7 @@ function renderList() {
 function walletCard() {
   return `
     <div class="q-wallet">
-      <div class="q-wallet-coin">🪙</div>
+      <div class="q-wallet-coin">${ICON.coin(52)}</div>
       <div class="q-wallet-body">
         <div class="q-wallet-label">${t('quest.wallet')}</div>
         <div class="q-wallet-amount">${wallet.coins || 0}</div>
@@ -91,7 +91,7 @@ function questCard(q) {
 
   return `
     <article class="q-card ${canOpen ? '' : 'locked'}" ${canOpen ? `onclick="openQuest('${escapeHtml(q.id)}')"` : ''}>
-      <div class="q-card-icon">${escapeHtml(q.icon || '⚔️')}</div>
+      <div class="q-card-icon">${q.icon ? escapeHtml(q.icon) : ICON.quests(30)}</div>
       <div class="q-card-main">
         <div class="q-card-top">
           <h3>${escapeHtml(q.title)}</h3>
@@ -107,7 +107,7 @@ function questCard(q) {
       </div>
       <div class="q-card-side">
         <div class="q-reward">
-          <span class="q-reward-label">${done ? t('quest.coinsAdded', { n: q.coinsAwarded || 0 }) : t('quest.coins', { n: q.reward })}</span>
+          <span class="q-reward-label">${ICON.coin(16)} ${done ? t('quest.coinsAdded', { n: q.coinsAwarded || 0 }) : t('quest.coins', { n: q.reward })}</span>
         </div>
         ${canOpen ? `<span class="q-cta">${cta}</span>` : ''}
       </div>
@@ -124,7 +124,7 @@ function historyCard() {
       <ul class="q-history-list">
         ${wallet.history.map((h) => `
           <li>
-            <span class="q-h-icon">${escapeHtml(h.icon || '⚔️')}</span>
+            <span class="q-h-icon">${h.icon ? escapeHtml(h.icon) : ICON.quests(20)}</span>
             <span class="q-h-title">${escapeHtml(h.title)}</span>
             <span class="q-h-when">${escapeHtml(fmtWhen(h.at))}</span>
             <span class="q-h-coins">+${h.coins}</span>
@@ -155,14 +155,14 @@ function renderPlay() {
     <div class="q-play">
       <button class="btn ghost q-back" onclick="renderList()">${t('quest.back')}</button>
       <div class="q-play-head">
-        <div class="q-card-icon big">${escapeHtml(q.icon || '⚔️')}</div>
+        <div class="q-card-icon big">${q.icon ? escapeHtml(q.icon) : ICON.quests(40)}</div>
         <div>
           <h2>${escapeHtml(q.title)}</h2>
           ${q.description ? `<p class="muted">${escapeHtml(q.description)}</p>` : ''}
           <div class="q-card-meta">
             <span>${t('quest.pts', { n: q.maxPoints })}</span>
             <span>·</span>
-            <span>🪙 ${q.reward}</span>
+            <span>${ICON.coin(16)} ${q.reward}</span>
             ${q.timeLimit && !reviewing ? `<span>·</span><span id="qTimer" class="q-timer"></span>` : ''}
           </div>
         </div>
@@ -296,7 +296,7 @@ function tick() {
   const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
   const m = String(Math.floor(left / 60)).padStart(2, '0');
   const s = String(left % 60).padStart(2, '0');
-  el.textContent = `⏱ ${t('quest.timeLeft')} ${m}:${s}`;
+  el.innerHTML = `${ICON.timer(16)} ${t('quest.timeLeft')} ${m}:${s}`;
   el.classList.toggle('low', left <= 15);
   if (left <= 0) {
     stopTimer();

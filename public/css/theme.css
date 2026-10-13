@@ -97,6 +97,11 @@ a { color: var(--secondary-dark); }
 .cloud.c3 { top: 6%;  left: -160px; animation-duration: 78s; transform: scale(.7); opacity: .7; }
 @keyframes drift { to { transform: translateX(115vw); } }
 
+/* Icons sitting inline in a line of text line up with the text, not the
+   baseline. (Inside flex rows vertical-align does nothing, so this only
+   touches the places where an icon replaced an emoji in running text.) */
+svg.ic { flex: none; vertical-align: -0.18em; }
+
 /* ---------- Layout helpers ---------- */
 .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 24px; }
 .center-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; }

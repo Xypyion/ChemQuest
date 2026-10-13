@@ -105,7 +105,7 @@ function walletCard() {
     : t('battle.unlimited');
   return `
     <div class="q-wallet">
-      <div class="q-wallet-coin">🪙</div>
+      <div class="q-wallet-coin">${ICON.coin(52)}</div>
       <div class="q-wallet-body">
         <div class="q-wallet-label">${t('battle.wallet')}</div>
         <div class="q-wallet-amount">${(rules && rules.coins) || 0}</div>
@@ -124,7 +124,7 @@ function difficultyCard() {
       <button class="b-diff ${d} ${on ? 'on' : ''} ${bank ? '' : 'empty'}"
               ${bank ? `onclick="pickDifficulty('${d}')"` : 'disabled'}>
         <span class="b-diff-name">${escapeHtml(tDiff(d))}</span>
-        <span class="b-diff-stake">${t('battle.stakeLabel', { n: stake })}</span>
+        <span class="b-diff-stake">${ICON.coin(14)} ${t('battle.stakeLabel', { n: stake })}</span>
         <span class="b-diff-meta">${bank
           ? `${t('battle.questionsPer', { n: rules.questionsPerBattle, s: rules.questionsPerBattle === 1 ? '' : 's' })} · ${time ? t('battle.timer', { n: time }) : t('battle.noTimer')}`
           : t('battle.emptyBank')}</span>
@@ -161,12 +161,12 @@ function opponentCard() {
         <div class="b-opp-face">${avatarHtml(o.avatar, 42)}</div>
         <div class="b-opp-main">
           <div class="b-opp-name">${escapeHtml(o.name)}</div>
-          <div class="b-opp-coins">${t('battle.coins', { n: o.coins })}</div>
+          <div class="b-opp-coins">${ICON.coin(14)} ${t('battle.coins', { n: o.coins })}</div>
           ${canFight ? '' : `<div class="b-opp-why">${escapeHtml(why)}</div>`}
         </div>
         ${canFight
           ? `<button class="btn primary b-go" onclick="startFight('${escapeHtml(o.id)}')">${t('battle.attack')}</button>`
-          : `<span class="b-locked">🔒</span>`}
+          : `<span class="b-locked">${ICON.lock(20)}</span>`}
       </div>`;
   }).join('');
   return `<section class="b-section"><h3>${t('battle.pickOpponent')}</h3>
@@ -197,7 +197,7 @@ function historyCard() {
             : (win ? 'battle.logDefendLoss' : 'battle.logDefendWin');
           return `
             <li>
-              <span class="q-h-icon">${escapeHtml(b.opponentAvatar || '🧑‍🎓')}</span>
+              <span class="q-h-icon">${b.opponentAvatar ? avatarHtml(b.opponentAvatar, 28) : ICON.people(22)}</span>
               <span class="q-h-title">${escapeHtml(t(key, { name: b.opponentName }))}</span>
               <span class="q-h-when">${escapeHtml(fmtWhen(b.startedAt))}</span>
               <span class="q-h-coins ${win ? '' : 'down'}">${win ? '+' : '−'}${b.coinsMoved}</span>
@@ -245,11 +245,11 @@ function renderFight(timeLimit) {
         </div>
         <div class="b-vs-mid">
           <div class="b-vs-word">VS</div>
-          <div class="b-vs-stake">🪙 ${b.stake}</div>
+          <div class="b-vs-stake">${ICON.coin(16)} ${b.stake}</div>
           ${b.expiresAt ? `<div class="b-timer" id="bTimer"></div>` : ''}
         </div>
         <div class="b-vs-side">
-          <div class="b-vs-face">${escapeHtml(b.opponentAvatar || '🧑‍🎓')}</div>
+          <div class="b-vs-face">${b.opponentAvatar ? avatarHtml(b.opponentAvatar, 56) : ICON.people(40)}</div>
           <div class="b-vs-name">${escapeHtml(b.opponentName)}</div>
         </div>
       </div>
@@ -331,7 +331,7 @@ function renderResult() {
       <h2>${win ? t('battle.win') : t('battle.lose')}</h2>
       <p class="b-result-coins">${escapeHtml(moved)}</p>
       ${r.late ? `<p class="b-late">${t('battle.lateNote')}</p>` : ''}
-      <div class="b-result-wallet">🪙 <b>${r.coins}</b></div>
+      <div class="b-result-wallet">${ICON.coin(22)} <b>${r.coins}</b></div>
       <div class="ch-result">${rows}</div>
       <div class="b-result-actions">
         <button class="btn primary" onclick="renderLobby()">${t('battle.again')}</button>
@@ -361,7 +361,7 @@ function tick() {
   const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
   const m = String(Math.floor(left / 60)).padStart(2, '0');
   const s = String(left % 60).padStart(2, '0');
-  el.textContent = `⏱ ${m}:${s}`;
+  el.innerHTML = `${ICON.timer(16)} ${m}:${s}`;
   el.classList.toggle('low', left <= 10);
   if (left <= 0) {
     stopTimer();

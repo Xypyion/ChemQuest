@@ -7,7 +7,8 @@ mountLangSwitch();
 if (me) document.getElementById('navPoints').textContent = me.points || 0;
 refreshNavCoins();
 
-const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
+/* Gold, silver, bronze — drawn, not emoji, so every phone shows the same medal. */
+const medal = (rank) => `<span class="medal m${rank}" role="img" aria-label="#${rank}">${ICON.certificates(26)}</span>`;
 
 (async () => {
   try {
@@ -37,7 +38,7 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
     const top3 = leaderboard.slice(0, 3);
     podium.innerHTML = top3.map((s) => `
       <div class="col c${s.rank}">
-        <div class="crown">${s.rank === 1 ? '👑' : ''}</div>
+        <div class="crown">${s.rank === 1 ? ICON.crown(28) : ''}</div>
         <div class="pav ${s.id === meId ? 'me' : ''}">${avatarHtml(s.avatar, 46)}</div>
         <div class="pname">${escapeHtml(s.name)}${s.id === meId ? t('lb.youSuffix') : ''}</div>
         <div class="ppts">${s.points} ${t('nav.pts')}</div>
@@ -51,12 +52,12 @@ const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
       const isLowest = leaderboard.length > 3 && s.points === lowestPts && s.rank === leaderboard.length;
       return `
       <div class="lb-row ${isMe ? 'me' : ''} ${s.rank <= 3 ? 'top3' : ''} ${isLowest ? 'lowest' : ''}">
-        <div class="rank">${MEDALS[s.rank] || '#' + s.rank}</div>
+        <div class="rank">${s.rank <= 3 ? medal(s.rank) : '#' + s.rank}</div>
         <div class="av">${avatarHtml(s.avatar, 30)}</div>
         <div class="who">
           <div class="n">${escapeHtml(s.name)} ${isMe ? `<span class="you-tag">${t('lb.you')}</span>` : ''}</div>
           <div class="s">
-            ${t('lb.levels', { n: s.levelsCompleted, s: s.levelsCompleted === 1 ? '' : 's' })} · ${s.certificates} 🎖️
+            ${t('lb.levels', { n: s.levelsCompleted, s: s.levelsCompleted === 1 ? '' : 's' })} · ${s.certificates} ${ICON.certificates(14)}
             ${isLowest ? `<span class="cheer-tag">${t('lb.cheer')}</span>` : ''}
           </div>
         </div>

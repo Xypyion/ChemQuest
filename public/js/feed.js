@@ -48,15 +48,10 @@ const Feed = (() => {
       : d.toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined, { day: 'numeric', month: 'short' }) +
         ' · ' + d.toLocaleTimeString(getLang() === 'th' ? 'th-TH' : undefined, { hour: '2-digit', minute: '2-digit' });
   }
-  function fileEmoji(type, name) {
-    if (isImage(type)) return '🖼️';
-    if (/pdf/.test(type) || /\.pdf$/i.test(name)) return '📕';
-    if (/word|officedocument.word/.test(type)) return '📘';
-    if (/sheet|excel/.test(type)) return '📗';
-    if (/zip|compressed/.test(type)) return '🗜️';
-    if (/video/.test(type)) return '🎞️';
-    if (/audio/.test(type)) return '🎵';
-    return '📄';
+  function fileIcon(type) {
+    if (isImage(type)) return ICON.image(18);
+    if (/video/.test(type)) return ICON.video(18);
+    return ICON.file(18);
   }
 
   async function mount(container, lid, options) {
@@ -104,7 +99,7 @@ const Feed = (() => {
 
     const banner = opts.title ? `
       <div class="class-banner">
-        <div class="cb-icon">${esc(opts.icon || '📒')}</div>
+        <div class="cb-icon">${opts.icon ? esc(opts.icon) : ICON.pen(28)}</div>
         <div class="cb-info">
           <div class="cb-title">${esc(opts.title)}</div>
           <div class="cb-sub">${esc(t('feed.boardSub', { a: as.length, n: posts.length - as.length }))}</div>
@@ -134,7 +129,7 @@ const Feed = (() => {
   function composerHtml(key, placeholder, sendLabel) {
     const chips = (pending[key] || []).map((f, i) => `
       <div class="file-chip">
-        ${isImage(f.type) ? `<img src="${f.data}" alt="">` : `<span>${fileEmoji(f.type, f.name)}</span>`}
+        ${isImage(f.type) ? `<img src="${f.data}" alt="">` : `<span>${fileIcon(f.type)}</span>`}
         <span class="fc-name">${esc(f.name)}</span>
         <button type="button" aria-label="${t('common.delete')}" onclick="Feed.removeFile('${key}', ${i})">✕</button>
       </div>`).join('');
@@ -188,7 +183,7 @@ const Feed = (() => {
     return (p.attachments || []).map((a) => isImage(a.type)
       ? `<a class="att-img" href="${esc(a.url)}" target="_blank" rel="noopener"><img src="${esc(a.url)}" alt="${esc(a.name)}" loading="lazy"></a>`
       : `<a class="att-file" href="${esc(a.url)}" target="_blank" rel="noopener" download="${esc(a.name)}">
-           ${fileEmoji(a.type, a.name)} ${esc(a.name)} <span class="af-size">${fmtSize(a.size || 0)}</span></a>`).join('');
+           ${fileIcon(a.type)} ${esc(a.name)} <span class="af-size">${fmtSize(a.size || 0)}</span></a>`).join('');
   }
 
   function commentsHtml(p) {
@@ -199,7 +194,7 @@ const Feed = (() => {
           <div class="c-name">${esc(c.author.name)}${c.author.role === 'teacher' ? ` <span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}</div>
           <div class="c-text">${chemLinks(c.text)}</div>
         </div>
-        ${(opts.teacher || c.author.id === API.user().id) ? `<button class="c-del" aria-label="${t('common.delete')}" onclick="Feed.delComment('${p.id}','${c.id}')">🗑</button>` : ''}
+        ${(opts.teacher || c.author.id === API.user().id) ? `<button class="c-del" aria-label="${t('common.delete')}" onclick="Feed.delComment('${p.id}','${c.id}')">${ICON.trash(14)}</button>` : ''}
       </div>`).join('');
     return `
       ${list ? `<div class="comments">${list}</div>` : ''}
@@ -217,7 +212,7 @@ const Feed = (() => {
         <span class="ph-name">${esc(p.author.name)}</span>
         ${p.author.role === 'teacher' ? `<span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}
         <span class="ph-time">${fmtTime(p.createdAt)}</span>
-        ${p.canDelete ? `<button class="ph-del" aria-label="${t('common.delete')}" onclick="Feed.delPost('${p.id}')">🗑</button>` : ''}
+        ${p.canDelete ? `<button class="ph-del" aria-label="${t('common.delete')}" onclick="Feed.delPost('${p.id}')">${ICON.trash(16)}</button>` : ''}
       </div>`;
   }
 
@@ -225,7 +220,7 @@ const Feed = (() => {
     return `
       <div class="post-actions">
         <button class="like-btn ${p.likedByMe ? 'liked' : ''}" aria-pressed="${p.likedByMe}" onclick="Feed.like('${p.id}')">
-          ${p.likedByMe ? '❤️' : '🤍'} ${t('feed.like')}${p.likes.length ? ' · ' + p.likes.length : ''}
+          ${ICON.heart(16)} ${t('feed.like')}${p.likes.length ? ' · ' + p.likes.length : ''}
         </button>
       </div>`;
   }
@@ -267,7 +262,7 @@ const Feed = (() => {
         </div>`;
       }
     } else {
-      const myQs = (a.questions || []).map((qq) => `<div class="mine">🙋 ${esc(qq.text)}</div>`).join('');
+      const myQs = (a.questions || []).map((qq) => `<div class="mine">${ICON.chat(14)} ${esc(qq.text)}</div>`).join('');
       privateBlock = `<div class="ask-teacher">
         <div class="at-note">${t('feed.askTeacherNote')}</div>
         ${myQs}
@@ -348,7 +343,7 @@ const Feed = (() => {
       ? (opts.teacher ? t('rate.titleTeacher') : t('rate.title'))
       : t('rate.average');
     return `<div class="rating-block">
-      <div class="rating-title">⭐ ${title}</div>
+      <div class="rating-title">${ICON.star(16)} ${title}</div>
       ${rows}
     </div>`;
   }

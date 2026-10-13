@@ -73,7 +73,7 @@ function render() {
         </div>
 
         <div class="set-actions">
-          <button class="btn" id="saveLook" onclick="saveLook()" data-i18n="common.save">💾 Save</button>
+          <button class="btn" id="saveLook" onclick="saveLook()" data-i18n="common.save">Save</button>
         </div>
       </section>
 

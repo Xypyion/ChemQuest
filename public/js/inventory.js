@@ -34,10 +34,10 @@ mountLangSwitch();
     const latest = certificates.slice().sort((a, b) => new Date(b.dateEarned) - new Date(a.dateEarned))[0];
     const featured = latest ? `
       <div class="cert-featured pop-in">
-        <div class="cf-medal">⭐</div>
+        <div class="cf-medal">${ICON.star(34)}</div>
         <div class="cf-body">
           <div class="cf-label">${t('inv.latest')}</div>
-          <div class="cf-title">${escapeHtml(latest.icon || '🧪')} ${escapeHtml(latest.title)}</div>
+          <div class="cf-title">${latest.icon ? escapeHtml(latest.icon) + ' ' : ''}${escapeHtml(latest.title)}</div>
           <div class="cf-meta">${t('inv.earnedOn', {
             date: new Date(latest.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined, { day: 'numeric', month: 'short' }),
             score: latest.score,
@@ -48,10 +48,10 @@ mountLangSwitch();
     // Badge grid — one tile per level.
     const badges = lessons.map((l, i) => {
       const cert = certByLesson[l.id];
-      const label = `${l.icon || '🧪'} ${chem(l.title)}`;
+      const label = `${l.icon ? l.icon + ' ' : ''}${chem(l.title)}`;
       if (cert) {
         return `<div class="badge earned">
-          <div class="badge-medal gold">⭐</div>
+          <div class="badge-medal gold">${ICON.star(28)}</div>
           <div class="badge-name">${label}</div>
           <div class="badge-meta earned-meta">${cert.score} ${t('lesson.pts')}</div>
         </div>`;
@@ -61,7 +61,7 @@ mountLangSwitch();
           ? t('inv.opensAt', { time: fmtWhen(l.opensAt) })
           : t('inv.locked');
         return `<div class="badge locked">
-          <div class="badge-medal lock">🔒</div>
+          <div class="badge-medal lock">${ICON.lock(22)}</div>
           <div class="badge-name">${label}</div>
           <div class="badge-meta">${reason}</div>
         </div>`;
@@ -71,7 +71,7 @@ mountLangSwitch();
       const ringPct = Math.max(0, Math.min(100, Math.round(l.bestScore || 0)));
       const ringStyle = started ? ` style="background:conic-gradient(var(--grass) ${ringPct}%, #eae4f7 0)"` : '';
       return `<a class="badge avail" href="/level.html?id=${encodeURIComponent(l.id)}">
-        <div class="badge-medal ring${started ? ' on' : ''}"${ringStyle}><span class="ring-ic">${l.icon || '🧪'}</span></div>
+        <div class="badge-medal ring${started ? ' on' : ''}"${ringStyle}><span class="ring-ic">${l.icon || ICON.flask(22)}</span></div>
         <div class="badge-name">${label}</div>
         <div class="badge-meta">${started ? t('inv.inProgress') : t('inv.available')}</div>
       </a>`;

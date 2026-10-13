@@ -135,7 +135,7 @@ const Duel = (() => {
             const win = d.outcome === 'win';
             return `
               <li>
-                <span class="q-h-icon">${escapeHtml(d.opponentAvatar || '🧑‍🎓')}</span>
+                <span class="q-h-icon">${d.opponentAvatar ? avatarHtml(d.opponentAvatar, 28) : ICON.people(22)}</span>
                 <span class="q-h-title">${escapeHtml(duelLine(d))}</span>
                 <span class="q-h-when">${escapeHtml(fmtWhen(d.createdAt))}</span>
                 ${d.outcome
@@ -475,12 +475,12 @@ const Duel = (() => {
       <div class="b-fight d-fight">
         <div class="b-vs">
           <div class="b-vs-side">
-            <div class="b-vs-face">${escapeHtml(d.challengerAvatar || '🧑‍🎓')}</div>
+            <div class="b-vs-face">${d.challengerAvatar ? avatarHtml(d.challengerAvatar, 56) : ICON.people(40)}</div>
             <div class="b-vs-name">${escapeHtml(d.challengerName)}</div>
           </div>
           <div class="b-vs-mid">
             <div class="b-vs-word">${t('duel.vsWord')}</div>
-            <div class="b-vs-stake">🪙 ${d.stake}</div>
+            <div class="b-vs-stake">${ICON.coin(16)} ${d.stake}</div>
             ${d.answerBy ? '<div class="b-timer" id="dTimer"></div>' : ''}
           </div>
           <div class="b-vs-side">
@@ -543,7 +543,7 @@ const Duel = (() => {
         <h2>${win ? t('duel.win') : t('duel.lose')}</h2>
         <p class="b-result-coins">${escapeHtml(moved)}</p>
         ${r.late ? `<p class="b-late">${t('battle.lateNote')}</p>` : ''}
-        <div class="b-result-wallet">🪙 <b>${r.coins}</b></div>
+        <div class="b-result-wallet">${ICON.coin(22)} <b>${r.coins}</b></div>
         <div class="ch-result">
           <div class="ch-res ${res.correct ? 'good' : 'bad'}">
             <div class="ch-res-q">${chem(r.review.question)}</div>
@@ -622,7 +622,7 @@ const Duel = (() => {
     const left = Math.max(0, Math.round((deadline - Date.now()) / 1000));
     const m = String(Math.floor(left / 60)).padStart(2, '0');
     const s = String(left % 60).padStart(2, '0');
-    el.textContent = `⏱ ${m}:${s}`;
+    el.innerHTML = `${ICON.timer(16)} ${m}:${s}`;
     el.classList.toggle('low', left <= 10);
     if (left <= 0) {
       stopTimer();
