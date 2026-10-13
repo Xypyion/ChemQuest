@@ -28,6 +28,8 @@ const I18N = {
     'viewAs.back': 'Back to teacher',
     'nav.sections': 'Sections',
     'nav.settings': 'Settings',
+    'nav.more': 'More',
+    'nav.back': 'Back',
 
     /* ---- settings ---- */
     'set.title': '⚙️ My Settings',
@@ -1420,6 +1422,8 @@ const I18N = {
     'viewAs.back': 'กลับไปหน้าครู',
     'nav.sections': 'ส่วนต่าง ๆ',
     'nav.settings': 'ตั้งค่า',
+    'nav.more': 'เพิ่มเติม',
+    'nav.back': 'ย้อนกลับ',
 
     /* ---- settings ---- */
     'set.title': '⚙️ ตั้งค่าของฉัน',

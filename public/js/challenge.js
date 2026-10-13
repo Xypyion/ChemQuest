@@ -46,7 +46,9 @@ async function start() {
     MAX_CHECKS = data.maxChecks || 2;
     (data.sentBoards || []).forEach((k) => Whiteboard.markSent(k));
     reviewing = !!mySubmission;
-    document.getElementById('chTitlePill').textContent = (challenge.icon || '🧩') + ' ' + challenge.title;
+    document.getElementById('chTitlePill').textContent = (challenge.icon ? challenge.icon + ' ' : '') + challenge.title;
+    const back = document.getElementById('navBack');
+    if (back) back.href = boardUrl();
     render();
   } catch (e) {
     stage.innerHTML = errorBox(e.message);

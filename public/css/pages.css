@@ -118,6 +118,13 @@ a.badge:hover { transform: translateY(-4px); }
   display: flex; align-items: center; gap: 14px; background: var(--ink); color: #fff;
   border-radius: 16px; padding: 13px 18px; box-shadow: 0 14px 34px rgba(20,15,40,.35);
 }
+/* The bar floats over the list, so the page ends with room for it — the last
+   few rows used to finish underneath it with no way to scroll them clear. */
+.wrap:has(> .your-rank) { padding-bottom: 96px; }
+@media (max-width: 640px) {
+  /* Above the phone tab bar, not on top of it. */
+  body.has-dock .your-rank { bottom: calc(var(--dock-h) + 8px); padding: 10px 14px; gap: 10px; }
+}
 .your-rank .yr-rank { font-weight: 800; font-size: 1.15rem; }
 .your-rank .yr-msg { flex: 1; font-size: .85rem; opacity: .9; line-height: 1.35; }
 .your-rank .yr-pts { font-weight: 800; color: #8fe04a; white-space: nowrap; }
