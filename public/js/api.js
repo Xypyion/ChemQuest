@@ -255,9 +255,20 @@ function mountNav() {
       <span class="pill" id="chTimerPill" hidden></span>`
     : `
       <span class="pill coins">${ICON.coin(16)} <b id="navCoins">0</b>
-        <span data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
+        <span class="pill-unit" data-i18n="nav.coins">${escapeHtml(t('nav.coins'))}</span></span>
       <span class="pill points">${ICON.star(16)} <b id="navPoints">0</b>
-        <span data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>`;
+        <span class="pill-unit" data-i18n="nav.pts">${escapeHtml(t('nav.pts'))}</span></span>`;
+
+  /* The lesson player and the challenge player are a task you are in the
+     middle of (often timed), so on a phone they get a way BACK instead of the
+     tab bar: a tab bar there is one stray thumb away from leaving a quiz. The
+     page script points the link at the right level once it knows it. */
+  const flow = document.body.dataset.navFlow;
+  const levelId = new URLSearchParams(location.search).get('id');
+  const backHref = flow === 'lesson' && levelId
+    ? '/level.html?id=' + encodeURIComponent(levelId) : '/dashboard.html';
+  const back = flow ? `<a class="nav-back" id="navBack" href="${backHref}"
+      aria-label="${escapeHtml(t('nav.back'))}">${ICON.back(20)}</a>` : '';
 
   const links = NAV_ITEMS.map((item) => {
     const on = item.page === here;
@@ -266,7 +277,7 @@ function mountNav() {
                data-i18n="${item.key}">${escapeHtml(t(item.key))}</span></a>`;
   }).join('');
 
-  host.innerHTML = `
+  host.innerHTML = `${back}
     <a class="brand" href="/dashboard.html">${ICON.brand(26)}<span
       class="wordmark">Stoi<b>Venture</b></span></a>
 
@@ -302,6 +313,91 @@ function mountNav() {
     strip.scrollLeft = mark.offsetLeft - (strip.clientWidth - mark.offsetWidth) / 2;
   }
   atEnd();
+
+  if (!flow) mountDock(here, user);
+}
+
+/* ---------- The phone tab bar ("dock") ---------- *
+
+   On a phone the top bar used to carry everything: brand, coins, points,
+   avatar, language, log out, then six destinations in a sideways strip that
+   hid three of them off the right edge. It took a quarter of the screen and
+   half the app was invisible unless you thought to swipe it.
+
+   Below 640px the top bar keeps only "what you have" and the destinations move
+   to the bottom, where a thumb is. Four go in the bar; the two visited less
+   (Certificates, Leaderboard) go behind More, together with the account
+   things the top bar no longer has room for: Settings, language, log out.
+   Above 640px this markup is display:none and nothing changes. */
+const DOCK_MAIN = ['map', 'quests', 'battle', 'lab'];
+const DOCK_MORE = ['certificates', 'leaderboard'];
+
+function mountDock(here, user) {
+  const item = (p) => NAV_ITEMS.find((n) => n.page === p);
+  const inMore = DOCK_MORE.includes(here) || here === 'settings';
+
+  const tab = (n) => {
+    const on = n.page === here;
+    return `<a class="dock-link${on ? ' is-current' : ''}" href="${n.href}"
+               ${on ? 'aria-current="page"' : ''}><span class="dock-ic">${ICON[n.icon](22)}</span><span
+               class="dock-label" data-i18n="${n.key}">${escapeHtml(t(n.key))}</span></a>`;
+  };
+  const row = (n) => {
+    const on = n.page === here;
+    return `<a class="sheet-link${on ? ' is-current' : ''}" href="${n.href}"
+               ${on ? 'aria-current="page"' : ''}>${ICON[n.icon](22)}<span
+               data-i18n="${n.key}">${escapeHtml(t(n.key))}</span></a>`;
+  };
+
+  const dock = document.createElement('nav');
+  dock.className = 'dock';
+  dock.setAttribute('aria-label', t('nav.sections'));
+  dock.innerHTML = DOCK_MAIN.map((p) => tab(item(p))).join('') + `
+    <button type="button" class="dock-link${inMore ? ' is-current' : ''}" id="dockMore"
+            aria-haspopup="dialog" aria-expanded="false"><span class="dock-ic">${ICON.more(22)}</span><span
+            class="dock-label" data-i18n="nav.more">${escapeHtml(t('nav.more'))}</span></button>`;
+
+  const sheet = document.createElement('dialog');
+  sheet.className = 'more-sheet';
+  sheet.setAttribute('aria-label', t('nav.more'));
+  sheet.innerHTML = `
+    <div class="sheet-head">
+      <a class="sheet-who${here === 'settings' ? ' is-current' : ''}" href="/settings.html"
+         ${here === 'settings' ? 'aria-current="page"' : ''}>
+        <span class="sheet-av">${user ? avatarHtml(user.avatar, 44) : ''}</span>
+        <span class="sheet-id"><b>${user ? escapeHtml(user.name) : ''}</b>
+          <span data-i18n="nav.settings">${escapeHtml(t('nav.settings'))}</span></span>
+      </a>
+      <button type="button" class="sheet-close" aria-label="${escapeHtml(t('common.close'))}">${ICON.close(18)}</button>
+    </div>
+    ${DOCK_MORE.map((p) => row(item(p))).join('')}
+    <div class="sheet-lang"><span data-i18n="common.langSwitch">${escapeHtml(t('common.langSwitch'))}</span>
+      <span id="sheetLang"></span></div>
+    <button type="button" class="sheet-out" onclick="logout()">${ICON.logout(20)}<span
+      data-i18n="nav.logout">${escapeHtml(t('nav.logout'))}</span></button>`;
+
+  document.body.append(dock, sheet);
+  document.body.classList.add('has-dock');
+  mountLangSwitch(sheet.querySelector('#sheetLang'));
+
+  const more = dock.querySelector('#dockMore');
+  const close = () => sheet.close();
+  more.addEventListener('click', () => {
+    sheet.showModal();
+    more.setAttribute('aria-expanded', 'true');
+  });
+  sheet.addEventListener('close', () => more.setAttribute('aria-expanded', 'false'));
+  sheet.querySelector('.sheet-close').addEventListener('click', close);
+  /* A tap on the dimmed page behind the sheet lands on the <dialog> itself
+     (its box is the whole screen); a tap inside lands on a child. */
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) close(); });
+
+  /* An Android keyboard pushes fixed elements up with it, so the tab bar would
+     ride up and sit on top of the field being typed in (and on the chemistry
+     keys bar docked there). Step it out of the way while typing. */
+  const typing = (el) => el && el.matches && el.matches('input, textarea, select, [contenteditable="true"]');
+  document.addEventListener('focusin', (e) => document.body.classList.toggle('is-typing', typing(e.target)));
+  document.addEventListener('focusout', () => document.body.classList.remove('is-typing'));
 }
 
 /* The three in-level pages (level, lesson, challenge) deliberately do NOT use

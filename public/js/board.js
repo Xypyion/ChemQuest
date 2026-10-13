@@ -1,5 +1,5 @@
 // Level board (hub): clicking a level on the map lands here first.
-// Tabs: 🏠 Board · 📒 Assignments · 🧩 Challenges.
+// Tabs: Board · Assignments · Challenges.
 //
 // The Board tab draws the level's activities as a short trail of nodes rather
 // than a list of rows, so a level reads as somewhere you move through. The
@@ -70,14 +70,9 @@ function setTab(which) {
    activityState, and the post-test opens when the server says so.
 --------------------------------------------------------------------------- */
 
-/* These labels already carry their own emoji in both languages ("📖
-   Storyboard" / "📖 เนื้อเรื่อง"). The disc wants the emoji and the plate
-   wants the words, so split one string rather than keep a parallel set of
-   icon-less keys at parity forever. */
-function splitIcon(label) {
-  const m = /^(\P{L}+?)\s+(.+)$/u.exec(String(label));
-  return m ? { icon: m[1], text: m[2] } : { icon: '•', text: String(label) };
-}
+/* Each node names its own icon from icons.js. The labels used to carry an
+   emoji that was split off and blown up into the disc, so the disc was a
+   different picture on every phone and every OS. */
 
 function stateWord(state) {
   return state === 'empty' ? t('board.stateEmpty') : t('dash.state.' + state);
@@ -89,8 +84,8 @@ function stateWord(state) {
  * Without `go` the node is not pressable — clicking it explains itself
  * instead of doing nothing, which is why `sub` doubles as the reason.
  */
-function hubNode({ label, sub, state, size, go, count, tag, eyebrow, final, next }) {
-  const { icon, text } = splitIcon(label);
+function hubNode({ label, icon, sub, state, size, go, count, tag, eyebrow, final, next }) {
+  const text = String(label);
   const cls = ['hub-node', 'is-' + state];
   if (final) cls.push('is-final');
   if (next) cls.push('is-next');
@@ -101,7 +96,7 @@ function hubNode({ label, sub, state, size, go, count, tag, eyebrow, final, next
             aria-label="${escapeHtml(text + ' — ' + stateWord(state))}">
       ${eyebrow ? `<span class="hub-eyebrow">${escapeHtml(eyebrow)}</span>` : ''}
       <span class="hub-disc">
-        <span class="hub-face">${icon}</span>
+        <span class="hub-face">${ICON[icon || 'question'](Math.round((size || 78) * 0.42))}</span>
         ${count ? `<span class="hub-count">${escapeHtml(String(count))}</span>` : ''}
       </span>
       <span class="hub-name">${escapeHtml(text)}</span>
@@ -110,16 +105,16 @@ function hubNode({ label, sub, state, size, go, count, tag, eyebrow, final, next
     </button>`;
 }
 
-/** 📖 Storyboard. */
+/** Storyboard. */
 function storyNode(act) {
   if (!act.hasStory) {
-    return { label: t('board.storyboard'), state: 'empty', sub: t('board.storyboardNone') };
+    return { label: t('board.storyboard'), icon: 'book', state: 'empty', sub: t('board.storyboardNone') };
   }
   if (act.storyLocked) {
-    return { label: t('board.storyboard'), state: 'locked', sub: t('board.storyboardLocked') };
+    return { label: t('board.storyboard'), icon: 'book', state: 'locked', sub: t('board.storyboardLocked') };
   }
   return {
-    label: t('board.storyboard'),
+    label: t('board.storyboard'), icon: 'book',
     state: act.storyDone ? 'done' : 'open',
     // Half-way through: say where it will reopen, so "Storyboard" is not a restart.
     sub: act.storyAt > 0 && act.storyAt < act.storyLength
@@ -129,30 +124,30 @@ function storyNode(act) {
   };
 }
 
-/** ❓ Pre-test. */
+/** Pre-test. */
 function preNode(act) {
   if (!act.hasPre) {
-    return { label: t('board.preTest'), state: 'empty', sub: t('board.preTestNone') };
+    return { label: t('board.preTest'), icon: 'question', state: 'empty', sub: t('board.preTestNone') };
   }
   if (act.preLocked) {
-    return { label: t('board.preTest'), state: 'locked', sub: t('board.preTestLocked') };
+    return { label: t('board.preTest'), icon: 'question', state: 'locked', sub: t('board.preTestLocked') };
   }
   return {
-    label: t('board.preTest'),
+    label: t('board.preTest'), icon: 'question',
     state: lesson.preDone ? 'done' : 'open',
     sub: lesson.preDone ? t('board.preDone', { score: lesson.preBestScore }) : t('board.preTestSub'),
     go: `/lesson.html?id=${encodeURIComponent(LESSON_ID)}&mode=pre`,
   };
 }
 
-/** 🧩 Challenges — one node for however many the teacher wrote. */
+/** Challenges — one node for however many the teacher wrote. */
 function challengeNode() {
   const list = (challenges && challenges.challenges) || [];
   const todo = list.filter((c) => c.status === 'todo').length;
-  if (!challenges) return { label: t('board.challenges'), state: 'empty', sub: t('common.loading') };
-  if (!list.length) return { label: t('board.challenges'), state: 'empty', sub: t('ch.none') };
+  if (!challenges) return { label: t('board.challenges'), icon: 'puzzle', state: 'empty', sub: t('common.loading') };
+  if (!list.length) return { label: t('board.challenges'), icon: 'puzzle', state: 'empty', sub: t('ch.none') };
   return {
-    label: t('board.challenges'),
+    label: t('board.challenges'), icon: 'puzzle',
     state: todo ? 'open' : 'done',
     sub: t('ch.meta', {
       q: list.reduce((n, c) => n + c.questionCount, 0),
@@ -167,9 +162,9 @@ function challengeNode() {
   };
 }
 
-/** 🧾 Post-test — one attempt, ever, so it does not look like the rest. */
+/** Post-test — one attempt, ever, so it does not look like the rest. */
 function finalNode(pt) {
-  const base = { label: t('board.postTest'), final: true, size: 108 };
+  const base = { label: t('board.postTest'), icon: 'flag', final: true, size: 108 };
   if (pt.done) {
     return Object.assign(base, {
       state: 'done',
@@ -217,7 +212,7 @@ function hubView(act, pt) {
   else if (final.state === 'open') final.next = true;
 
   const aside = hubNode({
-    label: t('board.assignments'),
+    label: t('board.assignments'), icon: 'pen',
     state: 'open',
     sub: '',
     go: 'tab:assignments',
@@ -255,13 +250,13 @@ function wireHub(host) {
 function render() {
   const pt = lesson.postTest || {};
   const act = lesson.activities || { flow: 'story-first', hasStory: true, hasPre: true };
-  const tabBtn = (key, label) =>
-    `<button role="tab" aria-selected="${tab === key}" class="${tab === key ? 'on' : ''}" onclick="setTab('${key}')">${label}</button>`;
+  const tabBtn = (key, label, icon) =>
+    `<button role="tab" aria-selected="${tab === key}" class="${tab === key ? 'on' : ''}" onclick="setTab('${key}')">${ICON[icon](20)}<span>${label}</span></button>`;
   const tabs = `
     <div class="board-tabs" role="tablist">
-      ${tabBtn('board', t('board.tabBoard'))}
-      ${tabBtn('assignments', t('board.tabAssignments'))}
-      ${tabBtn('challenges', t('board.tabChallenges'))}
+      ${tabBtn('board', t('board.tabBoard'), 'home')}
+      ${tabBtn('assignments', t('board.tabAssignments'), 'pen')}
+      ${tabBtn('challenges', t('board.tabChallenges'), 'puzzle')}
     </div>`;
 
   const hero = `
@@ -305,7 +300,7 @@ function renderChallenges() {
   // Group by the teacher's categories, keeping their order; anything without a
   // category falls into a final "other" group.
   const cats = (challenges.categories || []).slice();
-  const groups = cats.map((c) => ({ key: c.id, label: `${c.icon || '📂'} ${c.name}`, items: [] }));
+  const groups = cats.map((c) => ({ key: c.id, label: c.icon ? `${c.icon} ${c.name}` : c.name, items: [] }));
   const other = { key: null, label: t('ch.uncategorized'), items: [] };
   list.forEach((c) => {
     const g = groups.find((x) => x.key === c.categoryId);
@@ -338,7 +333,7 @@ function challengeCard(c) {
   const cta = c.status === 'todo' ? t('ch.start') : c.status === 'graded' ? t('ch.view') : t('ch.continue');
   return `
     <button class="ch-card" onclick="location.href='/challenge.html?id=${encodeURIComponent(c.id)}'">
-      <span class="ch-icon">${escapeHtml(c.icon || '🧩')}</span>
+      <span class="ch-icon">${c.icon ? escapeHtml(c.icon) : ICON.puzzle(26)}</span>
       <span class="ch-body">
         <span class="ch-name">${escapeHtml(c.title)}</span>
         ${c.description ? `<span class="ch-desc">${escapeHtml(c.description)}</span>` : ''}

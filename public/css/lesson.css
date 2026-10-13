@@ -78,7 +78,7 @@
   background: linear-gradient(135deg, #fff9e8, #fff);
   border: 4px solid var(--sun); box-shadow: var(--shadow-soft);
 }
-.cert-preview .ribbon { font-size: 2.6rem; }
+.cert-preview .ribbon { line-height: 0; color: var(--primary); }
 .cert-preview h3 { margin: 6px 0; }
 .cert-preview .who { font-weight: 700; color: var(--ruby); font-size: 1.15rem; }
 .cert-preview .meta { color: var(--ink-soft); font-size: .85rem; margin-top: 6px; }

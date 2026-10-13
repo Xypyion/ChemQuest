@@ -19,10 +19,10 @@ const card = document.getElementById('stageCard');
 const BOARD_URL = '/level.html?id=' + encodeURIComponent(LESSON_ID || '');
 
 const PHASE_META = {
-  story: { icon: '📖', label: () => t('lesson.phase.story') },
-  storyDone: { icon: '✅', label: () => t('lesson.phase.storyDone') },
-  quiz: { icon: '❓', label: () => (MODE === 'post' ? t('lesson.phase.posttest') : t('lesson.phase.quiz')) },
-  result: { icon: '🏆', label: () => t('lesson.phase.result') },
+  story: { icon: 'book', label: () => t('lesson.phase.story') },
+  storyDone: { icon: 'check', label: () => t('lesson.phase.storyDone') },
+  quiz: { icon: 'question', label: () => (MODE === 'post' ? t('lesson.phase.posttest') : t('lesson.phase.quiz')) },
+  result: { icon: 'certificates', label: () => t('lesson.phase.result') },
 };
 
 let lesson = null;
@@ -60,7 +60,7 @@ async function start() {
     const data = await API.get(path);
     lesson = data.lesson;
     document.getElementById('lessonTitlePill').textContent =
-      lesson.icon + ' ' + lesson.title + (MODE === 'post' ? ' · 🧾' : '');
+      lesson.icon + ' ' + lesson.title + (MODE === 'post' ? ' · ' + t('board.postTest') : '');
 
     const act = lesson.activities || {};
     if (MODE === 'story') {
@@ -114,7 +114,7 @@ function renderSteps() {
   document.getElementById('steps').innerHTML = phases.map((p, i) => {
     const m = PHASE_META[p];
     const cls = i < cur ? 'done' : i === cur ? 'active' : '';
-    return `<div class="step ${cls}">${m.icon} ${m.label()}</div>`;
+    return `<div class="step ${cls}">${ICON[m.icon](16)} ${m.label()}</div>`;
   }).join('');
 }
 
@@ -274,7 +274,7 @@ function showStory() {
   } else if (step.type === 'video') {
     const embed = youtubeEmbed(step.url);
     const body = embed
-      ? `${step.title ? `<div class="video-title">🎬 ${escapeHtml(step.title)}</div>` : ''}
+      ? `${step.title ? `<div class="video-title">${ICON.video(18)} ${escapeHtml(step.title)}</div>` : ''}
          <div class="video-frame"><iframe src="${embed}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`
       : `<p class="muted">${t('lesson.cantEmbed')}</p><a class="btn secondary" href="${encodeURI(step.url)}" target="_blank" rel="noopener">${t('lesson.openYoutube')}</a>`;
     card.innerHTML = `<div class="center">${resume}<h2>${t('lesson.watch')}</h2>
@@ -416,7 +416,7 @@ function paintTimer(remaining) {
   const s = Math.ceil(remaining / 1000);
   const mm = String(Math.floor(s / 60)).padStart(2, '0');
   const ss = String(s % 60).padStart(2, '0');
-  el.textContent = `⏱ ${mm}:${ss}`;
+  el.innerHTML = `${ICON.timer(18)} ${mm}:${ss}`;
   el.classList.toggle('warn', s <= 10);
 }
 
@@ -445,7 +445,7 @@ function showQuiz() {
   card.innerHTML = `
     <div class="quiz-head">
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
-      ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
+      ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">${ICON.timer(18)} --:--</div>` : ''}
     </div>
     <div class="q-text">${chemLinks(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
@@ -472,12 +472,12 @@ function showWrittenQuestion(q, total, last) {
   card.innerHTML = `
     <div class="quiz-head">
       <div class="q-counter">${t('lesson.question', { n: quizIndex + 1, total })}${MODE === 'post' && q.points ? ` · <span class="q-pts">${t('lesson.worthPts', { n: q.points })}</span>` : ''}</div>
-      ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">⏱ --:--</div>` : ''}
+      ${lesson.timeLimit ? `<div class="quiz-timer" id="quizTimer">${ICON.timer(18)} --:--</div>` : ''}
     </div>
     <div class="q-text">${chemLinks(q.question)}</div>
     ${q.image ? `<img class="q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
     <textarea class="written-input" id="writtenInput" rows="5" placeholder="${escapeHtml(t('lesson.writtenPlaceholder'))}">${escapeHtml(prev)}</textarea>
-    <div class="written-note">✍️ ${t('lesson.writtenNote')}</div>
+    <div class="written-note">${ICON.pencil(16)} ${t('lesson.writtenNote')}</div>
     <div class="row" style="justify-content:flex-end;margin-top:16px">
       <button class="btn big green" id="nextQ">${last ? t('lesson.seeResults') : t('lesson.next')}</button>
     </div>`;
@@ -528,8 +528,8 @@ function miniPop(el) {
   const r = el.getBoundingClientRect();
   for (let i = 0; i < 8; i++) {
     const s = document.createElement('div');
-    s.textContent = ['✨', '⭐', '🎉'][i % 3];
-    s.style.cssText = `position:fixed;left:${r.left + r.width / 2}px;top:${r.top}px;z-index:999;pointer-events:none;transition:all .8s ease;font-size:18px`;
+    s.innerHTML = ICON.star(18);
+    s.style.cssText = `position:fixed;left:${r.left + r.width / 2}px;top:${r.top}px;z-index:999;pointer-events:none;transition:all .8s ease;font-size:18px;color:${['var(--sun)', 'var(--primary)', 'var(--accent)'][i % 3]}`;
     document.body.appendChild(s);
     requestAnimationFrame(() => {
       s.style.transform = `translate(${(Math.random() - 0.5) * 160}px,${-40 - Math.random() * 80}px)`;
@@ -594,7 +594,7 @@ async function showResult() {
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       ${MODE === 'pre' && r.passed && cert ? `
         <div class="cert-preview pop-in">
-          <div class="ribbon">🎖️</div>
+          <div class="ribbon">${ICON.certificates(46)}</div>
           <h3>${t('lesson.certTitle')}</h3>
           <div class="who">${escapeHtml(API.user().name)}</div>
           <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
@@ -630,8 +630,8 @@ function showPendingResult(r) {
       ${timeExpired ? `<p class="muted">${t('lesson.timesUpSaved')}</p>` : ''}
       <p class="muted">${t('lesson.awaitingMsg')}</p>
       <div class="pending-box">
-        <div>📝 ${t('lesson.awaitingWritten', { n: r.writtenPending })}</div>
-        ${r.mcqTotal ? `<div>✅ ${t('lesson.awaitingMcq', { c: r.mcqCorrect, t: r.mcqTotal })}</div>` : ''}
+        <div>${ICON.pen(16)} ${t('lesson.awaitingWritten', { n: r.writtenPending })}</div>
+        ${r.mcqTotal ? `<div>${ICON.check(16)} ${t('lesson.awaitingMcq', { c: r.mcqCorrect, t: r.mcqTotal })}</div>` : ''}
       </div>
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       <div class="result-actions">

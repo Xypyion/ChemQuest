@@ -1,5 +1,5 @@
 /**
- * Challenge player — the student side of the 🧩 Challenges board section.
+ * Challenge player — the student side of the Challenges board section.
  *
  * Renders every question type the teacher can build:
  *   mcq · multi · short · written · table (fill in the blanks) · simulation
@@ -46,7 +46,9 @@ async function start() {
     MAX_CHECKS = data.maxChecks || 2;
     (data.sentBoards || []).forEach((k) => Whiteboard.markSent(k));
     reviewing = !!mySubmission;
-    document.getElementById('chTitlePill').textContent = (challenge.icon || '🧩') + ' ' + challenge.title;
+    document.getElementById('chTitlePill').textContent = (challenge.icon ? challenge.icon + ' ' : '') + challenge.title;
+    const back = document.getElementById('navBack');
+    if (back) back.href = boardUrl();
     render();
   } catch (e) {
     stage.innerHTML = errorBox(e.message);
@@ -73,10 +75,10 @@ function errorBox(msg) {
 function render() {
   const head = `
     <div class="ch-head pop-in">
-      <div class="ch-head-ico">${escapeHtml(challenge.icon || '🧩')}</div>
+      <div class="ch-head-ico">${challenge.icon ? escapeHtml(challenge.icon) : ICON.puzzle(30)}</div>
       <div class="ch-head-info">
         <h1>${escapeHtml(challenge.title)}</h1>
-        ${category ? `<div class="ch-cat">${escapeHtml((category.icon || '📂') + ' ' + category.name)}</div>` : ''}
+        ${category ? `<div class="ch-cat">${escapeHtml((category.icon ? category.icon + ' ' : '') + category.name)}</div>` : ''}
         ${challenge.description ? `<p class="ch-instructions">${chemLinks(challenge.description)}</p>` : ''}
         <div class="ch-head-meta">
           <span>${t('ch.meta', { q: challenge.questions.length, s: challenge.questions.length === 1 ? '' : 's', p: challenge.maxPoints })}</span>
@@ -117,7 +119,7 @@ function questionHtml(q, n, sub) {
     return `
       <section class="ch-q sim">
         ${q.question ? `<div class="ch-q-text">${chemLinks(q.question)}</div>` : ''}
-        <div class="ch-sim-hint">🧪 ${t('ch.simHint')}</div>
+        <div class="ch-sim-hint">${ICON.flask(16)} ${t('ch.simHint')}</div>
         ${simFrameHtml(q.sim)}
         ${q.image ? `<img class="ch-q-img" src="${escapeHtml(q.image)}" alt="">` : ''}
         <div class="ch-subs">${inner}</div>
@@ -402,7 +404,7 @@ function resultHtml() {
   const rows = flat.map((q, i) => {
     const res = byId[q.id] || { auto: false, earned: 0, max: q.points, correct: null };
     let tag;
-    if (!res.auto) tag = `<span class="ch-res manual">${res.earned != null && r.status === 'graded' ? `✍️ ${res.earned}/${res.max}` : t('ch.manual')}</span>`;
+    if (!res.auto) tag = `<span class="ch-res manual">${res.earned != null && r.status === 'graded' ? `${ICON.pencil(14)} ${res.earned}/${res.max}` : t('ch.manual')}</span>`;
     else if (res.correct === true) tag = `<span class="ch-res good">${t('ch.correct')} · ${res.earned}/${res.max}</span>`;
     else if (res.earned > 0) tag = `<span class="ch-res part">${t('ch.partial')} · ${res.earned}/${res.max}</span>`;
     else tag = `<span class="ch-res bad">${t('ch.wrong')} · 0/${res.max}</span>`;

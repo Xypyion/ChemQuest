@@ -13,8 +13,15 @@
 .board-tabs button {
   flex: 1; border: 3px solid #fff; background: rgba(255,255,255,.7); font-family: var(--font);
   font-weight: 700; font-size: 1rem; padding: 10px; border-radius: 16px; cursor: pointer; color: var(--ink-soft);
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0;
 }
+.board-tabs button > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-tabs button.on { background: #fff; color: var(--ink); border-color: var(--secondary); box-shadow: var(--shadow-soft); }
+.board-tabs button.on .ic { color: var(--secondary-dark); }
+/* Three tabs at phone width: icon over word, so "Assignments" keeps its room. */
+@media (max-width: 640px) {
+  .board-tabs button { flex-direction: column; gap: 3px; padding: 8px 4px; font-size: .9rem; }
+}
 .board-tabs button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .board-menu { display: flex; flex-direction: column; gap: 14px; }
@@ -104,7 +111,11 @@
 .like-btn {
   border: none; background: #fff0f3; color: #d63a5f; font-family: var(--font); font-weight: 700;
   border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: .85rem;
+  display: inline-flex; align-items: center; gap: 6px;
 }
+/* Not liked yet: the heart is there but faint; liked: full colour. */
+.like-btn .ic { opacity: .45; }
+.like-btn.liked .ic { opacity: 1; }
 .like-btn.liked { background: #ffd9e2; box-shadow: 0 2px 0 #e3a4b5; }
 .like-btn:focus-visible, .comment-row button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 

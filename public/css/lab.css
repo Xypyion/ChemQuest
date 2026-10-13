@@ -64,6 +64,18 @@ body.lab .nav-out:hover { color: var(--lab-text); background: var(--glass); }
 body.lab .wordmark { color: var(--brand-pink); }
 body.lab .wordmark b { color: #6fa8ff; }
 
+/* The language switch was a pale-white track on this dark bar, so "ไทย" sat
+   at about 1.9:1 — readable only once it was the selected one. */
+body.lab .topbar .lang-switch { background: var(--glass); box-shadow: inset 0 0 0 1px var(--line); }
+body.lab .topbar .lang-switch button { color: var(--lab-text); }
+body.lab .topbar .lang-switch button.on { color: #0e1830; }
+
+/* The phone tab bar on the dark ground: same shapes, the Lab's own surfaces. */
+body.lab .dock { background: rgba(12, 8, 24, .9); border-top-color: var(--line); }
+body.lab .dock-link { color: var(--lab-dim); }
+body.lab .dock-link.is-current { color: var(--lab-text); }
+body.lab .dock-link.is-current .dock-ic { color: #0e1830; }
+
 body.lab h1, body.lab h2, body.lab h3 { color: var(--lab-text); }
 body.lab .muted { color: var(--lab-dim); }
 

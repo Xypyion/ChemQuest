@@ -181,6 +181,28 @@ const ICON = (() => {
     /* a hooked arrow turning back — undo the last stroke */
     undo: make('<path d="M9.8 3.2a1.2 1.2 0 0 1 0 1.7L7.6 7.1H14a7.1 7.1 0 1 1 0 14.2h-3.4a1.2 1.2 0 1 1 0-2.4H14a4.7 4.7 0 1 0 0-9.4H7.6l2.2 2.2a1.2 1.2 0 0 1-1.7 1.7L3.9 9.2a1.2 1.2 0 0 1 0-1.7l4.2-4.3a1.2 1.2 0 0 1 1.7 0Z"/>'),
 
+    /* ---- phone chrome and the small marks that used to be emoji ---- */
+
+    /* a chevron pointing back — the phone top bar's way out of a quiz */
+    back: make('<path d="M15.6 3.4a1.6 1.6 0 0 1 0 2.3L9.3 12l6.3 6.3a1.6 1.6 0 1 1-2.3 2.3l-7.4-7.5a1.6 1.6 0 0 1 0-2.2l7.4-7.5a1.6 1.6 0 0 1 2.3 0Z"/>'),
+
+    /* a house — the level board's home tab */
+    home: make('<path d="M10.6 2.5a2.2 2.2 0 0 1 2.8 0l7.8 6.4a2.2 2.2 0 0 1 .8 1.7v9.2a2.2 2.2 0 0 1-2.2 2.2h-4.2v-5.8a1.4 1.4 0 0 0-1.4-1.4h-4.4a1.4 1.4 0 0 0-1.4 1.4V22H4.2A2.2 2.2 0 0 1 2 19.8v-9.2a2.2 2.2 0 0 1 .8-1.7l7.8-6.4Z"/>'),
+
+    /* a three-point crown — first place on the leaderboard */
+    crown: make('<path d="M2.6 7.2a1 1 0 0 1 1.6-.9l3.9 3.2 3-5.2a1 1 0 0 1 1.8 0l3 5.2 3.9-3.2a1 1 0 0 1 1.6.9l-1.6 10a1.2 1.2 0 0 1-1.2 1H5.4a1.2 1.2 0 0 1-1.2-1l-1.6-10Z"/>' +
+                '<path d="M5.6 19.6h12.8a1.1 1.1 0 0 1 0 2.2H5.6a1.1 1.1 0 0 1 0-2.2Z" opacity=".6"/>'),
+
+    /* a heart — liking a post */
+    heart: make('<path d="M12 21.2a1.3 1.3 0 0 1-.8-.3C5.4 16.1 1.8 12.9 1.8 8.6A5.4 5.4 0 0 1 7.3 3.1c1.9 0 3.6.9 4.7 2.4a5.8 5.8 0 0 1 4.7-2.4 5.4 5.4 0 0 1 5.5 5.5c0 4.3-3.6 7.5-9.4 12.3a1.3 1.3 0 0 1-.8.3Z"/>'),
+
+    /* a page with its corner folded — an attached file */
+    file: make('<path d="M6 1.8h7.4v5a2 2 0 0 0 2 2h5v12.4a1.8 1.8 0 0 1-1.8 1.8H6a1.8 1.8 0 0 1-1.8-1.8V3.6A1.8 1.8 0 0 1 6 1.8Z"/>' +
+               '<path d="M15.4 2.3 19.9 6.8h-4a.5.5 0 0 1-.5-.5v-4Z" opacity=".55"/>'),
+
+    /* a framed picture: a sun over two hills — an attached image */
+    image: make('<path fill-rule="evenodd" d="M4.6 2.8h14.8a2.6 2.6 0 0 1 2.6 2.6v13.2a2.6 2.6 0 0 1-2.6 2.6H4.6A2.6 2.6 0 0 1 2 18.6V5.4a2.6 2.6 0 0 1 2.6-2.6Zm11.2 3.6a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4.4 17.4v1.2c0 .1.1.2.2.2h14.8c.1 0 .2-.1.2-.2v-2.1l-3.4-3.3a1 1 0 0 0-1.4 0l-1.5 1.5-4.3-4.6a1 1 0 0 0-1.5 0l-3.1 3.6v3.7Z"/>'),
+
     /* a clipboard of notes — Student Logs */
     logs: make('<path fill-rule="evenodd" d="M9 1.8h6a1.5 1.5 0 0 1 1.5 1.5v.7h2A2.5 2.5 0 0 1 21 6.5v13a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-13A2.5 2.5 0 0 1 5.5 4h2v-.7A1.5 1.5 0 0 1 9 1.8Zm-1 8.2a1.1 1.1 0 0 0 0 2.2h8a1.1 1.1 0 0 0 0-2.2H8Zm0 4.2a1.1 1.1 0 0 0 0 2.2h5a1.1 1.1 0 0 0 0-2.2H8Z"/>'),
 
