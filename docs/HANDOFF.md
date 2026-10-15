@@ -178,6 +178,23 @@ seed. Students self-register on the welcome page.
 To reset everything: stop the server, delete `data/db.json` (and optionally
 `data/uploads/`), start again → it re-seeds.
 
+### Demo mode: a fake class to click through
+
+```bash
+npm run demo              # demo copy on http://localhost:4100, filled with ~30 students, browser opens signed in as the teacher
+npm run demo -- --reset   # wipe the demo data and fill it again
+```
+
+It runs the normal server with `DATA_DIR=data-demo` (git-ignored; `data/` is never
+touched), `AI_FAKE=1` (a canned Kru CJ, `src/aiFake.js`: no key, no cost) and
+`DEMO=1` (`/demo-login`, a passwordless teacher sign-in that only answers this
+computer). Both flags refuse to start when `VERCEL` or `DATABASE_URL` is set.
+
+The class is filled **through the real HTTP API** (`scripts/demo-fill.js`), from the
+personas and hand-written answers in `scripts/demo-class.js`. **When a feature adds
+new data, add it there too**, or the demo stops showing it. If a rule change makes a
+step fail, the fill stops and prints the API's error.
+
 ---
 
 ## 4. Tech stack
@@ -500,6 +517,9 @@ There is **no committed automated test suite**. The working pattern is:
    closes post-tests / clears test gradebook columns. Then re-read the user list
    and check that every real account survived — don't check against a list of
    names written down here, which is how this instruction went stale last time.
+
+For clicking through the app with realistic data and no risk to real accounts,
+`npm run demo` (see §3) is usually faster than a throwaway script.
 
 If you add a permanent test suite, wire it into `package.json` and document it
 here.

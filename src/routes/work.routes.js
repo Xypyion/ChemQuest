@@ -425,7 +425,9 @@ function levelRows(user) {
         attempts: p.attempts || 0,
         bestScore: p.bestScore || 0,
         lastScore: p.lastScore == null ? null : p.lastScore,
-        percent: p.total ? pct(p.bestCorrect || 0, p.total) : null,
+        // A teacher-marked attempt (written questions) stores bestEarned,
+        // an all-MCQ one bestCorrect — same rule as the post-test below.
+        percent: p.total ? pct(p.bestEarned != null ? p.bestEarned : (p.bestCorrect || 0), p.total) : null,
         passed: !!p.passed,
         awaiting: !!p.awaitingGrading,
         at: p.completedAt || null,

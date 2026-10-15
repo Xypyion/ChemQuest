@@ -29,7 +29,7 @@ const { authMiddleware } = require('../auth');
 const router = express.Router();
 router.use(authMiddleware); // both roles may use the board
 
-const UPLOAD_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
+const UPLOAD_DIR = path.join(db.dataDir, 'uploads');
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8MB per attached file
 const MAX_FILES_PER_POST = 6;
 const MAX_TEXT = 4000;
