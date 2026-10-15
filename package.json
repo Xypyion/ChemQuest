@@ -9,7 +9,8 @@
     "seed": "node src/seed.js",
     "teacher": "node scripts/set-teacher.js",
     "dev": "node --watch server.js",
-    "migrate": "node scripts/migrate-to-postgres.js"
+    "migrate": "node scripts/migrate-to-postgres.js",
+    "copy-db": "node scripts/copy-database.js"
   },
   "keywords": [
     "education",

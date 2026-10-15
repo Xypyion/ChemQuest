@@ -105,6 +105,26 @@ work there — `DATABASE_URL` is mandatory.
 `vercel.json` and `api/index.js` in the repo define the deployment; the app is
 served entirely by the Express function.
 
+### Moving to another Postgres host
+
+```bash
+FROM_URL="postgresql://…current…" TO_URL="postgresql://…new…" npm run copy-db
+```
+
+Copies every row (pictures and files included) in order, then compares a
+checksum of both databases and says whether they match. Only then point
+`DATABASE_URL` in Vercel at the new database and redeploy. The source is only
+read, so the old database keeps working until you switch.
+
+### Database network transfer
+
+Free Postgres plans cap the data the database sends out each month (Neon
+Free: 5 GB). The app keeps this small: a request downloads only rows that
+changed since that server instance last looked, and whiteboard pictures and
+uploaded files are fetched only when someone opens one. A new server instance
+(Vercel starts one after a quiet spell) still loads everything except those
+pictures and files once.
+
 > ⚠️ **If `DATABASE_URL` is missing on a serverless host, every save fails.**
 > The server logs a loud warning at boot when it detects this. Full background:
 > [KNOWN-ISSUE-vercel-persistence.md](KNOWN-ISSUE-vercel-persistence.md).

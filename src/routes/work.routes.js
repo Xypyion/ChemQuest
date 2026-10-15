@@ -239,7 +239,8 @@ async function analyzeStoryAnswer(recId, payer, purpose, lang, over) {
 async function analyzeBoard(recId, payer, purpose, lang, over) {
   const rec = db.findById('whiteboards', recId);
   if (!rec) return { ok: false, status: 404, code: 'NOT_FOUND' };
-  const img = parseImage(rec.image);
+  // The picture is not kept in memory with the rest (src/db.js LAZY_FIELDS).
+  const img = parseImage(await db.field('whiteboards', rec.id, 'image'));
   if (!img) return { ok: false, status: 400, code: 'BAD_IMAGE' };
   const forImage = rec.updatedAt;
 
@@ -661,10 +662,12 @@ teacherRouter.get('/whiteboards', (req, res) => {
 });
 
 /** GET /api/teacher/logs/whiteboard/:id/image — one board's picture. */
-teacherRouter.get('/whiteboard/:id/image', (req, res) => {
-  const w = db.findById('whiteboards', req.params.id);
-  if (!w) return res.status(404).json({ error: 'Whiteboard not found.' });
-  res.json({ image: w.image || '' });
+teacherRouter.get('/whiteboard/:id/image', async (req, res, next) => {
+  try {
+    const w = db.findById('whiteboards', req.params.id);
+    if (!w) return res.status(404).json({ error: 'Whiteboard not found.' });
+    res.json({ image: (await db.field('whiteboards', w.id, 'image')) || '' });
+  } catch (err) { next(err); }
 });
 
 /** GET /api/teacher/logs/analyze-context/:kind/:id — what Kru CJ would be

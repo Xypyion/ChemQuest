@@ -222,9 +222,14 @@ Design notes, so the next person understands the shape:
   what kills the original symptom: the client can no longer be told "saved"
   before the data is actually saved — and, just as importantly, a real failure
   is now reported honestly instead of appearing to work after a refresh.
-- **Each request re-reads the database** when on Postgres, because several
-  serverless instances each keep their own in-memory copy and would otherwise
-  serve stale data.
+- **Each request catches up with the database** when on Postgres, because
+  several serverless instances each keep their own in-memory copy and would
+  otherwise serve stale data. This used to re-read every row — pictures and
+  files included — on every request, which used up Neon's free 5 GB/month of
+  network transfer by mid-October 2026. Now each row carries a `rev` and a
+  request fetches only rows changed since the last one it saw (usually none);
+  whiteboard pictures and uploaded files stay out of memory and are read one
+  at a time with `db.field()`. See the header of `src/db.js`.
 - **Seeding is idempotent.** The seeded teacher and levels use fixed ids, so two
   cold instances racing to seed an empty database converge on the same rows
   instead of creating duplicates.

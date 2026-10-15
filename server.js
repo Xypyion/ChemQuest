@@ -148,10 +148,13 @@ app.get('/uploads/db/:id', async (req, res, next) => {
     else await db.ready();
     const file = db.findById('uploads', req.params.id);
     if (!file) return res.status(404).send('Not found');
+    // The bytes are not kept in memory with the rest (src/db.js LAZY_FIELDS).
+    const b64 = await db.field('uploads', file.id, 'b64');
+    if (!b64) return res.status(404).send('Not found');
     res.setHeader('Content-Type', file.type || 'application/octet-stream');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.name || 'file')}"`);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.send(Buffer.from(file.b64, 'base64'));
+    res.send(Buffer.from(b64, 'base64'));
   } catch (err) {
     next(err);
   }
