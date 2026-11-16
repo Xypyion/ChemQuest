@@ -1,0 +1,186 @@
+/* Badge emblems (js/badges.js) and the player profile page (profile.html).
+   Colours are the game's own: the gold, silver and bronze the leaderboard
+   podium already uses, on the brand ink. */
+
+/* ---------- the emblem ---------- */
+.bdg {
+  position: relative; display: inline-grid; place-items: center;
+  width: var(--bs, 84px); height: calc(var(--bs, 84px) * 1.08);
+  flex: none;
+}
+.bdg-shield {
+  position: absolute; inset: 0;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background: var(--bdg-rim);
+  display: grid; place-items: center;
+}
+.bdg-core {
+  width: 78%; height: 78%;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background: var(--bdg-core);
+  display: grid; place-items: center;
+  color: var(--bdg-ink, #fff);
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, .14);
+}
+.bdg-emoji { font-size: calc(var(--bs, 84px) * .36); line-height: 1; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .18)); }
+.bdg-lv {
+  position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+  min-width: calc(var(--bs, 84px) * .34);
+  padding: 1px 7px; text-align: center;
+  font-weight: 800; font-size: calc(var(--bs, 84px) * .15); line-height: 1.35;
+  color: var(--bdg-ink-lv, #fff); background: var(--bdg-tag);
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0 50%);
+}
+
+.bdg-gold   { --bdg-rim: linear-gradient(160deg, #fff3b0, #f0a500 55%, #b8860b); --bdg-core: linear-gradient(160deg, #3a3357, #241e3a); --bdg-tag: #f0a500; --bdg-ink-lv: #3a2a00; }
+.bdg-silver { --bdg-rim: linear-gradient(160deg, #ffffff, #b7c2cf 55%, #7d8a9b); --bdg-core: linear-gradient(160deg, #3a3357, #241e3a); --bdg-tag: #9aa7b8; --bdg-ink-lv: #1f2733; }
+.bdg-bronze { --bdg-rim: linear-gradient(160deg, #ffd9b3, #c97f3e 55%, #8f5424); --bdg-core: linear-gradient(160deg, #3a3357, #241e3a); --bdg-tag: #c97f3e; }
+.bdg-open   { --bdg-rim: linear-gradient(160deg, #d9f1ff, #36b9ff); --bdg-core: #fbfaff; --bdg-ink: var(--ink-soft); --bdg-tag: var(--secondary-dark); }
+.bdg-locked { --bdg-rim: #d6d0e6; --bdg-core: #efecf6; --bdg-ink: #8d86a6; --bdg-tag: #a9a1c0; }
+.bdg-locked .bdg-core { box-shadow: none; }
+
+/* a light sweep across an earned badge, once in a while */
+.bdg-shine .bdg-shield::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .55) 50%, transparent 65%);
+  background-size: 300% 100%; background-position: 150% 0;
+  animation: bdg-sweep 4.5s ease-in-out infinite;
+}
+@keyframes bdg-sweep { 0%, 65% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
+
+/* the big reveal on the result screen */
+.bdg-reveal { animation: bdg-pop .7s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes bdg-pop {
+  0% { transform: scale(.2) rotate(-25deg); opacity: 0; }
+  70% { transform: scale(1.12) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ---------- badge shelf (inventory.html) ---------- */
+.badge .bdg { margin: 0 auto 10px; }
+.badge-tier { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+.badge-tier.gold { color: #b8860b; } .badge-tier.silver { color: #6b7686; } .badge-tier.bronze { color: #a8612a; }
+.cert-featured .bdg { flex: none; }
+.tier-hint { text-align: center; font-size: .78rem; font-weight: 700; color: var(--ink-soft); margin: -8px 0 18px; }
+
+/* ---------- result screen ---------- */
+.badge-won { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 10px auto 4px; }
+.badge-won h3 { margin: 4px 0 0; }
+.badge-won .bw-title { font-weight: 800; }
+.badge-won .bw-meta { color: var(--ink-soft); font-size: .85rem; }
+
+/* ---------- links to a player ---------- */
+a.who-link { color: inherit; text-decoration: none; }
+a.who-link:hover .ph-name, a.who-link:hover.ph-name, a.who-link:hover .c-name, a.who-link:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a.lb-row { color: inherit; text-decoration: none; transition: transform .12s ease; }
+a.lb-row:hover { transform: translateX(4px); }
+a.lb-row:focus-visible { outline: 3px solid var(--secondary-dark); outline-offset: 2px; }
+.podium a.pod-link { color: inherit; text-decoration: none; display: block; }
+.podium a.pod-link:hover .pname { text-decoration: underline; }
+
+/* =========================================================================
+   PROFILE (profile.html) — a social-media style player page
+   ========================================================================= */
+.prof { max-width: 880px; margin: 18px auto 60px; }
+
+.prof-cover {
+  position: relative; height: 190px; overflow: hidden;
+  border-radius: 22px 22px 0 0;
+  background:
+    radial-gradient(circle at 18% 120%, rgba(255, 255, 255, .25) 0 60px, transparent 61px),
+    radial-gradient(circle at 85% -20%, rgba(255, 255, 255, .18) 0 90px, transparent 91px),
+    linear-gradient(120deg, var(--brand-pink) 0%, var(--accent) 45%, var(--brand-blue) 100%);
+}
+.prof-cover::after {   /* a faint hex pattern, so the banner is not a flat swatch */
+  content: ''; position: absolute; inset: 0; opacity: .14;
+  background-image:
+    linear-gradient(30deg, #fff 12%, transparent 12.5%, transparent 87%, #fff 87.5%, #fff),
+    linear-gradient(150deg, #fff 12%, transparent 12.5%, transparent 87%, #fff 87.5%, #fff),
+    linear-gradient(90deg, #fff 2%, transparent 2.5%, transparent 97%, #fff 97.5%, #fff);
+  background-size: 46px 80px;
+}
+.prof-cover .prof-rankbig {
+  position: absolute; right: 22px; bottom: 14px; z-index: 1;
+  color: #fff; font-weight: 800; font-size: 2.6rem; line-height: 1; text-shadow: 0 3px 0 rgba(0, 0, 0, .18);
+}
+.prof-cover .prof-rankbig small { display: block; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; opacity: .85; text-align: right; }
+
+.prof-head {
+  position: relative; background: #fff; border-radius: 0 0 22px 22px;
+  padding: 0 24px 20px; box-shadow: var(--shadow-soft);
+}
+.prof-avatar {
+  position: relative; margin-top: -64px; width: 128px; height: 128px;
+  border-radius: 50%; background: #fff; border: 6px solid #fff;
+  display: grid; place-items: center; overflow: hidden;
+  box-shadow: 0 10px 24px rgba(40, 30, 80, .25);
+}
+.prof-avatar .avatar-img { width: 100%; height: 100%; }
+.prof-idrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.prof-name { font-size: 1.7rem; margin: 10px 0 2px; overflow-wrap: anywhere; }
+.prof-sub { color: var(--ink-soft); font-weight: 600; font-size: .9rem; display: flex; gap: 12px; flex-wrap: wrap; }
+.prof-sub span { display: inline-flex; align-items: center; gap: 5px; }
+.prof-actions { display: flex; gap: 10px; padding-bottom: 4px; }
+
+.prof-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-top: 18px; padding-top: 16px; border-top: 2px solid #f1eef8;
+}
+.prof-stat { text-align: center; }
+.prof-stat b { display: block; font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.prof-stat span { font-size: .78rem; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+
+.prof-latest {
+  display: flex; align-items: center; gap: 16px; margin-top: 18px;
+  background: linear-gradient(120deg, #fffdf3, #fff4d6); border: 2px solid var(--sun);
+  border-radius: 16px; padding: 12px 16px;
+}
+.prof-latest .pl-label { font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #b8860b; }
+.prof-latest .pl-title { font-weight: 800; font-size: 1.05rem; }
+.prof-latest .pl-meta { font-size: .82rem; color: var(--ink-soft); }
+
+.prof-tabs { display: flex; gap: 6px; margin: 22px 0 14px; border-bottom: 3px solid rgba(58, 51, 87, .1); }
+.prof-tabs button {
+  border: none; background: none; cursor: pointer; font: inherit; font-weight: 800; font-size: .95rem;
+  color: var(--ink-soft); padding: 10px 16px; margin-bottom: -3px; border-bottom: 3px solid transparent;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.prof-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand-pink); }
+.prof-tabs .count { background: #f1eef8; color: var(--ink-soft); font-size: .75rem; padding: 1px 8px; border-radius: 999px; }
+
+.prof-badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+.prof-badge {
+  background: #fff; border-radius: 16px; padding: 16px 10px 14px; text-align: center;
+  box-shadow: var(--shadow-soft);
+}
+.prof-badge .bdg { margin: 0 auto 8px; }
+.prof-badge .pb-title { font-weight: 700; font-size: .88rem; line-height: 1.25; }
+.prof-badge .pb-meta { font-size: .74rem; color: var(--ink-soft); margin-top: 3px; }
+.prof-badge.locked { opacity: .6; box-shadow: none; background: rgba(255, 255, 255, .6); }
+
+.prof-posts { display: flex; flex-direction: column; gap: 12px; }
+.prof-post { background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow-soft); }
+.prof-post .pp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.prof-post .pp-who { font-weight: 800; }
+.prof-post .pp-where { font-size: .8rem; color: var(--ink-soft); }
+.prof-post .pp-where a { color: var(--secondary-dark); font-weight: 700; text-decoration: none; }
+.prof-post .pp-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.prof-post .pp-imgs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.prof-post .pp-imgs img { width: 110px; height: 110px; object-fit: cover; border-radius: 10px; }
+.prof-post .pp-foot { display: flex; gap: 16px; margin-top: 10px; font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
+.prof-post .pp-foot span { display: inline-flex; align-items: center; gap: 5px; }
+
+.prof-empty { text-align: center; padding: 30px 16px; color: var(--ink-soft); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .prof-cover { height: 130px; border-radius: 16px 16px 0 0; }
+  .prof-head { padding: 0 16px 16px; border-radius: 0 0 16px 16px; }
+  .prof-avatar { width: 100px; height: 100px; margin-top: -50px; }
+  .prof-name { font-size: 1.35rem; }
+  .prof-stats { grid-template-columns: repeat(2, 1fr); row-gap: 14px; }
+  .prof-cover .prof-rankbig { font-size: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bdg-shine .bdg-shield::after, .bdg-reveal { animation: none; }
+}

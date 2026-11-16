@@ -562,10 +562,12 @@ async function showResult() {
   const ringColor = r.passed ? 'var(--grass)' : 'var(--primary)';
 
   let nextHref = null;
+  let levelNo = null;   // which level this is, for the number on the badge
   if (MODE === 'pre') {
     try {
       const list = await API.get('/api/lessons');
       const i = list.lessons.findIndex((l) => l.id === LESSON_ID);
+      if (i >= 0) levelNo = i + 1;
       const nxt = list.lessons[i + 1];
       if (nxt && !nxt.locked) nextHref = `/level.html?id=${encodeURIComponent(nxt.id)}`;
     } catch {}
@@ -593,12 +595,11 @@ async function showResult() {
       <p style="font-weight:700;font-size:1.1rem">${scoreLine}</p>
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       ${MODE === 'pre' && r.passed && cert ? `
-        <div class="cert-preview pop-in">
-          <div class="ribbon">${ICON.certificates(46)}</div>
+        <div class="cert-preview badge-won pop-in">
+          <div class="bdg-reveal">${badgeEmblem({ icon: cert.icon, level: levelNo, score: cert.score, title: cert.title }, { size: 110, shine: true })}</div>
           <h3>${t('lesson.certTitle')}</h3>
-          <div class="who">${escapeHtml(API.user().name)}</div>
-          <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
-          <div class="meta">${cert.icon} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
+          <div class="bw-title">${chem(cert.title)}</div>
+          <div class="bw-meta">${escapeHtml(t('badge.tier.' + badgeTier(cert.score)))} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
         </div>
         ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">
