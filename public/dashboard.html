@@ -16,11 +16,17 @@
 <body data-page="map">
   <div class="topbar"></div>
 
-  <div class="wrap lobby">
-    <!-- The game-lobby menu. Every entry is a plain link to a page that
-         already exists; the top bar keeps carrying the same destinations. -->
+  <!-- Two views on one page, switched by dashboard.js from the address:
+         /dashboard.html        the LOBBY (what a student lands on)
+         /dashboard.html#map    the MAP (opened by PLAY; "Back to map" links
+                                 elsewhere in the app come straight here)
+       Both are plain markup, so the browser's back button moves between them. -->
+
+  <div class="wrap lobby" id="lobbyView">
+    <!-- The game-lobby menu. PLAY opens the map; every other entry is a plain
+         link to a page that already exists. -->
     <nav class="lobby-menu" data-i18n-aria="lobby.menu" aria-label="Main menu">
-      <a class="lm-item is-play" id="lmPlay" href="#scene">
+      <a class="lm-item is-play" id="lmPlay" href="#map">
         <span class="lm-kicker" data-i18n="lobby.playKicker">Continue your adventure</span>
         <span class="lm-label" data-i18n="lobby.play">Play</span>
       </a>
@@ -33,20 +39,30 @@
       <a class="lm-item" href="/settings.html"><span class="lm-label" data-i18n="nav.settings">Settings</span></a>
     </nav>
 
-    <div class="lobby-main">
-      <div class="map-head">
-        <h1 data-i18n="dash.title">Your Chemistry Adventure</h1>
-        <div class="progress-wrap">
-          <div class="progress-bar"><span id="progFill"></span></div>
-          <div class="progress-label" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</div>
-        </div>
-      </div>
-
-      <div class="scene" id="scene" aria-label="Adventure map"></div>
-    </div>
+    <!-- The student's own character on a stage, Kru CJ, progress. Filled by dashboard.js. -->
+    <section class="lobby-hero" id="lobbyHero" aria-live="polite"></section>
 
     <!-- Current mission, missions with progress, and rank. Filled by dashboard.js. -->
     <aside class="lobby-side" id="lobbySide" aria-live="polite"></aside>
+  </div>
+
+  <div class="wrap map-view hidden" id="mapView">
+    <div class="map-toolbar">
+      <a class="map-back" id="mapBack" href="/dashboard.html">
+        <span class="map-back-ic" aria-hidden="true">&#9664;</span>
+        <span data-i18n="lobby.back">Lobby</span>
+      </a>
+    </div>
+
+    <div class="map-head">
+      <h1 data-i18n="dash.title">Your Chemistry Adventure</h1>
+      <div class="progress-wrap">
+        <div class="progress-bar"><span id="progFill"></span></div>
+        <div class="progress-label" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene" aria-label="Adventure map"></div>
   </div>
 
   <script src="/js/i18n.js"></script>

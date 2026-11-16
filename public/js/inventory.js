@@ -88,7 +88,7 @@ mountLangSwitch();
           <div>${renderRuby('happy', { size: 150, float: true })}</div>
           <h2>${t('inv.none')}</h2>
           <p class="muted">${t('inv.noneSub')}</p>
-          <a class="btn big green" href="/dashboard.html">${t('inv.goMap')}</a>
+          <a class="btn big green" href="/dashboard.html#map">${t('inv.goMap')}</a>
         </div>`}`;
   } catch (err) {
     content.innerHTML = `<p class="center" style="color:var(--bad)">${escapeHtml(err.message)}</p>`;

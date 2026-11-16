@@ -106,7 +106,7 @@ function errorBox(msg) {
     <h2>${t('common.oops')}</h2>
     <p class="muted">${escapeHtml(msg)}</p>
     <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-    <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+    <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
   </div>`;
 }
 
@@ -603,7 +603,7 @@ async function showResult() {
         ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">
         <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+        <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
         ${MODE === 'pre' ? `<button class="btn ghost" id="replay">${t('lesson.playAgain')}</button>` : ''}
         ${nextHref ? `<a class="btn green" href="${nextHref}">${t('lesson.nextLevel')}</a>` : ''}
         ${MODE === 'pre' ? `<a class="btn grape" href="/inventory.html">${t('lesson.certificates')}</a>` : ''}
@@ -636,7 +636,7 @@ function showPendingResult(r) {
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       <div class="result-actions">
         <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+        <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
       </div>
     </div>`;
 }

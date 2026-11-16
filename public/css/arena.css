@@ -240,7 +240,6 @@ input:focus, select:focus, textarea:focus {
   gap: 28px;
   align-items: start;
 }
-.lobby-main { min-width: 0; }
 
 /* The big menu on the left: tall condensed words, a diamond, an accent bar. */
 .lobby-menu {
@@ -335,17 +334,115 @@ input:focus, select:focus, textarea:focus {
 .hud-link:hover { color: var(--arena); }
 
 @media (max-width: 1180px) {
-  .wrap.lobby { grid-template-columns: minmax(0, 1fr); max-width: 1080px; gap: 8px; }
+  .wrap.lobby { grid-template-columns: minmax(0, 1fr); max-width: 760px; gap: 14px; }
   .lobby-menu { display: none; }        /* the top bar already carries every destination */
-  .lobby-side { position: static; order: -1; padding-top: 10px;
+  .lobby-side { position: static; padding-top: 0;
     display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 }
-/* Phones: only the current mission sits above the map; missions and rank
-   follow it, so the map is not pushed a whole screen down. */
-@media (max-width: 640px) {
-  .lobby-side { display: contents; }
-  .lobby-side > * { order: 1; }
-  .lobby-side > :first-child { order: -1; margin-top: 6px; }
+
+/* ---------- the lobby's centre: your character on a stage ---------- */
+.lobby-hero {
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding-top: 20px;
+}
+.hero-stage {
+  position: relative; width: min(440px, 100%); height: 400px;
+  display: grid; place-items: end center;
+}
+/* a big hex behind the character, in the brand pink and blue */
+.hero-ring {
+  position: absolute; left: 50%; top: 18px; width: 330px; height: 360px;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(160deg, var(--brand-pink), var(--accent) 50%, var(--brand-blue));
+  opacity: .9;
+}
+.hero-ring::after {
+  content: ''; position: absolute; inset: 14px;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .12) 0 1px, transparent 1px 22px),
+    linear-gradient(180deg, rgba(36, 30, 58, .15), rgba(36, 30, 58, .55));
+}
+.hero-figure {
+  position: relative; z-index: 2; margin-bottom: 14px;
+  animation: float-y 4.5s ease-in-out infinite;
+}
+.hero-figure .student-figure { height: 330px; filter: drop-shadow(0 14px 14px rgba(20, 14, 40, .35)); }
+.hero-plinth {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 1;
+  width: 280px; height: 34px;
+  background: radial-gradient(ellipse at center, rgba(36, 30, 58, .38), rgba(36, 30, 58, 0) 70%);
+}
+.hero-plate { text-align: center; width: min(460px, 100%); margin-top: 4px; }
+.hero-kicker {
+  font-family: var(--font-hud); font-weight: 700; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .16em; color: var(--ink-soft);
+}
+.hero-name {
+  font-family: var(--font-display); font-weight: 400; text-transform: uppercase;
+  font-size: clamp(2.6rem, 5vw, 3.8rem); line-height: .95; letter-spacing: .03em;
+  color: var(--hud); margin: 4px 0 10px; overflow-wrap: anywhere;
+}
+:lang(th) .hero-name { font-family: var(--font-hud); font-weight: 700; line-height: 1.2; font-size: clamp(1.9rem, 4vw, 2.6rem); }
+.hero-prog { width: min(420px, 100%); margin: 0 auto; }
+.hero-play { display: none; margin-top: 16px; }
+.hero-play.btn { background-color: var(--arena); }
+
+/* Kru CJ, with a word about what is next */
+.hero-kru {
+  position: absolute; left: 0; top: 34px; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 210px;
+}
+.hero-say {
+  margin: 0; padding: 10px 14px; font-weight: 600; font-size: .9rem; line-height: 1.4;
+  background: #fff; color: var(--ink);
+  box-shadow: inset 4px 0 0 var(--arena), 0 10px 24px -12px rgba(36, 30, 58, .45);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+
+@media (max-width: 1180px) {
+  .hero-play { display: inline-flex; }
+}
+@media (max-width: 700px) {
+  .hero-stage { height: 300px; }
+  .hero-ring { width: 240px; height: 262px; }
+  .hero-figure .student-figure { height: 240px; }
+  .hero-kru { position: static; flex-direction: row; align-items: center; max-width: none; width: 100%; margin-bottom: 4px; }
+  .hero-kru .ruby { flex: none; }
+}
+
+/* ---------- the map view (dashboard.html#map) ---------- */
+.wrap.map-view { max-width: 1080px; animation: view-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+.wrap.lobby:not(.hidden) { animation: view-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.map-toolbar {
+  display: flex; align-items: center; margin-top: 16px;
+  /* stays in reach while the map scrolls; below the top bar where that is sticky */
+  position: sticky; top: 12px; z-index: 15; pointer-events: none;
+}
+.map-toolbar > * { pointer-events: auto; }
+@media (min-width: 1280px) { .map-toolbar { top: 76px; } }
+.map-back {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 10px 20px 10px 16px;
+  background: var(--hud); color: #fff; text-decoration: none;
+  font-family: var(--font-hud); font-weight: 700; font-size: .9rem;
+  text-transform: uppercase; letter-spacing: .1em;
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  box-shadow: inset 0 -3px 0 var(--arena);
+  transition: transform .15s ease, background .15s ease;
+}
+.map-back:hover { background: var(--hud-2); transform: translateX(-3px); }
+.map-back:focus-visible { clip-path: none; outline: 3px solid var(--arena); outline-offset: 2px; }
+.map-back-ic { font-size: .75rem; color: var(--arena); }
+.map-view .map-head { margin-top: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-figure, .wrap.map-view, .wrap.lobby:not(.hidden) { animation: none; }
 }
 
 /* ---------- the map board ---------- */
