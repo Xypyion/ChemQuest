@@ -1,0 +1,545 @@
+/* =========================================================================
+   StoiVenture — "Arena" skin
+   A tactical game-lobby look for every STUDENT page: a dark HUD bar, sharp
+   cut corners, condensed uppercase titles, corner brackets on panels and a
+   faint grid behind everything.
+
+   HOW IT IS BUILT
+   - Loaded LAST on student pages, after each page's own stylesheet, so it
+     only restyles. No page script depends on anything in here; delete the
+     <link> and the old look comes back untouched.
+   - The colours are the game's own (theme.css tokens): brand pink and blue,
+     sky blue, sun, grape, grass, orange, on the same sky gradient. Only the
+     SHAPES and the type change.
+   - The teacher console does not load this file.
+   ========================================================================= */
+
+:root {
+  --hud: #241e3a;                 /* the game's ink, taken darker */
+  --hud-2: #2f2850;
+  --hud-line: rgba(255, 255, 255, .12);
+  --hud-text: rgba(255, 255, 255, .74);
+  --arena: var(--brand-pink);     /* the one accent the whole skin hangs on */
+  --arena-dark: var(--brand-pink-dark);
+  --tick: rgba(58, 51, 87, .5);
+  --cut: 12px;
+  --font-hud: 'Chakra Petch', 'Mitr', 'Rubik', system-ui, sans-serif;
+  --font-display: 'Bebas Neue', 'Chakra Petch', 'Mitr', system-ui, sans-serif;
+}
+
+/* ---------- the world behind everything ---------- */
+body {
+  background:
+    linear-gradient(115deg, transparent 0 63%, rgba(236, 42, 107, .09) 63% 70%, transparent 70%),
+    linear-gradient(115deg, transparent 0 73%, rgba(19, 85, 212, .07) 73% 78%, transparent 78%),
+    repeating-linear-gradient(0deg, rgba(58, 51, 87, .045) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(58, 51, 87, .045) 0 1px, transparent 1px 48px),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 100%);
+  background-attachment: fixed;
+}
+/* The drifting cartoon clouds belong to the old storybook look. */
+.clouds { display: none; }
+
+::selection { background: var(--arena); color: #fff; }
+
+/* ---------- type ---------- */
+.page-title h1,
+.map-head h1,
+.title-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  line-height: .95;
+  color: var(--hud);
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+}
+.page-title h1::after,
+.map-head h1::after {
+  content: ''; display: block; width: 64px; height: 4px; margin: 10px auto 0;
+  background: var(--arena);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+.page-sub { font-family: var(--font-hud); font-weight: 600; letter-spacing: .02em; }
+
+/* ---------- top HUD bar ---------- */
+.topbar {
+  background: linear-gradient(180deg, rgba(36, 30, 58, .97), rgba(36, 30, 58, .92));
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  box-shadow: 0 2px 0 var(--arena), 0 12px 30px -10px rgba(20, 14, 40, .45);
+  color: #fff;
+  min-height: 62px;
+}
+.topbar .brand { color: #fff; }
+.topbar .wordmark { color: var(--brand-pink); }
+.topbar .wordmark b { color: var(--secondary); }
+
+.topbar .nav-link {
+  position: relative;
+  background: transparent; box-shadow: none; border-radius: 0;
+  color: var(--hud-text);
+  font-family: var(--font-hud); font-size: .86rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  padding: 10px 14px;
+}
+.topbar .nav-link .ic { color: inherit; }
+.topbar .nav-link::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px;
+  background: var(--arena); transform: scaleX(0); transform-origin: left;
+  transition: transform .22s cubic-bezier(.2, .8, .2, 1);
+}
+.topbar .nav-link:hover { color: #fff; filter: none; }
+.topbar .nav-link:hover .ic { color: #fff; }
+.topbar .nav-link:hover::after { transform: scaleX(.45); }
+.topbar .nav-link:active { transform: none; box-shadow: none; }
+.topbar .nav-link.is-current {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(236, 42, 107, .22));
+  color: #fff; box-shadow: none;
+}
+.topbar .nav-link.is-current .ic { color: #fff; opacity: 1; }
+.topbar .nav-link.is-current::after { transform: scaleX(1); }
+.topbar .nav-link:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+
+/* What you have: currency read-outs, not pills. */
+.topbar .nav-stats .pill {
+  background: rgba(255, 255, 255, .08); color: #fff;
+  border-radius: 0; font-family: var(--font-hud); font-weight: 700; letter-spacing: .03em;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  padding: 7px 16px;
+}
+.topbar .nav-stats .pill.coins .ic { color: var(--sun); opacity: 1; }
+.topbar .nav-stats .pill.points .ic { color: var(--secondary); opacity: 1; }
+
+.topbar .nav-who {
+  background: rgba(255, 255, 255, .08); color: #fff; border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+  font-family: var(--font-hud);
+}
+.topbar .nav-who:hover, .topbar .nav-who.is-current { background: rgba(255, 255, 255, .16); color: #fff; }
+.topbar .nav-who .avatar-img { border-radius: 2px; background: rgba(255, 255, 255, .12); }
+.topbar .nav-out { color: var(--hud-text); font-family: var(--font-hud); border-radius: 0; }
+.topbar .nav-out:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+
+/* Language switch: angular, dark in the bar, light when floating on a page. */
+.lang-switch { border-radius: 0; padding: 2px; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.lang-switch button { border-radius: 0; font-family: var(--font-hud); letter-spacing: .04em; }
+.lang-switch button.on { background: var(--arena); color: #fff; box-shadow: none; }
+.topbar .lang-switch { background: rgba(255, 255, 255, .08); box-shadow: none; }
+.topbar .lang-switch button { color: var(--hud-text); }
+.topbar .lang-switch button.on { color: #fff; }
+
+/* The HUD labels are narrower than the old pill buttons, so one row fits from
+   1280px (theme.css wraps below 1580px for the wider pills). The name in the
+   account chip stays hidden in this range; the avatar is still the link. */
+@media (min-width: 1280px) and (max-width: 1580px) {
+  .topbar { flex-wrap: nowrap; position: sticky; padding: 8px 18px; }
+  .topbar .nav-links { order: 0; width: auto; margin-left: auto; -webkit-mask-image: none; mask-image: none; }
+  .topbar .nav-account { margin-left: 0; }
+  /* Thai labels are wider; the log-out button keeps its icon and its name
+     for screen readers, and drops the visible word. */
+  .topbar .nav-out span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+}
+
+.hud-panel .btn { background-color: var(--arena); }
+
+/* ---------- phones: the tab bar is a HUD strip too ---------- */
+@media (max-width: 640px) {
+  .topbar { min-height: 54px; }
+  .nav-back { background: rgba(255, 255, 255, .1); color: #fff; box-shadow: none; border-radius: 0;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%); }
+  .nav-back:active { transform: none; box-shadow: none; }
+  .dock {
+    background: rgba(36, 30, 58, .97);
+    border-top: 2px solid var(--arena);
+    box-shadow: 0 -10px 26px rgba(20, 14, 40, .35);
+  }
+  .dock-link { color: var(--hud-text); font-family: var(--font-hud); text-transform: uppercase; letter-spacing: .05em; }
+  .dock-link.is-current { color: #fff; }
+  .dock-ic { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+  .dock-link.is-current .dock-ic { background: var(--arena); color: #fff; }
+  .more-sheet[open] { border-radius: 0; border-top: 3px solid var(--arena); }
+  .sheet-who, .sheet-link, .sheet-out, .sheet-close { border-radius: 0; }
+}
+
+/* ---------- panels ---------- */
+.card {
+  border-radius: 3px;
+  border: 1px solid rgba(58, 51, 87, .12);
+  box-shadow: 0 18px 40px -20px rgba(36, 30, 58, .45);
+  /* corner brackets, drawn as backgrounds so no pseudo-element is taken */
+  background:
+    linear-gradient(var(--arena), var(--arena)) top left / 18px 3px no-repeat,
+    linear-gradient(var(--arena), var(--arena)) top left / 3px 18px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 18px 2px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 2px 18px no-repeat,
+    var(--card);
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  font-family: var(--font-hud);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  transition: transform .08s ease, filter .15s ease, background-position .55s ease;
+}
+/* a light sweep across on hover — on every colour of button */
+.btn.btn {
+  box-shadow: none;
+  background-image: linear-gradient(110deg, transparent 0 38%, rgba(255, 255, 255, .38) 50%, transparent 62%);
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  background-repeat: no-repeat;
+}
+.btn.btn:hover { background-position: -30% 0; filter: brightness(1.06); }
+.btn.btn:active { transform: translateY(2px) scale(.985); box-shadow: none; }
+.btn.btn:disabled { box-shadow: none; filter: grayscale(.25); }
+.btn.btn:focus-visible { clip-path: none; outline: 3px solid var(--hud); outline-offset: 3px; }
+.btn.ghost { box-shadow: inset 0 0 0 2px rgba(58, 51, 87, .16); }
+.btn.ghost.btn { box-shadow: inset 0 0 0 2px rgba(58, 51, 87, .16); }
+.btn.big { border-radius: 0; letter-spacing: .1em; }
+
+/* ---------- inputs ---------- */
+input, select, textarea { border-radius: 2px; border-width: 2px; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--arena); box-shadow: 0 0 0 3px rgba(236, 42, 107, .16);
+}
+
+/* ---------- tags ---------- */
+.pill { border-radius: 2px; font-family: var(--font-hud); letter-spacing: .03em; }
+
+/* ---------- toasts: a HUD notice with an accent edge ---------- */
+.toast {
+  border-radius: 0; font-family: var(--font-hud); letter-spacing: .02em;
+  background: var(--hud); box-shadow: inset 4px 0 0 var(--secondary), 0 12px 30px -10px rgba(20, 14, 40, .5);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+.toast.good { background: var(--hud); box-shadow: inset 4px 0 0 var(--good), 0 12px 30px -10px rgba(20, 14, 40, .5); }
+.toast.bad { background: var(--hud); box-shadow: inset 4px 0 0 var(--bad), 0 12px 30px -10px rgba(20, 14, 40, .5); }
+
+/* ---------- the teacher's "signed in as a student" bar ---------- */
+.viewas-bar { border-radius: 0; background: var(--hud); box-shadow: inset 0 -2px 0 var(--arena), var(--shadow-soft); }
+.viewas-back { border-radius: 0; font-family: var(--font-hud); text-transform: uppercase; letter-spacing: .05em; }
+
+/* ---------- mascot speech ---------- */
+.speech { border-radius: 4px; border-color: #fff; box-shadow: inset 4px 0 0 var(--arena), var(--shadow-soft); }
+
+/* =========================================================================
+   THE LOBBY (the map page)
+   ========================================================================= */
+
+.wrap.lobby {
+  max-width: 1500px;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 320px;
+  gap: 28px;
+  align-items: start;
+}
+.lobby-main { min-width: 0; }
+
+/* The big menu on the left: tall condensed words, a diamond, an accent bar. */
+.lobby-menu {
+  position: sticky; top: 92px;
+  display: flex; flex-direction: column; gap: 2px;
+  padding-top: 26px;
+}
+.lm-item {
+  position: relative;
+  display: flex; flex-direction: column;
+  padding: 6px 12px 6px 30px;
+  color: var(--hud); text-decoration: none;
+  transition: transform .18s cubic-bezier(.2, .8, .2, 1), color .15s;
+}
+.lm-item::before {
+  content: ''; position: absolute; left: 8px; top: 50%; width: 9px; height: 9px;
+  background: currentColor; transform: translateY(-50%) rotate(45deg) scale(.7);
+  opacity: .55; transition: transform .2s, opacity .2s, background .2s;
+}
+.lm-label {
+  font-family: var(--font-display); font-size: 2.35rem; line-height: 1;
+  text-transform: uppercase; letter-spacing: .02em;
+}
+:lang(th) .lm-label { font-family: var(--font-hud); font-weight: 700; font-size: 1.7rem; line-height: 1.25; }
+.lm-kicker {
+  font-family: var(--font-hud); font-weight: 700; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--ink-soft);
+}
+.lm-item:hover, .lm-item:focus-visible { transform: translateX(8px); color: var(--arena); outline: none; }
+.lm-item:hover::before, .lm-item:focus-visible::before { opacity: 1; transform: translateY(-50%) rotate(45deg) scale(1); background: var(--arena); }
+.lm-item.is-play .lm-label { font-size: 4rem; color: var(--arena); }
+:lang(th) .lm-item.is-play .lm-label { font-size: 2.6rem; }
+.lm-item.is-play::before { background: var(--arena); opacity: 1; }
+.lm-item.is-play:hover { color: var(--arena-dark); }
+.lm-item.is-play:hover .lm-label { color: var(--arena-dark); }
+.lm-sep { height: 1px; margin: 10px 12px 8px 30px; background: rgba(58, 51, 87, .16); }
+
+/* The right-hand column: current mission, missions with progress, rank. */
+.lobby-side { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 14px; padding-top: 26px; }
+.hud-panel {
+  position: relative;
+  background: rgba(36, 30, 58, .94);
+  color: #fff;
+  padding: 16px 18px 18px;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  box-shadow: inset 0 3px 0 var(--arena);
+}
+.hud-panel.light {
+  background: rgba(255, 255, 255, .92); color: var(--ink);
+  box-shadow: inset 0 3px 0 var(--secondary), inset 0 0 0 1px rgba(58, 51, 87, .1);
+}
+.hud-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-family: var(--font-hud); font-weight: 700; font-size: .74rem;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--hud-text);
+  margin-bottom: 10px;
+}
+.hud-panel.light .hud-head { color: var(--ink-soft); }
+.hud-mission-lv {
+  font-family: var(--font-hud); font-weight: 700; font-size: .78rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--sun);
+}
+.hud-mission-title {
+  font-family: var(--font-hud); font-weight: 700; font-size: 1.25rem; line-height: 1.2;
+  margin: 2px 0 12px;
+}
+.hud-mission-icon { font-size: 1.5rem; margin-right: 6px; }
+.hud-panel .btn { width: 100%; }
+
+.mission { padding: 10px 0; border-top: 1px solid rgba(58, 51, 87, .1); }
+.mission:first-of-type { border-top: none; padding-top: 2px; }
+.mission-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.mission-name { font-family: var(--font-hud); font-weight: 600; font-size: .9rem; }
+.mission-count { font-family: var(--font-hud); font-weight: 700; font-size: .82rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.mission-bar { height: 6px; margin: 7px 0 5px; background: rgba(58, 51, 87, .12); overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%); }
+.mission-bar > span { display: block; height: 100%; width: 100%; transform-origin: left;
+  background: linear-gradient(90deg, var(--secondary), var(--arena));
+  transition: transform .8s cubic-bezier(.2, .8, .3, 1); }
+.mission.is-done .mission-bar > span { background: var(--grass); }
+.mission-reward { font-family: var(--font-hud); font-weight: 700; font-size: .72rem; letter-spacing: .06em; color: var(--grass-dark); text-transform: uppercase; }
+.mission.is-done .mission-reward { color: var(--ink-soft); }
+
+.hud-rank { display: flex; align-items: center; gap: 14px; }
+.hud-rank-num {
+  font-family: var(--font-display); font-size: 3.4rem; line-height: .9; color: var(--arena);
+}
+.hud-rank-meta { font-family: var(--font-hud); font-weight: 600; font-size: .85rem; color: var(--ink-soft); line-height: 1.4; }
+.hud-rank-meta b { color: var(--ink); font-size: 1rem; }
+.hud-link { display: inline-block; margin-top: 10px; font-family: var(--font-hud); font-weight: 700; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--brand-blue); text-decoration: none; }
+.hud-link:hover { color: var(--arena); }
+
+@media (max-width: 1180px) {
+  .wrap.lobby { grid-template-columns: minmax(0, 1fr); max-width: 1080px; gap: 8px; }
+  .lobby-menu { display: none; }        /* the top bar already carries every destination */
+  .lobby-side { position: static; order: -1; padding-top: 10px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+/* Phones: only the current mission sits above the map; missions and rank
+   follow it, so the map is not pushed a whole screen down. */
+@media (max-width: 640px) {
+  .lobby-side { display: contents; }
+  .lobby-side > * { order: 1; }
+  .lobby-side > :first-child { order: -1; margin-top: 6px; }
+}
+
+/* ---------- the map board ---------- */
+.map-head { margin-top: 26px; }
+.progress-bar {
+  height: 14px; border-radius: 0; border: none; background: rgba(36, 30, 58, .14); box-shadow: none;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.progress-label { font-family: var(--font-hud); font-weight: 600; letter-spacing: .03em; }
+
+.scene {
+  border-radius: 4px; border: 1px solid rgba(58, 51, 87, .14);
+  box-shadow: 0 24px 50px -24px rgba(36, 30, 58, .45);
+  background:
+    linear-gradient(var(--arena), var(--arena)) top left / 26px 3px no-repeat,
+    linear-gradient(var(--arena), var(--arena)) top left / 3px 26px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 26px 2px no-repeat,
+    linear-gradient(var(--tick), var(--tick)) bottom right / 2px 26px no-repeat,
+    repeating-linear-gradient(0deg, rgba(58, 51, 87, .05) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(58, 51, 87, .05) 0 1px, transparent 1px 32px),
+    #fbfaff;
+}
+
+/* Levels are hexes. The 3D edge is painted inside the shape (a darker band
+   at the bottom), because a clipped element cannot cast a box-shadow. */
+.node-disc {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  box-shadow: none;
+  background: linear-gradient(180deg, var(--face) 0 82%, var(--edge) 82% 100%);
+}
+.node-disc::after { border-radius: 0; }
+.node:active .node-disc, .node.is-locked:active .node-disc { box-shadow: none; }
+.node-n { font-family: var(--font-display); font-weight: 400; font-size: calc(var(--size) * .5); letter-spacing: 0; }
+.node:focus-visible .node-disc { outline: none; }
+.node:focus-visible .node-title { outline: 3px solid var(--arena); outline-offset: 3px; }
+
+/* the level you are on gets a pink hex glowing behind it */
+.node.is-now::before {
+  content: ''; position: absolute; top: -10px; left: 50%; z-index: -1;
+  width: calc(var(--size) + 20px); height: calc(var(--size) + 20px);
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: var(--arena); opacity: .3;
+  animation: arena-halo 2.2s ease-in-out infinite;
+}
+@keyframes arena-halo { 0%, 100% { opacity: .18; } 50% { opacity: .45; } }
+
+.node-title {
+  border-radius: 0; background: var(--hud); color: #fff;
+  font-family: var(--font-hud); font-weight: 600; letter-spacing: .02em;
+  box-shadow: none; padding: 5px 12px;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.node.is-now .node-title { background: var(--arena); }
+.node.is-locked .node-title { background: #e6e1f2; color: var(--ink-soft); }
+.node-when { border-radius: 0; font-family: var(--font-hud); box-shadow: none; background: var(--hud); color: #fff;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+.node-when .ic { color: var(--sun); }
+
+.you-tag {
+  border-radius: 0; background: var(--arena); color: #fff;
+  font-family: var(--font-hud); text-transform: uppercase; letter-spacing: .1em; box-shadow: none;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  padding: 5px 14px;
+}
+.you.done .you-tag { background: var(--sun); color: var(--hud); box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .node.is-now::before { animation: none; }
+}
+
+/* =========================================================================
+   EVERY OTHER PAGE: the same sharp grammar on each page's own panels
+   ========================================================================= */
+
+/* Square off the big rounded panels. Their own colours, borders and shadows
+   stay; only the corners change. */
+.stage-card, .board-hero, .q-wallet, .q-empty, .q-history, .b-result-wallet, .set-card,
+.cert-featured, .shelf-progress .sp-bar, .post-card, .composer, .assign-banner, .class-banner,
+.feed-empty, .private-qs, .rating-block, .ask-teacher, .new-assign, .ch-res, .ch-sim, .ch-feedback,
+.ch-check-card, .flow-note, .pending-box, .cert-preview, .story-resume, .story-board-how,
+.video-frame, .story-img, .q-img, .ch-q-img, .att-img, .att-file, .file-chip, .comment,
+.composer textarea, .written-input, .set-input, .ch-input, .ch-area, .tutor-msg, .tutor-input,
+.login-card, .explain, .quiz-timer, .step, .board-item, .ch-group-title {
+  border-radius: 3px;
+}
+/* Big panels get the accent edge the HUD panels have. */
+.stage-card, .board-hero, .set-card, .q-history, .q-empty {
+  box-shadow: inset 0 3px 0 var(--arena), 0 18px 40px -20px rgba(36, 30, 58, .45);
+}
+
+/* Things you press get the cut corner, like the buttons. */
+.choice, .ch-choice, .b-diff, .b-opp, .q-card, .ch-card, .badge, .lb-row, .board-tabs button,
+.set-av, .like-btn {
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+.choice:focus-visible, .ch-choice:focus-visible, .b-diff:focus-visible, .b-opp:focus-visible,
+.q-card:focus-visible, .ch-card:focus-visible, .badge:focus-visible, .board-tabs button:focus-visible,
+.set-av:focus-visible { clip-path: none; outline: 3px solid var(--arena); outline-offset: 2px; }
+.choice .ltr { border-radius: 0; font-family: var(--font-hud); clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%); }
+
+/* Section headings inside pages read as HUD labels. */
+.q-section-title, .b-step-title, .ch-group-title, .set-card h2, .q-history h2, .q-history h3 {
+  font-family: var(--font-hud); letter-spacing: .04em;
+}
+
+/* ---------- level board (the hub) ---------- */
+.board-tabs button { font-family: var(--font-hud); text-transform: uppercase; letter-spacing: .06em; }
+.hub-bubble { border-radius: 3px; box-shadow: inset 4px 0 0 var(--arena), 0 5px 0 rgba(0, 0, 0, .08); }
+.hub-bubble::before { border-radius: 0; }
+.hub-disc {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: linear-gradient(180deg, var(--face) 0 82%, var(--edge) 82% 100%);
+}
+.hub-disc::after { border-radius: 0; }
+.hub-node:active .hub-disc, .hub-node.is-locked:active .hub-disc, .hub-node.is-empty:active .hub-disc { box-shadow: none; }
+.hub-node:focus-visible .hub-disc { outline: none; }
+.hub-node:focus-visible .hub-name { outline: 3px solid var(--arena); outline-offset: 3px; }
+.hub-name {
+  border-radius: 0; background: var(--hud); color: #fff; box-shadow: none;
+  font-family: var(--font-hud); font-weight: 700; letter-spacing: .03em;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.hub-node.is-next .hub-name { background: var(--arena); }
+.hub-node.is-locked .hub-name, .hub-node.is-empty .hub-name { background: #e6e1f2; color: var(--ink-soft); }
+.hub-step + .hub-step::before {
+  border-radius: 0; width: 6px; border: none;
+  background: repeating-linear-gradient(180deg, var(--hud) 0 8px, transparent 8px 14px);
+  opacity: .35;
+}
+
+/* ---------- quiz ---------- */
+.choice { font-family: var(--font); }
+.choice:hover:not(:disabled) { border-color: var(--arena); }
+.choice.picked { border-color: var(--secondary); }
+.quiz-timer { font-family: var(--font-hud); }
+
+/* ---------- leaderboard ---------- */
+.lb-seg { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); background: rgba(36, 30, 58, .1); }
+.lb-seg button { border-radius: 0; font-family: var(--font-hud); text-transform: uppercase; letter-spacing: .06em; }
+.lb-seg button.on { background: var(--hud); color: #fff; box-shadow: inset 0 -3px 0 var(--arena); }
+.podium .pav, .podium .c1 .pav { border-radius: 2px; }
+.podium .pav .avatar-img, .lb-row .av .avatar-img { border-radius: 2px; }
+.podium .pname { font-family: var(--font-hud); }
+.podium .stand {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+.podium .stand .stand-num { font-family: var(--font-display); font-weight: 400; font-size: 2.8rem; }
+.lb-row { border-width: 0; box-shadow: inset 4px 0 0 rgba(58, 51, 87, .14), var(--shadow-soft); }
+.lb-row.top3 { box-shadow: inset 4px 0 0 var(--sun), var(--shadow-soft); }
+.lb-row.me { box-shadow: inset 4px 0 0 var(--arena), var(--shadow-soft); background: #fff4f8; }
+.lb-row .av { border-radius: 2px; }
+.lb-row .rank, .lb-row .pts { font-family: var(--font-hud); }
+.lb-row .pts { color: var(--arena); }
+.your-rank {
+  border-radius: 0; background: var(--hud); font-family: var(--font-hud);
+  box-shadow: inset 0 3px 0 var(--arena), 0 14px 34px rgba(20, 15, 40, .35);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+.your-rank .yr-rank { font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; color: var(--arena); }
+.cheer-tag { border-radius: 0; }
+
+/* ---------- certificates shelf ---------- */
+.shelf-progress .sp-bar > span { border-radius: 0; }
+.shelf-progress .sp-label, .shelf-progress .sp-count, .cert-featured .cf-label { font-family: var(--font-hud); }
+.badge-name { font-family: var(--font-hud); }
+
+/* ---------- quests + battles ---------- */
+.q-wallet { border-radius: 0; clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); }
+.b-diff, .b-opp, .q-card { font-family: var(--font); }
+
+/* ---------- settings ---------- */
+.set-hero-face { border-radius: 3px; }
+.set-progress-bar, .set-progress-bar span { border-radius: 0; }
+
+/* ---------- login ---------- */
+.login-card { box-shadow: inset 0 4px 0 var(--arena), 0 24px 60px -24px rgba(36, 30, 58, .5); }
+.login-card h1, .login-card h2 { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .03em; font-size: 2.1rem; line-height: 1; }
+:lang(th) .login-card h1, :lang(th) .login-card h2 { font-family: var(--font-hud); font-weight: 700; font-size: 1.6rem; line-height: 1.3; }
+
+/* Thai has no capitals and Bebas Neue has no Thai, so Thai titles use the HUD
+   face at a weight and line height that leaves room for the vowel marks. */
+:lang(th) .page-title h1, :lang(th) .map-head h1, :lang(th) .title-xl {
+  font-family: var(--font-hud); font-weight: 700; line-height: 1.25; letter-spacing: 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+/* the login card's own big button */
+.login-cta {
+  border-radius: 0; font-family: var(--font-hud); letter-spacing: .1em;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+}
+.login-cta:focus-visible { clip-path: none; }

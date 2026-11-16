@@ -6,25 +6,47 @@
   <title>StoiVenture — Adventure Map</title>
   <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/quests.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/map.css" />
+  <link rel="stylesheet" href="/css/arena.css" />
 </head>
 <body data-page="map">
   <div class="topbar"></div>
 
-  <div class="wrap">
-    <div class="map-head">
-      <h1 data-i18n="dash.title">Your Chemistry Adventure</h1>
-      <div class="progress-wrap">
-        <div class="progress-bar"><span id="progFill"></span></div>
-        <div class="progress-label" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</div>
+  <div class="wrap lobby">
+    <!-- The game-lobby menu. Every entry is a plain link to a page that
+         already exists; the top bar keeps carrying the same destinations. -->
+    <nav class="lobby-menu" data-i18n-aria="lobby.menu" aria-label="Main menu">
+      <a class="lm-item is-play" id="lmPlay" href="#scene">
+        <span class="lm-kicker" data-i18n="lobby.playKicker">Continue your adventure</span>
+        <span class="lm-label" data-i18n="lobby.play">Play</span>
+      </a>
+      <div class="lm-sep" aria-hidden="true"></div>
+      <a class="lm-item" href="/quests.html"><span class="lm-label" data-i18n="nav.quests">Quests</span></a>
+      <a class="lm-item" href="/battle.html"><span class="lm-label" data-i18n="nav.battle">Battle</span></a>
+      <a class="lm-item" href="/lab.html"><span class="lm-label" data-i18n="nav.lab">Lab</span></a>
+      <a class="lm-item" href="/inventory.html"><span class="lm-label" data-i18n="nav.certificates">Certificates</span></a>
+      <a class="lm-item" href="/leaderboard.html"><span class="lm-label" data-i18n="nav.leaderboard">Leaderboard</span></a>
+      <a class="lm-item" href="/settings.html"><span class="lm-label" data-i18n="nav.settings">Settings</span></a>
+    </nav>
+
+    <div class="lobby-main">
+      <div class="map-head">
+        <h1 data-i18n="dash.title">Your Chemistry Adventure</h1>
+        <div class="progress-wrap">
+          <div class="progress-bar"><span id="progFill"></span></div>
+          <div class="progress-label" id="progLabel" data-i18n="dash.loadingMap">Loading your map…</div>
+        </div>
       </div>
+
+      <div class="scene" id="scene" aria-label="Adventure map"></div>
     </div>
 
-    <div class="scene" id="scene" aria-label="Adventure map"></div>
+    <!-- Current mission, missions with progress, and rank. Filled by dashboard.js. -->
+    <aside class="lobby-side" id="lobbySide" aria-live="polite"></aside>
   </div>
 
   <script src="/js/i18n.js"></script>

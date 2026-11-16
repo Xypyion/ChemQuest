@@ -61,7 +61,91 @@ async function init() {
         : t('dash.progress', { done, total: LESSONS.length });
 
     buildMap();
+    renderLobby();
   } catch (err) { toast(err.message, 'bad'); }
+}
+
+/* ---------- the lobby around the map ---------- *
+
+   The left menu is static links. The right column is filled here, from the
+   levels this page already loaded plus two small reads (quests, leaderboard).
+   Each part is optional: if a read fails, that panel is simply left out, and
+   the map itself never waits on any of it. */
+
+async function renderLobby() {
+  const side = document.getElementById('lobbySide');
+  if (!side) return;
+
+  const i = currentIndex();
+  const cur = i >= 0 ? LESSONS[i] : null;
+  const play = document.getElementById('lmPlay');
+  if (play && cur) play.href = `/level.html?id=${encodeURIComponent(cur.id)}`;
+
+  const done = LESSONS.filter((l) => l.completed).length;
+  const certs = LESSONS.filter((l) => l.hasCertificate).length;
+  const total = LESSONS.length;
+
+  const mission = cur ? `
+    <section class="hud-panel">
+      <div class="hud-head"><span>${escapeHtml(t('lobby.mission'))}</span></div>
+      <div class="hud-mission-lv">${escapeHtml(t('dash.levelOne', { a: i + 1 }))}</div>
+      <div class="hud-mission-title">${cur.icon ? `<span class="hud-mission-icon">${escapeHtml(cur.icon)}</span>` : ''}${chem(cur.title)}</div>
+      <a class="btn big" href="/level.html?id=${encodeURIComponent(cur.id)}">${ICON.play ? ICON.play(18) : ''}${escapeHtml(t('lobby.go'))}</a>
+    </section>`
+    : total ? `
+    <section class="hud-panel">
+      <div class="hud-head"><span>${escapeHtml(t('lobby.mission'))}</span></div>
+      <div class="hud-mission-title">${escapeHtml(t('lobby.allClear'))}</div>
+      <p style="margin:0;color:var(--hud-text)">${escapeHtml(t('lobby.allClearSub'))}</p>
+    </section>` : '';
+
+  const row = (name, have, want, reward) => {
+    const pct = want ? Math.min(1, have / want) : 0;
+    const isDone = want > 0 && have >= want;
+    return `
+      <div class="mission${isDone ? ' is-done' : ''}">
+        <div class="mission-row"><span class="mission-name">${escapeHtml(name)}</span>
+          <span class="mission-count">${have} / ${want}</span></div>
+        <div class="mission-bar"><span style="transform:scaleX(${pct})"></span></div>
+        <div class="mission-reward">${escapeHtml(isDone ? t('lobby.complete') : reward)}</div>
+      </div>`;
+  };
+
+  side.innerHTML = mission + (total ? `
+    <section class="hud-panel light" id="lobbyMissions">
+      <div class="hud-head"><span>${escapeHtml(t('lobby.missions'))}</span></div>
+      ${row(t('lobby.mLevels'), done, total, t('lobby.rLevels'))}
+      ${row(t('lobby.mCollect', { what: t('nav.certificates') }), certs, total, t('lobby.rCollect'))}
+    </section>` : '');
+
+  // Daily quests: how many of the open ones are handed in.
+  try {
+    const { quests } = await API.get('/api/quests');
+    const open = (quests || []).filter((q) => q.windowState !== 'closed' && q.windowState !== 'upcoming');
+    if (open.length) {
+      const handed = open.filter((q) => q.status === 'done').length;
+      const panel = document.getElementById('lobbyMissions');
+      if (panel) panel.insertAdjacentHTML('beforeend', row(t('lobby.mQuests'), handed, open.length, t('lobby.rQuests')));
+    }
+  } catch { /* no quest panel row */ }
+
+  // Rank, from the same board the Leaderboard page shows.
+  try {
+    const { leaderboard, meId } = await API.get('/api/leaderboard');
+    const mine = (leaderboard || []).find((s) => s.id === meId);
+    if (mine) {
+      side.insertAdjacentHTML('beforeend', `
+        <section class="hud-panel light">
+          <div class="hud-head"><span>${escapeHtml(t('lobby.rank'))}</span></div>
+          <div class="hud-rank">
+            <div class="hud-rank-num">#${mine.rank}</div>
+            <div class="hud-rank-meta">${escapeHtml(t('lobby.rankOf', { total: leaderboard.length }))}<br>
+              <b>${mine.points}</b> ${escapeHtml(t('nav.pts'))}</div>
+          </div>
+          <a class="hud-link" href="/leaderboard.html">${escapeHtml(t('lobby.seeBoard'))} ›</a>
+        </section>`);
+    }
+  } catch { /* no rank panel */ }
 }
 
 /* ---------- the shape of the course ---------- */
