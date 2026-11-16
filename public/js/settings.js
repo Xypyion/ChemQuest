@@ -55,6 +55,8 @@ function render() {
         </div>
       </section>
 
+      <section class="set-card pop-in" id="soundCard"></section>
+
       <section class="set-card pop-in">
         <h2 class="set-h">${ICON.people(19)} <span data-i18n="set.lookTitle">How you appear</span></h2>
         <p class="set-note" data-i18n="set.lookNote">This is the name and face your classmates see on the leaderboard, in Coin Battles and on every post.</p>
@@ -107,6 +109,10 @@ function render() {
     </div>`;
 
   applyI18n();
+
+  // The sound card fills itself (js/sound.js); without that file it is removed.
+  const sound = document.getElementById('soundCard');
+  if (typeof SFX !== 'undefined') SFX.mountSettings(sound); else if (sound) sound.remove();
 
   /* mountNav() renders the coin and point pills at 0 and leaves each page to
      fill them. This page already holds both numbers from /profile, so it

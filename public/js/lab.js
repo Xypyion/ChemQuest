@@ -233,6 +233,8 @@ async function answer(round, given, button) {
     button.classList.add(r.correct ? 'is-right' : 'is-wrong');
     if (!r.correct) markRight(round, r);
     if (r.correct) confetti(r.element ? 120 : 60);
+    window.sfx && sfx(r.correct ? 'correct' : 'wrong');
+    if (r.correct && r.coins > 0) setTimeout(() => window.sfx && sfx('coin'), 350);
 
     if (r.element) JUST_FOUND.add(r.element.z);
     STATE.coins = data.coins;

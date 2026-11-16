@@ -293,7 +293,8 @@ async function answer(auto) {
     outcome = await API.post(`/api/battles/${fight.id}/answer`, { answers });
     stopTimer();
     setNavCoins(outcome.coins);
-    if (outcome.outcome === 'win') confetti(110);
+    if (outcome.outcome === 'win') { confetti(110); window.sfx && sfx('coin'); }
+    else window.sfx && sfx('lose');
     await loadLobby();
     renderResult();
   } catch (e) {

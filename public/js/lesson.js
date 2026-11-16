@@ -418,6 +418,8 @@ function paintTimer(remaining) {
   const ss = String(s % 60).padStart(2, '0');
   el.innerHTML = `${ICON.timer(18)} ${mm}:${ss}`;
   el.classList.toggle('warn', s <= 10);
+  // the last ten seconds tick, once per second (this repaints four times a second)
+  if (s > 0 && s <= 10 && s !== paintTimer.lastTick) { paintTimer.lastTick = s; window.sfx && sfx('tick'); }
 }
 
 /* -------------------------------- QUIZ -------------------------------- */
@@ -514,6 +516,7 @@ async function answerQuestion(btn, q) {
   explain.className = 'explain show ' + (res.correct ? 'right' : 'wrong');
   explain.innerHTML = (res.correct ? t('lesson.correct') : t('lesson.notQuite')) + chem(res.explanation || '');
   ensureQuizRuby(res.correct ? 'cheer' : 'sad');
+  window.sfx && sfx(res.correct ? 'correct' : 'wrong');
   if (res.correct) { try { miniPop(btn); } catch {} }
 
   const nextBtn = document.getElementById('nextQ');
@@ -611,6 +614,8 @@ async function showResult() {
     </div>`;
 
   if (r.passed) confetti();
+  else window.sfx && sfx('lose');
+  if (r.newCertificate) setTimeout(() => window.sfx && sfx('badge'), 700);
   // "Play again" is only offered for the pre-test; the post-test is one attempt.
   const replayBtn = document.getElementById('replay');
   if (replayBtn) replayBtn.onclick = () => {
