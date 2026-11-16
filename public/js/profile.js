@@ -31,7 +31,7 @@ let tab = 'badges';
       const pts = document.getElementById('navPoints');
       if (pts) pts.textContent = lessons.points || 0;
     }
-    document.title = `StoiVenture — ${profile.name}`;
+    document.title = `StoiVenture: ${profile.name}`;
     render();
   } catch (err) {
     content.innerHTML = `

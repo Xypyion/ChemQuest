@@ -1,6 +1,6 @@
-# Game overhaul — what changed
+# Game overhaul: what changed
 
-Three features, each on its own branch, plus one branch with all three together.
+Three features, each on its own branch, one branch with all three together, and one more with the anti-slop cleanup on top.
 Nothing is on `main`. Every existing function was kept; see **What did not change**.
 
 | Branch | What it holds |
@@ -8,13 +8,14 @@ Nothing is on `main`. Every existing function was kept; see **What did not chang
 | `feat/arena-ui` | 1. The Valorant-style lobby look |
 | `feat/badges-profile` | 2. Certificates → Badges, plus a social-media style profile page |
 | `feat/game-sound` | 3. Sound effects and music |
-| `test/game-overhaul` | All three merged together, the one to try first |
+| `test/game-overhaul` | All three merged together, as they were before the cleanup |
+| `feat/unslop` | All three, plus section 4: the anti-slop cleanup. The one to try first |
 
 To try a branch on the school machine:
 
 ```bash
 git fetch origin
-git checkout test/game-overhaul
+git checkout feat/unslop
 npm install
 npm start
 ```
@@ -28,27 +29,30 @@ Then open http://localhost:4000.
 **Colours are unchanged.** The game's own palette is kept: brand pink and blue, sky blue, sun yellow, grape, grass green, orange, on the same sky gradient. What changed is the shapes, type and layout, so it reads like a tactical game lobby.
 
 ### Everywhere on the student side
-- **HUD top bar.** A dark bar with a pink line under it.
+This is the skin as it stands on `feat/unslop`. `DESIGN.md` gives the reason for each choice.
+
+- **HUD top bar.** A solid dark bar.
   - Tabs are uppercase labels, and the current tab gets a pink underline.
-  - Coins and points are slanted read-outs.
   - From 1280px wide it fits on one row; before, it wrapped to two rows below 1580px.
-- **Sharp shapes.** Buttons and clickable cards have cut corners and a light sweep on hover. Panels have pink corner brackets. Inputs and tags are squared off.
-- **Type.** Big condensed uppercase titles (*Bebas Neue*). HUD labels and buttons use *Chakra Petch*, which also has Thai. Thai titles fall back to Chakra Petch, so vowel marks are never clipped.
-- **Background.** A faint tactical grid and two diagonal light slabs in pink and blue over the sky gradient. The cartoon clouds are hidden.
-- **Phones.** The bottom tab bar is a dark HUD strip, and the current tab is a pink slanted chip.
+- **One accent.** Pink marks the main action on a screen and "this is you / this is current". Other buttons are dark ink.
+- **Shapes.** Filled buttons have a cut corner, which means "action". Content cards are square and sit flat on a thin line.
+- **Type.** Big condensed uppercase titles (*Bebas Neue*). Labels and buttons use *Chakra Petch*, which also has Thai. Thai text is never letter-spaced.
+- **Background.** Two diagonal slabs in pink and blue over the sky gradient. The cartoon clouds are hidden.
+- **Motion.** Nothing loops. A view fades in, and a badge shines once when it appears.
+- **Phones.** The bottom tab bar is a dark strip, and the current tab is a pink chip.
 
 ### The map page is now a lobby, and PLAY opens the map
 `dashboard.html` has two views:
 
 - **Lobby** (what a student lands on):
   - **Left:** a big game menu with diamond bullets: **PLAY**, then Quests, Battle, Lab, Badges, Leaderboard and Settings.
-  - **Centre:** the student's own character standing on a glowing hexagon, with "Welcome back", their name in big letters and their progress bar. Kru CJ sits beside them with a tip about the next level.
+  - **Centre:** the student's own character standing on a hexagon stage, with "Welcome back", their name in big letters and their progress bar. Kru CJ sits beside them with a tip about the next level.
   - **Right:**
-    - **Current mission:** the level you are on, with a Continue button straight into it.
-    - **Missions,** each with a progress bar: clear every level, collect badges, and finish today's quests.
+    - **Next level:** the level you are on, with a Continue button straight into it.
+    - **Your progress,** each line with a bar: clear every level, collect badges, and finish today's quests.
     - **Your rank:** your place out of all players, and your points.
 - **Map** (`dashboard.html#map`), opened by **PLAY**:
-  - The same map. Level markers are **hexagons**, and the level you are on has a pulsing pink halo.
+  - The same map. Level markers are **hexagons**, and the level you are on has a pink hexagon behind it.
   - A **◀ Lobby** button stays at the top while the map scrolls.
   - The browser's back button also returns to the lobby.
 - **Links:**
@@ -83,7 +87,7 @@ Level board, lesson and quiz, challenge, quests, battle, leaderboard (angular po
   - **Gold** 90%+
   - **Silver** 75%+
   - **Bronze** (pass)
-- Earned badges shine every few seconds. Badges not yet earned show as blue (available) or grey (locked).
+- An earned badge shines once when it appears. Badges not yet earned show as blue (available) or grey (locked).
 - Passing a level now shows **"Badge unlocked!"** with the emblem popping in.
 
 ### Player profile (social-media style)
@@ -162,6 +166,20 @@ Everything is **made in the browser** with the Web Audio API: no audio files, no
 - `toast()` and `confetti()` are wrapped, so every existing notice and celebration makes a sound without touching its call site.
 
 ---
+
+## 4. Anti-slop cleanup (`feat/unslop`)
+
+The site was audited against the anti-slop rules (github.com/miqdadbadjuber/anti-slop, release 3.2.30) and fixed. The full numbered list is in `anti-slop/audit-001-2026-11-16.md`.
+
+- **Readable text.** White text on every button colour failed the contrast standard (orange 2.35, green 1.76, blue 2.20; 4.5 is the pass mark). Buttons are now dark pink or dark ink, and every text pairing on the student pages passes.
+- **Less decoration.** Removed: the page-wide grid, the pink-to-purple-to-blue gradients, corner brackets, decorative stripes, the blur on the bars, and shadows under every panel.
+- **One accent.** Pink used to be on almost everything. It now marks only the main action and "you / current".
+- **No endless animation.** Seven looping animations were stopped.
+- **Honest states.** The lobby now shows a loading line, and an error message with a Try again button.
+- **Accessibility.** Pages have proper header and main regions, touch targets are at least 44px, and everything clickable shows a pointer.
+- **Written direction.** `DESIGN.md` records the look and the reason for each choice.
+
+**Left for the owner to decide:** the older interface text has em dashes on 147 lines, plus 12 page titles. The rules ban them, but they are existing text, so they were not rewritten.
 
 ## What did not change
 

@@ -63,7 +63,20 @@ async function init() {
     renderHero();
     renderLobby();
     showView();
-  } catch (err) { toast(err.message, 'bad'); }
+  } catch (err) {
+    // Say what failed and give the one action that fixes it, in the page, not only in a toast.
+    const hero = document.getElementById('lobbyHero');
+    hero.innerHTML = `
+      <div class="lobby-state" role="alert">
+        <p>${escapeHtml(t('lobby.error'))}</p>
+        <button type="button" class="btn secondary" id="lobbyRetry">${escapeHtml(t('lobby.retry'))}</button>
+      </div>`;
+    document.getElementById('lobbyRetry').onclick = () => {
+      hero.innerHTML = `<p class="lobby-state">${escapeHtml(t('lobby.loading'))}</p>`;
+      init();
+    };
+    document.getElementById('progLabel').textContent = t('lobby.error');
+  }
 }
 
 /* ---------- lobby or map ---------- *
@@ -132,7 +145,6 @@ function renderHero() {
     <div class="hero-stage">
       <div class="hero-ring" aria-hidden="true"></div>
       <div class="hero-figure">${studentFigure(me && me.avatar, 330)}</div>
-      <div class="hero-plinth" aria-hidden="true"></div>
     </div>
     <div class="hero-plate">
       <div class="hero-kicker">${escapeHtml(t('lobby.welcome'))}</div>
@@ -220,7 +232,7 @@ async function renderLobby() {
             <div class="hud-rank-meta">${escapeHtml(t('lobby.rankOf', { total: leaderboard.length }))}<br>
               <b>${mine.points}</b> ${escapeHtml(t('nav.pts'))}</div>
           </div>
-          <a class="hud-link" href="/leaderboard.html">${escapeHtml(t('lobby.seeBoard'))} ›</a>
+          <a class="hud-link" href="/leaderboard.html">${escapeHtml(t('lobby.seeBoard'))}</a>
         </section>`);
     }
   } catch { /* no rank panel */ }

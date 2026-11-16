@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/css/arena.css" />
 </head>
 <body data-page="map">
-  <div class="topbar"></div>
+  <header class="topbar"></header>
 
   <!-- Two views on one page, switched by dashboard.js from the address:
          /dashboard.html        the LOBBY (what a student lands on)
@@ -22,15 +22,11 @@
                                  elsewhere in the app come straight here)
        Both are plain markup, so the browser's back button moves between them. -->
 
-  <div class="wrap lobby" id="lobbyView">
+  <main class="wrap lobby" id="lobbyView">
     <!-- The game-lobby menu. PLAY opens the map; every other entry is a plain
          link to a page that already exists. -->
     <nav class="lobby-menu" data-i18n-aria="lobby.menu" aria-label="Main menu">
-      <a class="lm-item is-play" id="lmPlay" href="#map">
-        <span class="lm-kicker" data-i18n="lobby.playKicker">Continue your adventure</span>
-        <span class="lm-label" data-i18n="lobby.play">Play</span>
-      </a>
-      <div class="lm-sep" aria-hidden="true"></div>
+      <a class="lm-item is-play" id="lmPlay" href="#map"><span class="lm-label" data-i18n="lobby.play">Play</span></a>
       <a class="lm-item" href="/quests.html"><span class="lm-label" data-i18n="nav.quests">Quests</span></a>
       <a class="lm-item" href="/battle.html"><span class="lm-label" data-i18n="nav.battle">Battle</span></a>
       <a class="lm-item" href="/lab.html"><span class="lm-label" data-i18n="nav.lab">Lab</span></a>
@@ -40,13 +36,15 @@
     </nav>
 
     <!-- The student's own character on a stage, Kru CJ, progress. Filled by dashboard.js. -->
-    <section class="lobby-hero" id="lobbyHero" aria-live="polite"></section>
+    <section class="lobby-hero" id="lobbyHero" aria-live="polite">
+      <p class="lobby-state" data-i18n="lobby.loading">Loading your lobby…</p>
+    </section>
 
     <!-- Current mission, missions with progress, and rank. Filled by dashboard.js. -->
     <aside class="lobby-side" id="lobbySide" aria-live="polite"></aside>
-  </div>
+  </main>
 
-  <div class="wrap map-view hidden" id="mapView">
+  <main class="wrap map-view hidden" id="mapView">
     <div class="map-toolbar">
       <a class="map-back" id="mapBack" href="/dashboard.html">
         <span class="map-back-ic" aria-hidden="true">&#9664;</span>
@@ -63,7 +61,7 @@
     </div>
 
     <div class="scene" id="scene" aria-label="Adventure map"></div>
-  </div>
+  </main>
 
   <script src="/js/i18n.js"></script>
   <script src="/js/icons.js"></script>
