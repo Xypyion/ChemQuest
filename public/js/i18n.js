@@ -31,6 +31,16 @@ const I18N = {
     'nav.more': 'More',
     'nav.back': 'Back',
 
+    /* ---- game sound (js/sound.js) ---- */
+    'snd.title': 'Sound',
+    'snd.note': 'Game sound effects and music. Music starts after your first tap on a page, and stays off during lessons and challenges so you can think.',
+    'snd.sfx': 'Sound effects',
+    'snd.music': 'Music',
+    'snd.volume': 'Volume',
+    'snd.test': 'Play a test sound',
+    'snd.turnOn': 'Turn sound on',
+    'snd.turnOff': 'Turn sound off',
+
     /* ---- settings ---- */
     'set.title': 'My Settings',
     'set.sub': 'Your profile, your look, your account.',
@@ -1474,6 +1484,16 @@ const I18N = {
     'nav.settings': 'ตั้งค่า',
     'nav.more': 'เพิ่มเติม',
     'nav.back': 'ย้อนกลับ',
+
+    /* ---- game sound (js/sound.js) ---- */
+    'snd.title': 'เสียง',
+    'snd.note': 'เอฟเฟกต์เสียงและเพลงประกอบเกม เพลงจะเริ่มหลังจากแตะหน้าจอครั้งแรกในแต่ละหน้า และจะปิดไว้ระหว่างบทเรียนและโจทย์ เพื่อให้มีสมาธิ',
+    'snd.sfx': 'เอฟเฟกต์เสียง',
+    'snd.music': 'เพลงประกอบ',
+    'snd.volume': 'ระดับเสียง',
+    'snd.test': 'ทดลองฟังเสียง',
+    'snd.turnOn': 'เปิดเสียง',
+    'snd.turnOff': 'ปิดเสียง',
 
     /* ---- settings ---- */
     'set.title': 'ตั้งค่าของฉัน',
