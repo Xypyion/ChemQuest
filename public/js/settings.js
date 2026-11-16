@@ -45,13 +45,14 @@ function render() {
           <div class="set-chips">
             <span class="pill points">${ICON.star(14)} ${s.points} ${escapeHtml(t('nav.pts'))}</span>
             <span class="pill">${ICON.coin(14)} ${s.coins} ${escapeHtml(t('nav.coins'))}</span>
-            <span class="pill">${ICON.certificates(14)} ${s.certificates}</span>
+            <span class="pill" title="${escapeHtml(t('nav.certificates'))}">${ICON.certificates(14)} ${s.certificates} ${escapeHtml(t('nav.certificates'))}</span>
           </div>
           <div class="set-progress">
             <div class="set-progress-bar"><span style="width:${pct}%"></span></div>
             <span class="set-progress-txt">${escapeHtml(t('set.progress', { done: s.levelsDone, total: s.levelsTotal }))}</span>
           </div>
           ${s.joinedAt ? `<p class="set-joined">${escapeHtml(t('set.joined', { date: fmtDate(s.joinedAt) }))}</p>` : ''}
+          <a class="btn ghost" style="margin-top:10px" href="/profile.html">${ICON.people(16)} ${escapeHtml(t('prof.viewMine'))}</a>
         </div>
       </section>
 

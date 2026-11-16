@@ -186,12 +186,21 @@ const Feed = (() => {
            ${fileIcon(a.type)} ${esc(a.name)} <span class="af-size">${fmtSize(a.size || 0)}</span></a>`).join('');
   }
 
+  /* A classmate's name and face open their profile — on the student board
+     only: the teacher console has no student pages to send a teacher to, and
+     a teacher's own posts have no profile. */
+  function who(author, inner, attrs = '') {
+    if (opts.teacher || !author || author.role !== 'student' || !author.id) return inner;
+    return `<a class="who-link" href="/profile.html?id=${encodeURIComponent(author.id)}"${attrs}>${inner}</a>`;
+  }
+  const AV_LINK = ' tabindex="-1" aria-hidden="true"';  // the name next to it is the real link
+
   function commentsHtml(p) {
     const list = (p.comments || []).map((c) => `
       <div class="comment">
-        <span class="c-av">${avatarHtml(c.author.avatar, 26)}</span>
+        ${who(c.author, `<span class="c-av">${avatarHtml(c.author.avatar, 26)}</span>`, AV_LINK)}
         <div class="c-body">
-          <div class="c-name">${esc(c.author.name)}${c.author.role === 'teacher' ? ` <span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}</div>
+          <div class="c-name">${who(c.author, esc(c.author.name))}${c.author.role === 'teacher' ? ` <span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}</div>
           <div class="c-text">${chemLinks(c.text)}</div>
         </div>
         ${(opts.teacher || c.author.id === API.user().id) ? `<button class="c-del" aria-label="${t('common.delete')}" onclick="Feed.delComment('${p.id}','${c.id}')">${ICON.trash(14)}</button>` : ''}
@@ -208,8 +217,8 @@ const Feed = (() => {
   function headHtml(p) {
     return `
       <div class="post-head">
-        <span class="ph-av">${avatarHtml(p.author.avatar, 32)}</span>
-        <span class="ph-name">${esc(p.author.name)}</span>
+        ${who(p.author, `<span class="ph-av">${avatarHtml(p.author.avatar, 32)}</span>`, AV_LINK)}
+        ${who(p.author, `<span class="ph-name">${esc(p.author.name)}</span>`)}
         ${p.author.role === 'teacher' ? `<span class="ph-role">${t('feed.teacherBadge')}</span>` : ''}
         <span class="ph-time">${fmtTime(p.createdAt)}</span>
         ${p.canDelete ? `<button class="ph-del" aria-label="${t('common.delete')}" onclick="Feed.delPost('${p.id}')">${ICON.trash(16)}</button>` : ''}
