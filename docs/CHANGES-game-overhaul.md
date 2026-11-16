@@ -37,16 +37,25 @@ Then open http://localhost:4000.
 - **Background.** A faint tactical grid and two diagonal light slabs in pink and blue over the sky gradient. The cartoon clouds are hidden.
 - **Phones.** The bottom tab bar is a dark HUD strip, and the current tab is a pink slanted chip.
 
-### The map page is now a lobby
-- **Left menu**, like a game's main menu: big words with diamond bullets.
-  - **PLAY** jumps straight to the level you are on.
-  - The other entries are Quests, Battle, Lab, Badges, Leaderboard and Settings.
-- **Centre:** the same map. Level markers are now **hexagons**, and the level you are on has a pulsing pink halo.
-- **Right column:**
-  - **Current mission:** the level you are on, with a PLAY button.
-  - **Missions,** each with a progress bar: clear every level, collect badges, and finish today's quests.
-  - **Your rank:** your place out of all players, and your points.
-- On tablets the left menu hides (the top bar has the same links) and the panels sit above the map. On phones only the mission card sits above the map.
+### The map page is now a lobby, and PLAY opens the map
+`dashboard.html` has two views:
+
+- **Lobby** (what a student lands on):
+  - **Left:** a big game menu with diamond bullets: **PLAY**, then Quests, Battle, Lab, Badges, Leaderboard and Settings.
+  - **Centre:** the student's own character standing on a glowing hexagon, with "Welcome back", their name in big letters and their progress bar. Kru CJ sits beside them with a tip about the next level.
+  - **Right:**
+    - **Current mission:** the level you are on, with a Continue button straight into it.
+    - **Missions,** each with a progress bar: clear every level, collect badges, and finish today's quests.
+    - **Your rank:** your place out of all players, and your points.
+- **Map** (`dashboard.html#map`), opened by **PLAY**:
+  - The same map. Level markers are **hexagons**, and the level you are on has a pulsing pink halo.
+  - A **◀ Lobby** button stays at the top while the map scrolls.
+  - The browser's back button also returns to the lobby.
+- **Links:**
+  - The top bar's **Map** tab and every "Back to map" button in the app open the map view directly.
+  - The logo and logging in land on the lobby.
+- **Smaller screens:**
+  - On tablets and phones the left menu hides, because the top bar has the same links. A PLAY button appears under the character instead, and the mission panels follow below.
 
 ### Other pages
 Level board, lesson and quiz, challenge, quests, battle, leaderboard (angular podium and rows), badge shelf, settings and the login card all use the same sharp style. The Lab keeps its own dark theme and gets the new top bar.

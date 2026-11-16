@@ -60,9 +60,89 @@ async function init() {
         ? t('dash.progressDone', { done, total: LESSONS.length })
         : t('dash.progress', { done, total: LESSONS.length });
 
-    buildMap();
+    renderHero();
     renderLobby();
+    showView();
   } catch (err) { toast(err.message, 'bad'); }
+}
+
+/* ---------- lobby or map ---------- *
+
+   One page, two views. The lobby is what a student lands on; PLAY opens the
+   map. Which one shows comes from the address — /dashboard.html is the lobby,
+   /dashboard.html#map is the map — so PLAY is a plain link, the browser's back
+   button returns to the lobby, and "Back to map" buttons elsewhere in the app
+   (they point at #map) open the map directly. */
+
+const isMapView = () => location.hash === '#map';
+
+function showView() {
+  const map = isMapView();
+  document.getElementById('lobbyView').classList.toggle('hidden', map);
+  document.getElementById('mapView').classList.toggle('hidden', !map);
+  document.body.classList.toggle('view-map', map);
+  markNav(map);
+  window.scrollTo(0, 0);
+  // The map is laid out from the board's width, which is 0 while it is hidden.
+  if (map && LESSONS) buildMap();
+}
+
+/* The Map tab in the top bar (and the phone tab bar) is "current" — filled
+   and not pressable — only while the map itself is showing. In the lobby it
+   is an ordinary link, so it can be used to open the map. */
+function markNav(map) {
+  document.querySelectorAll('.topbar .nav-link, .dock-link').forEach((a) => {
+    if (!(a.getAttribute('href') || '').startsWith('/dashboard.html')) return;
+    a.classList.toggle('is-current', map);
+    if (map) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+}
+
+window.addEventListener('hashchange', showView);
+
+document.getElementById('mapBack').addEventListener('click', (e) => {
+  e.preventDefault();
+  history.pushState(null, '', location.pathname);   // back to the lobby, as a step the back button can undo
+  showView();
+});
+
+/* ---------- the lobby's centre: your character on a stage ---------- */
+
+function renderHero() {
+  const host = document.getElementById('lobbyHero');
+  if (!host) return;
+  const total = LESSONS.length;
+  const done = LESSONS.filter((l) => l.completed).length;
+  const pct = total ? done / total : 0;
+  const i = currentIndex();
+  const cur = i >= 0 ? LESSONS[i] : null;
+
+  const say = !total ? t('dash.emptyTitle')
+    : cur ? t('lobby.kruNext', { n: i + 1, title: cur.title })
+    : t('lobby.allClear');
+  const progress = total && done === total
+    ? t('dash.progressDone', { done, total })
+    : t('dash.progress', { done, total });
+
+  host.innerHTML = `
+    <div class="hero-kru">
+      ${renderRuby(cur ? 'wave' : 'cheer', { size: 104 })}
+      <p class="hero-say">${chem(say)}</p>
+    </div>
+    <div class="hero-stage">
+      <div class="hero-ring" aria-hidden="true"></div>
+      <div class="hero-figure">${studentFigure(me && me.avatar, 330)}</div>
+      <div class="hero-plinth" aria-hidden="true"></div>
+    </div>
+    <div class="hero-plate">
+      <div class="hero-kicker">${escapeHtml(t('lobby.welcome'))}</div>
+      <h1 class="hero-name">${escapeHtml((me && me.name) || '')}</h1>
+      <div class="hero-prog">
+        <div class="progress-bar"><span style="transform:scaleX(${pct})"></span></div>
+        <div class="progress-label">${escapeHtml(progress)}</div>
+      </div>
+      <a class="btn big hero-play" href="#map">${ICON.play(20)} ${escapeHtml(t('lobby.play'))}</a>
+    </div>`;
 }
 
 /* ---------- the lobby around the map ---------- *
@@ -78,8 +158,6 @@ async function renderLobby() {
 
   const i = currentIndex();
   const cur = i >= 0 ? LESSONS[i] : null;
-  const play = document.getElementById('lmPlay');
-  if (play && cur) play.href = `/level.html?id=${encodeURIComponent(cur.id)}`;
 
   const done = LESSONS.filter((l) => l.completed).length;
   const certs = LESSONS.filter((l) => l.hasCertificate).length;
@@ -298,4 +376,4 @@ function lockedToastFor(reason, opensAt) {
 }
 
 let rt;
-window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(buildMap, 180); });
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (isMapView()) buildMap(); }, 180); });

@@ -58,7 +58,7 @@ async function start() {
 function boardUrl() {
   return challenge && challenge.lessonId
     ? `/level.html?id=${encodeURIComponent(challenge.lessonId)}&tab=challenges`
-    : '/dashboard.html';
+    : '/dashboard.html#map';
 }
 
 function errorBox(msg) {
@@ -66,7 +66,7 @@ function errorBox(msg) {
     <div>${renderRuby('sad', { size: 140 })}</div>
     <h2>${t('common.oops')}</h2>
     <p class="muted">${escapeHtml(msg)}</p>
-    <a class="btn secondary" href="/dashboard.html">${t('ch.backMap')}</a>
+    <a class="btn secondary" href="/dashboard.html#map">${t('ch.backMap')}</a>
   </div>`;
 }
 
