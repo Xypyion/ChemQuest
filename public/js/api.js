@@ -225,7 +225,7 @@ async function refreshNavCoins() {
 */
 
 const NAV_ITEMS = [
-  { page: 'map',          href: '/dashboard.html',   key: 'nav.map',          icon: 'map' },
+  { page: 'map',          href: '/dashboard.html#map', key: 'nav.map',          icon: 'map' },
   { page: 'quests',       href: '/quests.html',      key: 'nav.quests',       icon: 'quests' },
   { page: 'battle',       href: '/battle.html',      key: 'nav.battle',       icon: 'battle' },
   { page: 'lab',          href: '/lab.html',         key: 'nav.lab',          icon: 'flask' },
@@ -266,7 +266,7 @@ function mountNav() {
   const flow = document.body.dataset.navFlow;
   const levelId = new URLSearchParams(location.search).get('id');
   const backHref = flow === 'lesson' && levelId
-    ? '/level.html?id=' + encodeURIComponent(levelId) : '/dashboard.html';
+    ? '/level.html?id=' + encodeURIComponent(levelId) : '/dashboard.html#map';
   const back = flow ? `<a class="nav-back" id="navBack" href="${backHref}"
       aria-label="${escapeHtml(t('nav.back'))}">${ICON.back(20)}</a>` : '';
 

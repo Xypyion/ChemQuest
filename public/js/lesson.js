@@ -106,7 +106,7 @@ function errorBox(msg) {
     <h2>${t('common.oops')}</h2>
     <p class="muted">${escapeHtml(msg)}</p>
     <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-    <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+    <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
   </div>`;
 }
 
@@ -418,6 +418,8 @@ function paintTimer(remaining) {
   const ss = String(s % 60).padStart(2, '0');
   el.innerHTML = `${ICON.timer(18)} ${mm}:${ss}`;
   el.classList.toggle('warn', s <= 10);
+  // the last ten seconds tick, once per second (this repaints four times a second)
+  if (s > 0 && s <= 10 && s !== paintTimer.lastTick) { paintTimer.lastTick = s; window.sfx && sfx('tick'); }
 }
 
 /* -------------------------------- QUIZ -------------------------------- */
@@ -514,6 +516,7 @@ async function answerQuestion(btn, q) {
   explain.className = 'explain show ' + (res.correct ? 'right' : 'wrong');
   explain.innerHTML = (res.correct ? t('lesson.correct') : t('lesson.notQuite')) + chem(res.explanation || '');
   ensureQuizRuby(res.correct ? 'cheer' : 'sad');
+  window.sfx && sfx(res.correct ? 'correct' : 'wrong');
   if (res.correct) { try { miniPop(btn); } catch {} }
 
   const nextBtn = document.getElementById('nextQ');
@@ -562,10 +565,12 @@ async function showResult() {
   const ringColor = r.passed ? 'var(--grass)' : 'var(--primary)';
 
   let nextHref = null;
+  let levelNo = null;   // which level this is, for the number on the badge
   if (MODE === 'pre') {
     try {
       const list = await API.get('/api/lessons');
       const i = list.lessons.findIndex((l) => l.id === LESSON_ID);
+      if (i >= 0) levelNo = i + 1;
       const nxt = list.lessons[i + 1];
       if (nxt && !nxt.locked) nextHref = `/level.html?id=${encodeURIComponent(nxt.id)}`;
     } catch {}
@@ -593,17 +598,16 @@ async function showResult() {
       <p style="font-weight:700;font-size:1.1rem">${scoreLine}</p>
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       ${MODE === 'pre' && r.passed && cert ? `
-        <div class="cert-preview pop-in">
-          <div class="ribbon">${ICON.certificates(46)}</div>
+        <div class="cert-preview badge-won pop-in">
+          <div class="bdg-reveal">${badgeEmblem({ icon: cert.icon, level: levelNo, score: cert.score, title: cert.title }, { size: 110, shine: true })}</div>
           <h3>${t('lesson.certTitle')}</h3>
-          <div class="who">${escapeHtml(API.user().name)}</div>
-          <div>${t('lesson.mastered')} <b>${escapeHtml(cert.title)}</b></div>
-          <div class="meta">${cert.icon} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
+          <div class="bw-title">${chem(cert.title)}</div>
+          <div class="bw-meta">${escapeHtml(t('badge.tier.' + badgeTier(cert.score)))} · ${cert.score} ${t('lesson.pts')} · ${new Date(cert.dateEarned).toLocaleDateString(getLang() === 'th' ? 'th-TH' : undefined)}</div>
         </div>
         ${r.newCertificate ? `<p class="muted">${t('lesson.savedToInventory')}</p>` : ''}` : ''}
       <div class="result-actions">
         <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+        <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
         ${MODE === 'pre' ? `<button class="btn ghost" id="replay">${t('lesson.playAgain')}</button>` : ''}
         ${nextHref ? `<a class="btn green" href="${nextHref}">${t('lesson.nextLevel')}</a>` : ''}
         ${MODE === 'pre' ? `<a class="btn grape" href="/inventory.html">${t('lesson.certificates')}</a>` : ''}
@@ -611,6 +615,8 @@ async function showResult() {
     </div>`;
 
   if (r.passed) confetti();
+  else window.sfx && sfx('lose');
+  if (r.newCertificate) setTimeout(() => window.sfx && sfx('badge'), 700);
   // "Play again" is only offered for the pre-test; the post-test is one attempt.
   const replayBtn = document.getElementById('replay');
   if (replayBtn) replayBtn.onclick = () => {
@@ -636,7 +642,7 @@ function showPendingResult(r) {
       <p class="muted">${t('lesson.totalPoints')} <b>${r.pointsTotal}</b></p>
       <div class="result-actions">
         <a class="btn secondary" href="${BOARD_URL}">${t('lesson.backToBoard')}</a>
-        <a class="btn ghost" href="/dashboard.html">${t('lesson.backToMap')}</a>
+        <a class="btn ghost" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
       </div>
     </div>`;
 }

@@ -6,27 +6,30 @@
   <title>StoiVenture — Leaderboard</title>
   <link rel="icon" href="/assets/logo-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Mitr:wght@400;500;600&family=Chakra+Petch:wght@500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/theme.css" />
   <link rel="stylesheet" href="/css/quests.css" />
   <link rel="stylesheet" href="/css/character.css" />
   <link rel="stylesheet" href="/css/pages.css" />
+  <link rel="stylesheet" href="/css/badges.css" />
+  <link rel="stylesheet" href="/css/arena.css" />
 </head>
 <body data-page="leaderboard">
-  <div class="topbar"></div>
+  <header class="topbar"></header>
 
-  <div class="wrap">
+  <main class="wrap">
     <div class="page-title">
       <h1 data-i18n="lb.title">Explorer Leaderboard</h1>
       <p class="page-sub" data-i18n="lb.sub">Who's climbing highest? Earn points by completing levels!</p>
     </div>
     <div id="podium" class="podium"></div>
     <div id="list" class="lb-list"><p class="center muted" data-i18n="lb.loading">Loading rankings…</p></div>
-  </div>
+  </main>
 
   <script src="/js/i18n.js"></script>
   <script src="/js/icons.js"></script>
   <script src="/js/api.js"></script>
+  <script src="/js/sound.js"></script>
   <script src="/js/character.js"></script>
   <script src="/js/leaderboard.js"></script>
 </body>

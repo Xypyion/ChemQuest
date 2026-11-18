@@ -46,7 +46,7 @@ function errBox(msg) {
     <div>${renderRuby('sad', { size: 150 })}</div>
     <h2>${t('common.oops')}</h2>
     <p class="muted">${escapeHtml(msg)}</p>
-    <a class="btn secondary" href="/dashboard.html">${t('lesson.backToMap')}</a>
+    <a class="btn secondary" href="/dashboard.html#map">${t('lesson.backToMap')}</a>
   </div>`;
 }
 

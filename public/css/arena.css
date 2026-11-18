@@ -1,0 +1,548 @@
+/* StoiVenture "Arena" skin: the student pages as a game lobby.
+
+   Loaded last on every student page, so it only restyles; the teacher console
+   does not load it. The direction and the reason for every choice below are in
+   DESIGN.md at the repo root. The short version:
+
+   - ink for the HUD, sky for the ground, brand pink as the ONE accent
+     (the primary action, and "this is you / this is current")
+   - the hexagon (a benzene ring) for what a student collects and moves through
+   - cut corner = an action; content cards stay square
+   - shadow only on things that float; no endless animation */
+
+:root {
+  --hud: #241e3a;
+  --hud-2: #332b55;
+  --hud-text: rgba(255, 255, 255, .78);
+  --arena: var(--brand-pink);             /* marks, lines and large display type */
+  --accent-fill: var(--brand-pink-dark);  /* behind white text: 5.5:1 */
+  --done: #1f7a2b;                        /* progress fill: 5.4:1 on white */
+  --line: rgba(36, 30, 58, .16);
+  /* The quiet text colour, a step darker than theme.css has it: small labels sit
+     straight on the sky, where the original measures 4.06:1. This one is 4.84. */
+  --ink-soft: #5f5880;
+  --cut: 12px;
+  --track: .04em;                         /* Thai is never letter-spaced, see the end */
+  --font-hud: 'Chakra Petch', 'Mitr', 'Rubik', system-ui, sans-serif;
+  --font-display: 'Bebas Neue', 'Chakra Petch', 'Mitr', system-ui, sans-serif;
+
+  /* Panels sit flat on a line. Anything that really floats sets its own shadow. */
+  --shadow-soft: none;
+  --float: 0 14px 30px -12px rgba(20, 14, 40, .45);
+}
+
+/* ---------- ground ---------- */
+body {
+  background:
+    linear-gradient(115deg, transparent 0 63%, rgba(236, 42, 107, .09) 63% 70%, transparent 70%),
+    linear-gradient(115deg, transparent 0 73%, rgba(19, 85, 212, .07) 73% 78%, transparent 78%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-bottom) 100%);
+  background-attachment: fixed;
+}
+.clouds { display: none; }
+::selection { background: var(--hud); color: #fff; }
+
+/* Everything that can be used says so. */
+a[href], button, summary, select, label[for], [role="button"], [role="tab"],
+input[type="checkbox"], input[type="radio"], input[type="range"] { cursor: pointer; }
+:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* ---------- type ---------- */
+.page-title h1, .map-head h1, .title-xl {
+  font-family: var(--font-display); font-weight: 400;
+  text-transform: uppercase; letter-spacing: .02em; line-height: .95;
+  color: var(--hud); font-size: clamp(2.4rem, 5vw, 3.6rem);
+}
+/* Text that sits straight on the sky uses ink: the softer grey measures 4.06:1 there. */
+.page-sub, .progress-label, .tier-hint { color: var(--ink); font-weight: 600; }
+
+/* ---------- top bar (the HUD) ---------- */
+.topbar {
+  background: var(--hud); border-bottom: none; color: #fff; min-height: 62px;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: var(--float);               /* it is sticky, so it floats */
+}
+.topbar .brand { color: #fff; }
+/* the lighter pink on the dark bar: 6.3:1, where brand pink is 3.9 */
+.topbar .wordmark { color: var(--pink); }
+.topbar .wordmark b { color: var(--secondary); }
+
+.topbar .nav-link {
+  position: relative; background: transparent; box-shadow: none; border-radius: 0;
+  color: var(--hud-text);
+  font-family: var(--font-hud); font-size: .86rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: var(--track);
+  padding: 10px 14px;
+}
+.topbar .nav-link .ic { color: inherit; }
+.topbar .nav-link::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px;
+  background: #fff; transform: scaleX(0); transform-origin: left;
+  transition: transform .2s ease;
+}
+.topbar .nav-link:hover { color: #fff; filter: none; }
+.topbar .nav-link:hover .ic { color: #fff; }
+.topbar .nav-link:hover::after { transform: scaleX(1); }
+.topbar .nav-link:active { transform: none; box-shadow: none; }
+/* the page you are on: white text and the accent bar */
+.topbar .nav-link.is-current { background: transparent; color: #fff; box-shadow: none; }
+.topbar .nav-link.is-current .ic { color: #fff; opacity: 1; }
+.topbar .nav-link.is-current::after { transform: scaleX(1); background: var(--arena); }
+.topbar .nav-link:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+
+.topbar .nav-stats .pill {
+  background: rgba(255, 255, 255, .1); color: #fff; border-radius: 2px;
+  font-family: var(--font-hud); font-weight: 700; padding: 7px 14px;
+}
+.topbar .nav-stats .pill.coins .ic { color: var(--sun); opacity: 1; }
+.topbar .nav-stats .pill.points .ic { color: var(--secondary); opacity: 1; }
+
+.topbar .nav-who {
+  background: rgba(255, 255, 255, .1); color: #fff; border-radius: 2px;
+  box-shadow: none; font-family: var(--font-hud);
+}
+.topbar .nav-who:hover, .topbar .nav-who.is-current { background: rgba(255, 255, 255, .2); color: #fff; }
+.topbar .nav-who:focus-visible, .topbar .nav-out:focus-visible, .topbar .nav-snd:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.topbar .nav-who .avatar-img { border-radius: 2px; background: rgba(255, 255, 255, .12); }
+.topbar .nav-out { color: var(--hud-text); font-family: var(--font-hud); border-radius: 2px; }
+.topbar .nav-out:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.topbar .nav-snd { color: var(--hud-text); border-radius: 2px; }
+.topbar .nav-snd:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.topbar .nav-snd[aria-pressed="true"] { color: #fff; }
+
+.lang-switch { border-radius: 2px; padding: 2px; box-shadow: none; }
+.lang-switch button { border-radius: 2px; font-family: var(--font-hud); }
+.lang-switch button.on { background: var(--accent-fill); color: #fff; box-shadow: none; }
+.topbar .lang-switch { background: rgba(255, 255, 255, .1); }
+.topbar .lang-switch button { color: var(--hud-text); }
+.topbar .lang-switch button.on { color: #fff; }
+
+/* The HUD labels are narrower than the old pill buttons, so one row fits from
+   1280px (theme.css wraps below 1580px for the wider pills). */
+@media (min-width: 1280px) and (max-width: 1580px) {
+  .topbar { flex-wrap: nowrap; position: sticky; padding: 8px 18px; }
+  .topbar .nav-links { order: 0; width: auto; margin-left: auto; -webkit-mask-image: none; mask-image: none; }
+  .topbar .nav-account { margin-left: 0; }
+  /* the log-out button keeps its icon and its name for screen readers */
+  .topbar .nav-out span {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+}
+
+/* ---------- phones: the tab bar and the More sheet ---------- */
+@media (max-width: 640px) {
+  .topbar { min-height: 54px; }
+  .nav-back { background: rgba(255, 255, 255, .12); color: #fff; box-shadow: none; border-radius: 2px; width: 44px; height: 44px; }
+  .nav-back:active { transform: none; box-shadow: none; }
+  .dock {
+    background: var(--hud); border-top: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: 0 -10px 26px rgba(20, 14, 40, .35);
+  }
+  .dock-link { color: var(--hud-text); font-family: var(--font-hud); }
+  .dock-link.is-current { color: #fff; }
+  .dock-ic { border-radius: 2px; }
+  .dock-link.is-current .dock-ic { background: var(--accent-fill); color: #fff; }
+  .dock-link:focus-visible .dock-ic { outline: 2px solid #fff; outline-offset: 2px; }
+  .more-sheet[open] { border-radius: 0; box-shadow: 0 -12px 40px rgba(20, 14, 40, .35); }
+  .sheet-who, .sheet-link, .sheet-out, .sheet-close, .sheet-snd-btn { border-radius: 2px; }
+  .sheet-lang .lang-switch button { min-height: 44px; }
+}
+
+/* ---------- panels, buttons, fields ---------- */
+.card { border-radius: 3px; border: 1px solid var(--line); background: var(--card); }
+
+/* Filled buttons are actions: cut corner, one accent for the main one, ink for the rest. */
+.btn {
+  font-family: var(--font-hud); text-transform: uppercase; letter-spacing: var(--track);
+  border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+  transition: transform .08s ease, filter .15s ease, background-color .15s ease;
+}
+.btn.btn { background: var(--accent-fill); color: #fff; box-shadow: none; }
+.btn.secondary.btn, .btn.grape.btn { background: var(--hud); }
+.btn.danger.btn { background: #b01f3a; }
+.btn.btn:hover { filter: brightness(1.14); }
+.btn.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn.btn:disabled { filter: none; opacity: .5; transform: none; }
+.btn.btn:focus-visible { clip-path: none; outline: 3px solid var(--hud); outline-offset: 3px; }
+/* The quiet action: an outline, no cut. */
+.btn.ghost.btn {
+  background: #fff; color: var(--hud); clip-path: none; border-radius: 2px;
+  box-shadow: inset 0 0 0 2px var(--hud);
+}
+.btn.ghost.btn:hover { background: #ece9f5; filter: none; }
+.btn.ghost.btn:active { box-shadow: inset 0 0 0 2px var(--hud); }
+
+input, select, textarea { border-radius: 2px; border-width: 2px; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--hud); box-shadow: 0 0 0 3px rgba(36, 30, 58, .2);
+}
+
+.pill { border-radius: 2px; font-family: var(--font-hud); }
+
+/* A notice floats, and its left edge is its kind: green done, red problem, blue note. */
+.toast {
+  border-radius: 2px; font-family: var(--font-hud);
+  background: var(--hud); box-shadow: inset 5px 0 0 var(--secondary), var(--float);
+}
+.toast.good { background: var(--hud); box-shadow: inset 5px 0 0 var(--grass), var(--float); }
+.toast.bad { background: var(--hud); box-shadow: inset 5px 0 0 var(--bad), var(--float); }
+
+.viewas-bar { border-radius: 2px; background: var(--hud); box-shadow: var(--float); }
+.viewas-back { border-radius: 2px; font-family: var(--font-hud); }
+
+.speech { border-radius: 4px; border: 1px solid var(--line); }
+.speech::after { filter: none; }
+
+/* =========================================================================
+   THE LOBBY (dashboard.html)
+   ========================================================================= */
+
+.wrap.lobby {
+  max-width: 1500px;
+  display: grid; grid-template-columns: 230px minmax(0, 1fr) 320px;
+  gap: 28px; align-items: start;
+}
+
+/* The menu: tall condensed words. PLAY is the screen's one accent. */
+.lobby-menu { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 2px; padding-top: 26px; }
+.lm-item {
+  display: block; padding: 6px 12px;
+  color: var(--hud); text-decoration: none;
+  transition: transform .18s ease;
+}
+.lm-label {
+  font-family: var(--font-display); font-size: 2.35rem; line-height: 1;
+  text-transform: uppercase; letter-spacing: .02em;
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 3px no-repeat;
+  transition: background-size .2s ease;
+}
+:lang(th) .lm-label { font-family: var(--font-hud); font-weight: 700; font-size: 1.7rem; line-height: 1.3; }
+.lm-item:hover { transform: translateX(6px); }
+.lm-item:hover .lm-label, .lm-item:focus-visible .lm-label { background-size: 100% 3px; }
+.lm-item:focus-visible { outline: 3px solid var(--hud); outline-offset: 2px; }
+.lm-item.is-play { color: var(--accent-fill); margin-bottom: 10px; }
+.lm-item.is-play .lm-label { font-size: 4.4rem; }
+:lang(th) .lm-item.is-play .lm-label { font-size: 2.8rem; }
+
+/* The centre: your character on a hex stage (the same hex as a badge). */
+.lobby-hero {
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; padding-top: 20px;
+}
+.hero-stage { position: relative; width: min(440px, 100%); height: 400px; display: grid; place-items: end center; }
+.hero-ring {
+  position: absolute; left: 50%; top: 18px; width: 330px; height: 360px;
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background: var(--arena);
+}
+.hero-ring::after {
+  content: ''; position: absolute; inset: 12px;
+  clip-path: polygon(50% 0, 96% 24%, 96% 76%, 50% 100%, 4% 76%, 4% 24%);
+  background: var(--hud);
+}
+/* The box is reserved before the picture arrives, so nothing jumps. */
+.hero-figure { position: relative; z-index: 2; margin-bottom: 14px; width: 200px; height: 330px; display: grid; place-items: center; }
+.hero-figure .student-figure { height: 330px; filter: none; }
+.hero-plinth { display: none; }
+
+.hero-plate { text-align: center; width: min(460px, 100%); margin-top: 6px; }
+.hero-kicker { font-family: var(--font-hud); font-weight: 600; font-size: 1rem; color: var(--ink); }
+.hero-name {
+  font-family: var(--font-display); font-weight: 400; text-transform: uppercase;
+  font-size: clamp(2.6rem, 5vw, 3.8rem); line-height: .95; letter-spacing: .02em;
+  color: var(--hud); margin: 2px 0 12px; overflow-wrap: anywhere;
+}
+:lang(th) .hero-name { font-family: var(--font-hud); font-weight: 700; line-height: 1.2; font-size: clamp(1.9rem, 4vw, 2.6rem); }
+.hero-prog { width: min(420px, 100%); margin: 0 auto; }
+.hero-play { display: none; margin-top: 16px; }
+.lobby-state { margin: 60px 0; text-align: center; font-weight: 600; color: var(--ink); }
+.lobby-state .btn { margin-top: 12px; }
+
+.hero-kru {
+  position: absolute; left: 0; top: 34px; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 210px;
+}
+.hero-say {
+  margin: 0; padding: 10px 14px; border-radius: 4px;
+  font-weight: 600; font-size: .9rem; line-height: 1.4;
+  background: #fff; color: var(--ink); border: 1px solid var(--line);
+}
+
+/* The right column. The mission panel is the HUD's; the others are plain cards. */
+.lobby-side { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 14px; padding-top: 26px; }
+.hud-panel {
+  background: var(--hud); color: #fff; padding: 16px 18px 18px;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+.hud-panel.light { background: #fff; color: var(--ink); clip-path: none; border: 1px solid var(--line); border-radius: 3px; }
+.hud-head { font-family: var(--font-hud); font-weight: 700; font-size: .85rem; color: var(--hud-text); margin-bottom: 10px; }
+.hud-panel.light .hud-head { color: var(--ink-soft); }
+.hud-mission-lv { font-family: var(--font-hud); font-weight: 700; font-size: .85rem; color: var(--sun); }
+.hud-mission-title { font-family: var(--font-hud); font-weight: 700; font-size: 1.25rem; line-height: 1.2; margin: 2px 0 12px; }
+.hud-mission-icon { font-size: 1.5rem; margin-right: 6px; }
+.hud-panel .btn { width: 100%; }
+/* PLAY in the menu is the accent on this screen; this one is the quieter way in. */
+.hud-panel .btn.btn { background: #fff; color: var(--hud); }
+.hud-panel .btn.btn:hover { background: #ece9f5; filter: none; }
+.hud-panel .btn.btn:focus-visible { outline-color: #fff; }
+
+.mission { padding: 10px 0; border-top: 1px solid var(--line); }
+.mission:first-of-type { border-top: none; padding-top: 2px; }
+.mission-row { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.mission-name { font-family: var(--font-hud); font-weight: 600; font-size: .92rem; }
+.mission-count { font-family: var(--font-hud); font-weight: 700; font-size: .85rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.mission-bar { height: 6px; margin: 7px 0 5px; background: #e4e0ef; overflow: hidden; }
+.mission-bar > span { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--hud); }
+.mission.is-done .mission-bar > span { background: var(--done); }
+.mission-reward { font-size: .8rem; font-weight: 600; color: var(--ink-soft); }
+
+.hud-rank { display: flex; align-items: center; gap: 14px; }
+.hud-rank-num { font-family: var(--font-display); font-size: 3.4rem; line-height: .9; color: var(--hud); }
+.hud-rank-meta { font-family: var(--font-hud); font-weight: 600; font-size: .85rem; color: var(--ink-soft); line-height: 1.4; }
+.hud-rank-meta b { color: var(--ink); font-size: 1rem; }
+.hud-link {
+  display: inline-flex; align-items: center; margin-top: 8px;
+  font-family: var(--font-hud); font-weight: 700; font-size: .88rem;
+  color: var(--brand-blue); text-decoration: underline; text-underline-offset: 3px;
+}
+.hud-link:hover { color: var(--brand-blue-dark); text-decoration-thickness: 2px; }
+
+@media (max-width: 1180px) {
+  .wrap.lobby { grid-template-columns: minmax(0, 1fr); max-width: 760px; gap: 14px; }
+  .lobby-menu { display: none; }        /* the top bar carries the same destinations */
+  .lobby-side { position: static; padding-top: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .hero-play { display: inline-flex; }
+}
+@media (max-width: 700px) {
+  .hero-stage { height: 300px; }
+  .hero-ring { width: 240px; height: 262px; }
+  .hero-ring::after { inset: 9px; }
+  .hero-figure { width: 150px; height: 240px; }
+  .hero-figure .student-figure { height: 240px; }
+  .hero-kru { position: static; flex-direction: row; align-items: center; max-width: none; width: 100%; margin-bottom: 4px; }
+  .hero-kru .ruby { flex: none; }
+}
+
+/* =========================================================================
+   THE MAP (dashboard.html#map)
+   ========================================================================= */
+
+.wrap.map-view { max-width: 1080px; }
+.wrap.map-view, .wrap.lobby:not(.hidden) { animation: view-in .2s ease both; }   /* one cue that the view changed */
+@keyframes view-in { from { opacity: 0; } to { opacity: 1; } }
+
+.map-toolbar {
+  display: flex; align-items: center; margin-top: 16px;
+  position: sticky; top: 12px; z-index: 15; pointer-events: none;   /* in reach while the map scrolls */
+}
+.map-toolbar > * { pointer-events: auto; }
+@media (min-width: 1280px) { .map-toolbar { top: 76px; } }
+.map-back {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 0 20px 0 18px;
+  background: var(--hud); color: #fff; text-decoration: none;
+  font-family: var(--font-hud); font-weight: 700; font-size: .9rem;
+  text-transform: uppercase; letter-spacing: var(--track);
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 12px 100%, 0 50%);   /* it points back */
+  transition: background-color .15s ease;
+}
+.map-back:hover { background: var(--hud-2); }
+.map-back:focus-visible { clip-path: none; outline: 3px solid var(--hud); outline-offset: 3px; }
+.map-back-ic { font-size: .75rem; }
+
+.map-head { margin-top: 26px; }
+.map-view .map-head { margin-top: 6px; }
+.progress-bar { height: 14px; border-radius: 0; border: 1px solid var(--line); background: #fff; }
+.progress-bar > span { background: var(--done); }
+
+/* The board the levels are plotted on. The only grid in the app. */
+.scene {
+  border-radius: 4px; border: 1px solid var(--line);
+  background:
+    repeating-linear-gradient(0deg, rgba(36, 30, 58, .05) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(36, 30, 58, .05) 0 1px, transparent 1px 32px),
+    #fff;
+}
+
+/* Levels are hexes. The 3D edge is painted inside the shape, because a clipped
+   element cannot cast a box-shadow. */
+.node-disc {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: linear-gradient(180deg, var(--face) 0 82%, var(--edge) 82% 100%);
+}
+.node-disc::after { display: none; }
+.node:active .node-disc, .node.is-locked:active .node-disc { box-shadow: none; }
+.node.is-now .node-disc { animation: none; }
+.node-n { font-family: var(--font-display); font-weight: 400; font-size: calc(var(--size) * .5); letter-spacing: 0; }
+.node:focus-visible .node-disc { outline: none; }
+.node:focus-visible .node-title { outline: 3px solid var(--hud); outline-offset: 3px; }
+
+/* the level you are on: a still pink hex behind it, plus the tag and the figure */
+.node.is-now::before {
+  content: ''; position: absolute; top: -8px; left: 50%; z-index: -1;
+  width: calc(var(--size) + 16px); height: calc(var(--size) + 16px);
+  transform: translateX(-50%);
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: var(--arena);
+}
+
+/* name tags: one slanted shape for every label that names a thing on a board */
+.node-title, .hub-name, .you-tag, .node-when {
+  border-radius: 0; box-shadow: none;
+  font-family: var(--font-hud); font-weight: 700;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+.node-title { background: var(--hud); color: #fff; padding: 5px 12px; }
+.node.is-now .node-title { background: var(--accent-fill); }
+.node.is-locked .node-title { background: #e6e1f2; color: #4b4468; }
+.node-when { background: var(--hud); color: #fff; }
+.node-when .ic { color: var(--sun); }
+.you-tag { background: var(--accent-fill); color: #fff; padding: 5px 14px; }
+.you.done .you-tag { background: var(--sun); color: var(--hud); box-shadow: none; }
+.student-figure { filter: none; }
+
+/* =========================================================================
+   EVERY OTHER PAGE
+   ========================================================================= */
+
+/* Content panels: square, flat, on a line. Their own colours stay. */
+.stage-card, .board-hero, .q-wallet, .q-empty, .q-history, .b-result-wallet, .set-card,
+.cert-featured, .post-card, .composer, .assign-banner, .class-banner, .feed-empty,
+.private-qs, .rating-block, .ask-teacher, .new-assign, .ch-res, .ch-sim, .ch-feedback,
+.ch-check-card, .flow-note, .pending-box, .cert-preview, .story-resume, .story-board-how,
+.video-frame, .story-img, .q-img, .ch-q-img, .att-img, .att-file, .file-chip, .comment,
+.composer textarea, .written-input, .set-input, .ch-input, .ch-area, .tutor-msg, .tutor-input,
+.login-card, .explain, .quiz-timer, .step, .board-item, .ch-group-title,
+.choice, .ch-choice, .b-diff, .b-opp, .q-card, .ch-card, .badge, .lb-row, .board-tabs button,
+.set-av, .like-btn, .shelf-progress .sp-bar, .shelf-progress .sp-bar > span, .set-hero-face,
+.set-progress-bar, .set-progress-bar span, .prof-badge, .prof-post, .prof-latest {
+  border-radius: 3px;
+}
+.stage-card, .board-hero, .set-card, .q-history, .q-empty, .post-card, .lb-row, .badge,
+.prof-badge, .prof-post, .q-card, .ch-card { border: 1px solid var(--line); }
+
+.q-section-title, .b-step-title, .ch-group-title, .set-card h2, .q-history h2, .q-history h3,
+.board-tabs button, .badge-name, .podium .pname { font-family: var(--font-hud); }
+
+/* ---------- level board ---------- */
+.hub-bubble { border-radius: 4px; box-shadow: none; border: 1px solid var(--line); }
+.hub-bubble::before { border-radius: 0; border-left: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.hub-disc {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(50% 0, 94% 25%, 94% 75%, 50% 100%, 6% 75%, 6% 25%);
+  background: linear-gradient(180deg, var(--face) 0 82%, var(--edge) 82% 100%);
+}
+.hub-disc::after { display: none; }
+.hub-node:active .hub-disc, .hub-node.is-locked:active .hub-disc, .hub-node.is-empty:active .hub-disc { box-shadow: none; }
+.hub-node.is-next .hub-disc { animation: none; }
+.hub-node:focus-visible .hub-disc { outline: none; }
+.hub-node:focus-visible .hub-name { outline: 3px solid var(--hud); outline-offset: 3px; }
+.hub-name { background: var(--hud); color: #fff; }
+.hub-node.is-next .hub-name { background: var(--accent-fill); }
+.hub-node.is-locked .hub-name, .hub-node.is-empty .hub-name { background: #e6e1f2; color: #4b4468; }
+.hub-step + .hub-step::before { border-radius: 0; width: 3px; border: none; background: rgba(36, 30, 58, .28); }
+.board-tabs button.on { border-color: var(--hud); }
+
+/* ---------- quiz ---------- */
+.choice:hover:not(:disabled) { border-color: var(--hud); }
+.choice.picked { border-color: var(--hud); }
+/* letter chips: ink on a tint (the grape original measures 2.86:1); the verdict
+   colours are the dark green and red that carry white text */
+.choice .ltr { border-radius: 2px; font-family: var(--font-hud); background: #e9e5f5; color: var(--hud); }
+.choice.correct .ltr { background: var(--done); color: #fff; }
+.choice.wrong .ltr { background: #b01f3a; color: #fff; }
+.quiz-timer { font-family: var(--font-hud); background: #fff; border: 1px solid var(--line); color: var(--hud); }
+.quiz-timer.warn { background: #ffe9ee; color: #b01f3a; }
+.speaker { color: var(--ruby-dark); }
+
+/* ---------- battle ---------- */
+.b-diff-stake { color: #9a5600; }
+.cert-preview { border: 1px solid var(--line); }
+
+/* ---------- leaderboard ---------- */
+.lb-seg { border-radius: 2px; background: #fff; border: 1px solid var(--line); }
+.lb-seg button { border-radius: 2px; font-family: var(--font-hud); }
+.lb-seg button.on { background: var(--hud); color: #fff; box-shadow: none; }
+.podium .pav, .podium .c1 .pav { border-radius: 3px; box-shadow: none; }
+.podium .pav .avatar-img, .lb-row .av .avatar-img, .lb-row .av { border-radius: 2px; }
+.podium .ppts { color: var(--ink); }
+/* medals: flat metal, ink numerals (7.6, 6.5 and 5.0 to 1) */
+.podium .stand { border-radius: 0; box-shadow: none; }
+.podium .c1 .stand { background: #f0a500; }
+.podium .c2 .stand { background: #9aa7b8; }
+.podium .c3 .stand { background: #c97f3e; }
+.podium .stand .stand-num { font-family: var(--font-display); font-weight: 400; font-size: 2.8rem; color: var(--hud); text-shadow: none; }
+.lb-row .rank, .lb-row .pts { font-family: var(--font-hud); }
+.lb-row .pts { color: var(--hud); }
+/* your own row: an accent edge and the "You" tag */
+.lb-row.me { background: #fff; border-color: var(--hud); box-shadow: inset 5px 0 0 var(--arena); }
+.lb-row.me .av { background: #f1eef9; }
+.lb-row.lowest { border-color: var(--line); }
+.lb-row .you-tag { clip-path: none; border-radius: 2px; padding: 2px 8px; }
+.cheer-tag { border-radius: 2px; color: #b01f3a; }
+.your-rank { border-radius: 2px; background: var(--hud); font-family: var(--font-hud); box-shadow: var(--float); }
+.your-rank .yr-rank { font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; }
+
+/* ---------- badge shelf ---------- */
+.shelf-progress .sp-bar { background: #fff; border: 1px solid var(--line); box-shadow: none; }
+.shelf-progress .sp-bar > span { background: var(--done); }
+.shelf-progress .sp-label, .shelf-progress .sp-count { font-family: var(--font-hud); color: var(--ink); }
+.cert-featured { background: #fff; border: 1px solid var(--line); }
+.cert-featured .cf-label { font-family: var(--font-hud); color: #8a6400; letter-spacing: 0; }
+.badge.earned { background: #fff; border-color: var(--line); }
+.badge-meta.earned-meta { color: var(--ink); }
+
+/* ---------- login ---------- */
+.login-card { border: 1px solid var(--line); }
+.login-card h1, .login-card h2 { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; font-size: 2.1rem; line-height: 1; }
+:lang(th) .login-card h1, :lang(th) .login-card h2 { font-family: var(--font-hud); font-weight: 700; font-size: 1.6rem; line-height: 1.3; }
+.login-cta {
+  border-radius: 0; font-family: var(--font-hud); letter-spacing: var(--track);
+  background: var(--accent-fill); box-shadow: none;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)));
+}
+.login-cta:active { box-shadow: none; transform: translateY(2px); }
+.login-cta:focus-visible { clip-path: none; outline: 3px solid var(--hud); outline-offset: 3px; }
+.login-mascot { animation: none; }
+/* the green these were measures 2.1:1 on white */
+.login-links a { color: var(--brand-blue); text-decoration: underline; text-underline-offset: 3px; }
+.login-error { color: #b01f3a; }
+.snd-fab { border-radius: 2px; background: var(--hud); color: #fff; box-shadow: var(--float); }
+
+/* ---------- profile ---------- */
+.prof-cover { border-radius: 4px 4px 0 0; }
+.prof-head { border-radius: 0 0 4px 4px; border: 1px solid var(--line); border-top: none; }
+.prof-avatar { border-radius: 4px; box-shadow: none; border: 5px solid #fff; outline: 1px solid var(--line); }
+.prof-name { font-family: var(--font-display); font-weight: 400; text-transform: uppercase; letter-spacing: .02em; font-size: 2.6rem; line-height: 1; }
+:lang(th) .prof-name { font-family: var(--font-hud); font-weight: 700; font-size: 1.9rem; line-height: 1.25; }
+.prof-cover .prof-rankbig { font-family: var(--font-display); font-weight: 400; font-size: 3.6rem; }
+.prof-cover .prof-rankbig small, .prof-sub, .prof-stat span, .prof-tabs button, .prof-latest .pl-label,
+.prof-badge .pb-title, .badge-tier { font-family: var(--font-hud); }
+.prof-stat b { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; }
+.prof-tabs .count { border-radius: 2px; }
+.prof-post .pp-imgs img { border-radius: 2px; }
+.snd-switch:checked { background: var(--hud); }
+
+/* ---------- touch ---------- */
+@media (pointer: coarse) {
+  .btn, .login-cta, .prof-tabs button, .lb-seg button, .board-tabs button, .hud-link, .lang-switch button { min-height: 44px; }
+}
+
+/* ---------- motion ---------- */
+/* Nothing moves on a loop. Mascots stand still; the quiz timer's last-seconds
+   pulse stays, because it is a real warning. */
+.floaty { animation: none; }
+
+/* ---------- Thai ---------- */
+/* Thai has no capitals, Bebas Neue has no Thai, and tracking pulls tone marks
+   off their letters: titles use the HUD face, and nothing is letter-spaced. */
+:root:lang(th) { --track: 0em; }
+:lang(th) .page-title h1, :lang(th) .map-head h1, :lang(th) .title-xl {
+  font-family: var(--font-hud); font-weight: 700; line-height: 1.25; letter-spacing: 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}

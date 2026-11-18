@@ -518,7 +518,8 @@ const Duel = (() => {
       outcome = await API.post(`/api/battles/duels/${fight.id}/answer`, { answers });
       stopTimer();
       setNavCoins(outcome.coins);
-      if (outcome.outcome === 'win') confetti(110);
+      if (outcome.outcome === 'win') { confetti(110); window.sfx && sfx('coin'); }
+      else window.sfx && sfx('lose');
       paintResult();
     } catch (e) {
       toast(messageFor(e.message), 'bad');

@@ -45,15 +45,18 @@ function render() {
           <div class="set-chips">
             <span class="pill points">${ICON.star(14)} ${s.points} ${escapeHtml(t('nav.pts'))}</span>
             <span class="pill">${ICON.coin(14)} ${s.coins} ${escapeHtml(t('nav.coins'))}</span>
-            <span class="pill">${ICON.certificates(14)} ${s.certificates}</span>
+            <span class="pill" title="${escapeHtml(t('nav.certificates'))}">${ICON.certificates(14)} ${s.certificates} ${escapeHtml(t('nav.certificates'))}</span>
           </div>
           <div class="set-progress">
             <div class="set-progress-bar"><span style="width:${pct}%"></span></div>
             <span class="set-progress-txt">${escapeHtml(t('set.progress', { done: s.levelsDone, total: s.levelsTotal }))}</span>
           </div>
           ${s.joinedAt ? `<p class="set-joined">${escapeHtml(t('set.joined', { date: fmtDate(s.joinedAt) }))}</p>` : ''}
+          <a class="btn ghost" style="margin-top:10px" href="/profile.html">${ICON.people(16)} ${escapeHtml(t('prof.viewMine'))}</a>
         </div>
       </section>
+
+      <section class="set-card pop-in" id="soundCard"></section>
 
       <section class="set-card pop-in">
         <h2 class="set-h">${ICON.people(19)} <span data-i18n="set.lookTitle">How you appear</span></h2>
@@ -107,6 +110,10 @@ function render() {
     </div>`;
 
   applyI18n();
+
+  // The sound card fills itself (js/sound.js); without that file it is removed.
+  const sound = document.getElementById('soundCard');
+  if (typeof SFX !== 'undefined') SFX.mountSettings(sound); else if (sound) sound.remove();
 
   /* mountNav() renders the coin and point pills at 0 and leaves each page to
      fill them. This page already holds both numbers from /profile, so it

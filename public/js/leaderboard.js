@@ -1,5 +1,8 @@
 // Leaderboard: Kahoot/Quizizz-style board — crowned podium, ranked rows,
 // and a sticky "your rank" bar. Points = best pre + post per level + bonus.
+// Every name opens that player's profile (profile.html?id=…).
+
+const profileHref = (id) => `/profile.html?id=${encodeURIComponent(id)}`;
 
 const me = guard('student');
 addClouds();
@@ -39,8 +42,10 @@ const medal = (rank) => `<span class="medal m${rank}" role="img" aria-label="#${
     podium.innerHTML = top3.map((s) => `
       <div class="col c${s.rank}">
         <div class="crown">${s.rank === 1 ? ICON.crown(28) : ''}</div>
-        <div class="pav ${s.id === meId ? 'me' : ''}">${avatarHtml(s.avatar, 46)}</div>
-        <div class="pname">${escapeHtml(s.name)}${s.id === meId ? t('lb.youSuffix') : ''}</div>
+        <a class="pod-link" href="${profileHref(s.id)}" aria-label="${escapeHtml(t('prof.open', { name: s.name }))}">
+          <div class="pav ${s.id === meId ? 'me' : ''}">${avatarHtml(s.avatar, 46)}</div>
+          <div class="pname">${escapeHtml(s.name)}${s.id === meId ? t('lb.youSuffix') : ''}</div>
+        </a>
         <div class="ppts">${s.points} ${t('nav.pts')}</div>
         <div class="stand"><span class="stand-num">${s.rank}</span></div>
       </div>`).join('');
@@ -51,7 +56,8 @@ const medal = (rank) => `<span class="medal m${rank}" role="img" aria-label="#${
       const isMe = s.id === meId;
       const isLowest = leaderboard.length > 3 && s.points === lowestPts && s.rank === leaderboard.length;
       return `
-      <div class="lb-row ${isMe ? 'me' : ''} ${s.rank <= 3 ? 'top3' : ''} ${isLowest ? 'lowest' : ''}">
+      <a class="lb-row ${isMe ? 'me' : ''} ${s.rank <= 3 ? 'top3' : ''} ${isLowest ? 'lowest' : ''}"
+         href="${profileHref(s.id)}" title="${escapeHtml(t('prof.open', { name: s.name }))}">
         <div class="rank">${s.rank <= 3 ? medal(s.rank) : '#' + s.rank}</div>
         <div class="av">${avatarHtml(s.avatar, 30)}</div>
         <div class="who">
@@ -62,7 +68,7 @@ const medal = (rank) => `<span class="medal m${rank}" role="img" aria-label="#${
           </div>
         </div>
         <div class="pts">${s.points}</div>
-      </div>`;
+      </a>`;
     }).join('');
 
     // Sticky "your rank" bar — computed from the array you already received.

@@ -125,6 +125,7 @@ app.use('/api/work', workRoutes.studentRouter);                      // storyboa
 app.use('/api/teacher/logs', workRoutes.teacherRouter);              // Student Logs
 app.use('/api/teacher', require('./src/routes/teacher.routes'));
 app.use('/api/leaderboard', require('./src/routes/leaderboard.routes'));
+app.use('/api/users', require('./src/routes/users.routes'));          // public player profiles (badges, posts)
 app.use('/api/posts', require('./src/routes/posts.routes'));
 app.use('/api/tutor', require('./src/routes/tutor.routes'));        // Kru CJ, the AI challenge tutor
 

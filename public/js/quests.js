@@ -217,6 +217,7 @@ async function submit(auto) {
     setNavCoins(res.coins);
     if (res.submission.coinsAwarded > 0) {
       toast(t('quest.coinsAdded', { n: res.submission.coinsAwarded }), 'good');
+      window.sfx && sfx('coin');
       confetti(90);
     } else {
       toast(t('quest.noCoins'), '');
